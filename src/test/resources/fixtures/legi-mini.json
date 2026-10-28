@@ -1,0 +1,87 @@
+{
+  "type": "code",
+  "data": {
+    "id": "LEGITEXT000000000001",
+    "cid": "LEGITEXT000000000001",
+    "title": "Code de test",
+    "etat": "VIGUEUR",
+    "dateDebutVersion": "2020-01-01",
+    "dateFinVersion": "2999-01-01"
+  },
+  "children": [
+    {
+      "type": "section",
+      "data": {
+        "id": "LEGISCTA000000000001",
+        "cid": "LEGISCTA000000000001",
+        "title": "Livre I",
+        "etat": "VIGUEUR",
+        "intOrdre": 1,
+        "dateDebut": "2020-01-01",
+        "dateFin": "2999-01-01"
+      },
+      "children": [
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000001",
+            "cid": "LEGIARTI0000000000C1",
+            "num": "L1221-1",
+            "texte": "Contenu de l'article un.",
+            "texteHtml": "<p>Contenu de l'article un.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 1,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000,
+            "lienModifications": [],
+            "articleVersions": []
+          }
+        },
+        {
+          "type": "section",
+          "data": {
+            "id": "LEGISCTA000000000002",
+            "cid": "LEGISCTA000000000002",
+            "title": "Titre I",
+            "etat": "VIGUEUR",
+            "intOrdre": 1,
+            "dateDebut": "2020-01-01",
+            "dateFin": "2999-01-01"
+          },
+          "children": [
+            {
+              "type": "article",
+              "data": {
+                "id": "LEGIARTI000000000002",
+                "cid": "LEGIARTI0000000000C2",
+                "num": "L1221-2",
+                "texte": "Contenu de l'article deux.",
+                "texteHtml": "<p>Contenu de l'article deux.</p>",
+                "etat": "VIGUEUR",
+                "intOrdre": 1,
+                "dateDebut": 1577836800000,
+                "dateFin": 32472144000000,
+                "lienModifications": []
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "article",
+      "data": {
+        "id": "LEGIARTI000000000003",
+        "cid": "LEGIARTI0000000000C3",
+        "num": "L1221-3",
+        "texte": "Contenu de l'article trois, abroge.",
+        "texteHtml": "<p>Contenu de l'article trois.</p>",
+        "etat": "ABROGE",
+        "intOrdre": 2,
+        "dateDebut": 1577836800000,
+        "dateFin": 1609459200000,
+        "lienModifications": []
+      }
+    }
+  ]
+}

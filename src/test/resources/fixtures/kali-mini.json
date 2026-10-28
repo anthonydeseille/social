@@ -1,0 +1,47 @@
+{
+  "type": "convention collective",
+  "data": {
+    "num": 9999,
+    "title": "Convention collective de test",
+    "id": "KALICONT000000000001",
+    "shortTitle": "Test",
+    "categorisation": ["Test"]
+  },
+  "children": [
+    {
+      "type": "section",
+      "data": {
+        "cid": "KALISCTA000000000001",
+        "intOrdre": 1,
+        "id": "KALISCTA000000000001",
+        "title": "Chapitre I",
+        "etat": "VIGUEUR_ETEN"
+      },
+      "children": [
+        {
+          "type": "article",
+          "data": {
+            "cid": "KALIARTI0000000000C1",
+            "intOrdre": 1,
+            "id": "KALIARTI000000000001",
+            "num": "Article 1",
+            "content": "<p>Essai convention, article A.</p>",
+            "etat": "VIGUEUR_ETEN",
+            "lstLienModification": []
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "cid": "KALIARTI0000000000C2",
+            "intOrdre": 2,
+            "id": "KALIARTI000000000002",
+            "content": "<p>Essai convention, article B.</p>",
+            "etat": "VIGUEUR_NON_ETEN",
+            "lstLienModification": []
+          }
+        }
+      ]
+    }
+  ]
+}

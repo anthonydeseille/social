@@ -1,3 +1,26 @@
 spring:
   application:
     name: social
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  batch:
+    job:
+      enabled: false
+
+droits:
+  ingestion:
+    base-url: https://raw.githubusercontent.com
+    cache-dir: ${java.io.tmpdir}/droits-corpus
+    sources:
+      - cle: code
+        type: CODE
+        repo: SocialGouv/legi-data
+        ref: c7bda6b6e389b901b889b316547b407f6f289b86
+        fichier: data/LEGITEXT000006072050.json
+      - cle: syntec
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000005635173.json
