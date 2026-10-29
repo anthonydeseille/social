@@ -6,6 +6,8 @@ const CLE_PROFIL = "droits.profil";
 const formulaire = document.getElementById("formulaire");
 const champs = ["idcc", "statut", "typeContrat", "dateEntree", "classification"];
 
+// Le profil peut contenir des données sensibles (grossesse, santé) : il n'est gardé sur l'appareil
+// que si la personne le demande, et peut être effacé à tout moment.
 function lireProfilSauvegarde() {
   try {
     return JSON.parse(localStorage.getItem(CLE_PROFIL) || "{}");
@@ -16,10 +18,36 @@ function lireProfilSauvegarde() {
 
 function sauvegarderProfil(profil) {
   try {
-    localStorage.setItem(CLE_PROFIL, JSON.stringify(profil));
+    if (document.getElementById("memoriser").checked) localStorage.setItem(CLE_PROFIL, JSON.stringify(profil));
+    else localStorage.removeItem(CLE_PROFIL);
   } catch {
     // stockage indisponible (navigation privée…) : le profil n'est simplement pas retenu
   }
+}
+
+function effacerProfil() {
+  try { localStorage.removeItem(CLE_PROFIL); } catch { /* rien à effacer */ }
+  for (const champ of champs) document.getElementById(champ).value = "";
+  formulaire.querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = false; });
+}
+
+/** Garde dans la liste une convention mémorisée qui n'y figure pas (non intégrée ou liste indisponible). */
+function conserverConvention(idcc) {
+  const liste = document.getElementById("idcc");
+  if (!idcc || [...liste.options].some(o => Number(o.value) === Number(idcc))) return;
+  const option = document.createElement("option");
+  option.value = idcc;
+  option.textContent = String(idcc).padStart(4, "0") + " - convention non intégrée (Code du travail seul)";
+  liste.append(option);
+}
+
+/** Texte lisible d'un HTML d'article : sauts de ligne et paragraphes conservés, rien n'est exécuté. */
+function texteDepuisHtml(html) {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+  doc.querySelectorAll("p, div, li, tr, h1, h2, h3, h4, h5, h6, table, ul, ol").forEach(bloc => bloc.after("\n\n"));
+  return doc.body.textContent.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function profilDuFormulaire() {
@@ -119,7 +147,10 @@ function afficherReponse(donnees) {
   }
 }
 
+let demandeArticle = 0;
+
 async function ouvrirArticle(sourceId) {
+  const numero = ++demandeArticle;
   const dialogue = document.getElementById("article");
   document.getElementById("article-titre").textContent = "Chargement…";
   document.getElementById("article-fil").textContent = "";
@@ -130,15 +161,16 @@ async function ouvrirArticle(sourceId) {
     const reponse = await fetch("/api/articles/" + encodeURIComponent(sourceId));
     if (!reponse.ok) throw new Error();
     const a = await reponse.json();
+    if (numero !== demandeArticle) return; // un autre article a été demandé entre-temps
     document.getElementById("article-fil").textContent =
       [a.texte.titre].concat((a.filAriane || []).map(s => s.titre)).join(" › ");
     document.getElementById("article-titre").textContent = "Article " + (a.num || "");
     document.getElementById("article-etat").textContent = a.applicable ? "En vigueur" : "Non applicable aujourd'hui (" + a.etat + ")";
-    const html = a.contenuTexte || (a.contenuHtml ? new DOMParser().parseFromString(a.contenuHtml, "text/html").body.textContent : "");
-    document.getElementById("article-texte").textContent = (html || "").trim()
-      + (a.nota ? "\n\nNota : " + new DOMParser().parseFromString(a.nota, "text/html").body.textContent.trim() : "");
+    const texte = a.contenuTexte || texteDepuisHtml(a.contenuHtml);
+    document.getElementById("article-texte").textContent = (texte || "").trim()
+      + (a.nota ? "\n\nNota : " + texteDepuisHtml(a.nota) : "");
   } catch {
-    document.getElementById("article-titre").textContent = "Article indisponible pour le moment.";
+    if (numero === demandeArticle) document.getElementById("article-titre").textContent = "Article indisponible pour le moment.";
   }
 }
 
@@ -188,5 +220,11 @@ formulaire.addEventListener("submit", async e => {
   }
 });
 
-appliquerProfil(lireProfilSauvegarde());
-chargerConventions().then(() => appliquerProfil(lireProfilSauvegarde()));
+document.getElementById("effacer").addEventListener("click", effacerProfil);
+
+const profilSauvegarde = lireProfilSauvegarde();
+document.getElementById("memoriser").checked = Object.keys(profilSauvegarde).length > 0;
+chargerConventions().then(() => {
+  conserverConvention(profilSauvegarde.idcc);
+  appliquerProfil(profilSauvegarde);
+});

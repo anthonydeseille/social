@@ -16,7 +16,7 @@
     <form id="formulaire" novalidate>
       <fieldset>
         <legend>Votre situation</legend>
-        <p class="aide">Ces informations restent dans votre navigateur ; elles ne sont envoyées qu'avec votre question et ne sont pas conservées.</p>
+        <p class="aide">Ces informations ne sont envoyées qu'avec votre question et ne sont pas conservées par le service.</p>
         <div class="grille">
           <label for="idcc">Convention collective
             <select id="idcc" name="idcc"><option value="">Je ne sais pas</option></select>
@@ -53,6 +53,10 @@
           <label><input type="checkbox" name="situations" value="ACCIDENT_DU_TRAVAIL"> Accident du travail</label>
           <label><input type="checkbox" name="situations" value="TRAVAILLEUR_HANDICAPE"> Travailleur handicapé</label>
           <label><input type="checkbox" name="situations" value="SALARIE_PROTEGE"> Représentant du personnel</label>
+        </div>
+        <div class="memoire">
+          <label><input type="checkbox" id="memoriser"> Se souvenir de mes informations sur cet appareil</label>
+          <button type="button" id="effacer" class="secondaire">Effacer mes informations</button>
         </div>
       </fieldset>
 

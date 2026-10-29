@@ -42,6 +42,9 @@ select, input[type="date"], input[type="text"], textarea {
 }
 textarea { resize: vertical; }
 .question { font-weight: 600; }
+.memoire { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; border-top: 1px dashed var(--trait); padding-top: 10px; }
+.memoire label { flex-direction: row; align-items: center; gap: 6px; font-weight: 400; }
+button.secondaire { background: none; color: var(--accent); border: 1px solid var(--trait); padding: 6px 12px; font-weight: 500; }
 .aide { font-size: .85rem; color: var(--gris); font-weight: 400; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 button { font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 6px; border: 0; background: var(--accent); color: var(--surface); cursor: pointer; }
