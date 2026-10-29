@@ -241,6 +241,7 @@ public class Article {
         return ingereLe;
     }
 
+    /** Mis à jour par {@link PreUpdate}, ou explicitement par les mises à jour en masse. */
     public Instant getMajLe() {
         return majLe;
     }

@@ -9,8 +9,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -23,8 +21,6 @@ import tools.jackson.databind.ObjectMapper;
  */
 @Component
 public class MappeurNoeud {
-
-    private static final Logger log = LoggerFactory.getLogger(MappeurNoeud.class);
 
     /** Séparateur des champs dans les empreintes : absent des contenus, évite les collisions par concaténation. */
     private static final char SEPARATEUR = '\u0000';
@@ -54,6 +50,12 @@ public class MappeurNoeud {
         return n == null || n.isNull() || !n.isNumber() ? null : n.asInt();
     }
 
+    /**
+     * État juridique, null si absent.
+     *
+     * @throws IllegalArgumentException si l'état n'est pas connu : le ramener à null écraserait
+     *                                  l'état en base et produirait un faux changement d'état
+     */
     public EtatJuridique etat(JsonNode data) {
         String valeur = texte(data, "etat");
         if (valeur == null || valeur.isBlank()) {
@@ -62,8 +64,8 @@ public class MappeurNoeud {
         try {
             return EtatJuridique.valueOf(valeur);
         } catch (IllegalArgumentException e) {
-            log.warn("État juridique inconnu ignoré : {}", valeur);
-            return null;
+            throw new IllegalArgumentException("État juridique inconnu : " + valeur
+                    + " (à ajouter à " + EtatJuridique.class.getSimpleName() + ")", e);
         }
     }
 

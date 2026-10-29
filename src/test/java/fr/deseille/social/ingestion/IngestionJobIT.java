@@ -35,8 +35,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Teste le job d'ingestion de bout en bout sur des fixtures réduites (Code + convention),
  * en enchaînant des runs sur des variantes de la convention : création, idempotence, journal
- * des changements, disparition consignée une seule fois, réapparition, et échec en cours de
- * step sans fausse disparition.
+ * des changements, disparition consignée une seule fois et réapparition. Les cas d'échec sont
+ * dans {@link IngestionEchecIT}.
  */
 @SpringBootTest
 @SpringBatchTest
@@ -140,15 +140,9 @@ class IngestionJobIT {
         assertThat(journalRepository.findAll())
                 .anyMatch(entree("KALIARTI000000000002", TypeChangement.REAPPARITION));
         assertThat(article("KALIARTI000000000002").getDisparuLe()).isNull();
-
-        // --- Run 7 : convention tronquée → step en échec, aucune fausse disparition ---
-        assertThat(lancerAvecConvention("kali-tronque.json")).isEqualTo(BatchStatus.FAILED);
-        assertThat(journalRepository.count()).isEqualTo(12);
-        assertThat(articleRepository.findAll()).allMatch(a -> a.getDisparuLe() == null);
     }
 
-    // Les helpers renvoient un BatchStatus et non un JobExecution : @SpringBatchTest prendrait
-    // toute méthode renvoyant un JobExecution pour une fabrique de contexte et l'appellerait.
+    // Renvoie un BatchStatus et non un JobExecution : voir FixturesIngestion.
     private BatchStatus lancer() throws Exception {
         return jobOperatorTestUtils.startJob().getStatus();
     }

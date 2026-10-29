@@ -7,11 +7,17 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
 /**
  * Outils communs aux tests d'intégration de l'ingestion : les fixtures sont copiées dans un
  * répertoire temporaire et servies en {@code file:} à la place des dépôts GitHub.
+ * <p>
+ * Les helpers renvoyant un {@link JobExecution} ou un {@link StepExecution} vivent ici et non
+ * dans les classes de test : {@code @SpringBatchTest} appellerait de telles méthodes comme
+ * fabriques de contexte.
  */
 final class FixturesIngestion {
 
@@ -34,6 +40,13 @@ final class FixturesIngestion {
         registry.add("droits.ingestion.sources[" + i + "].repo", () -> "");
         registry.add("droits.ingestion.sources[" + i + "].ref", () -> "");
         registry.add("droits.ingestion.sources[" + i + "].fichier", () -> fichier);
+    }
+
+    static StepExecution step(JobExecution execution, String nom) {
+        return execution.getStepExecutions().stream()
+                .filter(s -> s.getStepName().equals(nom))
+                .findFirst()
+                .orElseThrow();
     }
 
     static void copier(String ressource, Path cible) throws IOException {

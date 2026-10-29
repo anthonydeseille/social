@@ -34,6 +34,6 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     List<EtatArticle> findEtatsPresentsByTexteId(Long texteId);
 
     @Modifying
-    @Query("update Article a set a.disparuLe = :instant where a.sourceId in :sourceIds")
+    @Query("update Article a set a.disparuLe = :instant, a.majLe = :instant where a.sourceId in :sourceIds")
     int marquerDisparus(Collection<String> sourceIds, Instant instant);
 }

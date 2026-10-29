@@ -20,10 +20,17 @@ class MappeurNoeudTest {
     }
 
     @Test
-    void etat_inconnu_ou_absent_donne_null() {
+    void etat_connu_ou_absent() {
         assertThat(mappeur.etat(json("{\"etat\":\"VIGUEUR_ETEN\"}"))).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
-        assertThat(mappeur.etat(json("{\"etat\":\"INCONNU\"}"))).isNull();
         assertThat(mappeur.etat(json("{}"))).isNull();
+        assertThat(mappeur.etat(json("{\"etat\":\"\"}"))).isNull();
+    }
+
+    @Test
+    void etat_inconnu_echoue_explicitement() {
+        assertThatThrownBy(() -> mappeur.etat(json("{\"etat\":\"NOUVEL_ETAT\"}")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("NOUVEL_ETAT");
     }
 
     @Test

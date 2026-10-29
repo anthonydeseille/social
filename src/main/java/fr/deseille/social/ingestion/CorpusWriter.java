@@ -132,6 +132,10 @@ public class CorpusWriter implements ItemWriter<CommandeEcriture>, StepExecution
         this.texteId = texteRepository.save(texte).getId();
     }
 
+    /**
+     * Upsert d'une section. Les sections ne sont pas suivies en disparition ni journalisées :
+     * seul le contenu juridique (les articles) l'est ; une section vide reste en base.
+     */
     private void appliquerSection(CommandeEcriture.Section c) {
         Section section = sectionRepository.findBySourceId(c.sourceId())
                 .orElseGet(() -> new Section(c.sourceId(), referenceTexte()));
