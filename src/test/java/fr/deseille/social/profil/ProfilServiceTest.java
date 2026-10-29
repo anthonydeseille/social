@@ -42,7 +42,7 @@ class ProfilServiceTest {
     }
 
     private static ProfilSalarie profil(Integer idcc, LocalDate dateEntree, LocalDate dateReference) {
-        return new ProfilSalarie(idcc, dateEntree, null, null, null, false, null, dateReference);
+        return new ProfilSalarie(idcc, dateEntree, null, null, null, null, false, null, dateReference);
     }
 
     @Test
@@ -103,7 +103,7 @@ class ProfilServiceTest {
 
     @Test
     void situations_normalisees() {
-        ProfilSalarie avec = new ProfilSalarie(null, null, 30, null, null, false, Set.of(Situation.GROSSESSE), null);
+        ProfilSalarie avec = new ProfilSalarie(null, null, 30, null, null, null, false, Set.of(Situation.GROSSESSE), null);
         assertThat(service.contexte(avec).profil().situations()).containsExactly(Situation.GROSSESSE);
         assertThat(service.contexte(profil(null, null, null)).profil().situations()).isEmpty();
     }
