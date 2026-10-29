@@ -160,8 +160,14 @@ class EvaluationIT {
         @Override
         public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
             return new Reponse(articles.stream()
-                    .map(a -> new Passage("Simulé. ", List.of(new Citation(a.sourceId(), a.num(), "")))).toList(),
+                    .map(a -> new Passage("Simulé. ", List.of(new Citation(a.sourceId(), a.num(), debut(a))))).toList(),
                     false, false);
+        }
+
+        /** Début du texte de l'article : un extrait que la vérification des citations retrouve. */
+        private static String debut(ArticleDetail a) {
+            String texte = fr.deseille.social.questions.AssistantClaude.contenu(a);
+            return texte.substring(0, Math.min(60, texte.length()));
         }
     }
 }

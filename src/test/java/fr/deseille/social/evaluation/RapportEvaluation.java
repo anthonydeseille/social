@@ -54,6 +54,14 @@ final class RapportEvaluation {
             return question.articlesAttendus().stream().filter(a -> cites.contains(a.sourceId())).toList();
         }
 
+        List<Citation> citations() {
+            return reponse == null ? List.of() : reponse.passages().stream().flatMap(p -> p.citations().stream()).toList();
+        }
+
+        List<Citation> nonVerifiees() {
+            return reponse == null ? List.of() : reponse.citationsNonVerifiees();
+        }
+
         Set<String> articlesCites() {
             if (reponse == null) {
                 return Set.of();
@@ -102,6 +110,10 @@ final class RapportEvaluation {
                 .append(", en erreur : ").append(resultats.stream().filter(r -> r.erreur() != null).count()).append('\n');
         md.append("- Recherche (articles attendus transmis) : ").append(moyenne(resultats, Resultat::scoreRecherche)).append('\n');
         md.append("- Citations (articles attendus cités) : ").append(moyenne(resultats, Resultat::scoreCitations)).append('\n');
+        long citations = resultats.stream().mapToLong(r -> r.citations().size()).sum();
+        long nonVerifiees = resultats.stream().mapToLong(r -> r.nonVerifiees().size()).sum();
+        md.append("- Citations vérifiées (extrait présent dans l'article) : ").append(citations - nonVerifiees)
+                .append('/').append(citations).append('\n');
         if (juges.isEmpty()) {
             md.append("- Qualité : juge non lancé\n");
         } else {
@@ -151,6 +163,12 @@ final class RapportEvaluation {
             md.append("\n\n");
             if (!rep.avertissements().isEmpty()) {
                 md.append("**Avertissements** : ").append(String.join(" / ", rep.avertissements())).append("\n\n");
+            }
+            if (!r.nonVerifiees().isEmpty()) {
+                md.append("**Citations non vérifiées** :\n\n");
+                r.nonVerifiees().forEach(c -> md.append("- ").append(c.num()).append(" : « ").append(c.texteCite())
+                        .append(" »\n"));
+                md.append('\n');
             }
             md.append("**Articles transmis** : ").append(rep.sources().stream().map(Source::num)
                     .collect(Collectors.joining(", "))).append("\n\n");

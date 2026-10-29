@@ -22,7 +22,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 
 1. **Juge automatique** ✅ : note les points clés et les erreurs à éviter ; la juriste n'arbitre que les désaccords.
 2. **Évaluation via l'API Batch** : moitié prix, l'évaluation n'étant pas urgente.
-3. **Vérification déterministe des citations** : chaque extrait cité doit exister mot pour mot dans l'article ; signaler les chiffres absents des articles cités.
+3. **Vérification déterministe des citations** ✅ : chaque extrait cité doit exister dans l'article (aux espaces près), signalé sinon. Reste à faire : un indicateur d'évaluation pour les chiffres absents des articles cités (pas dans l'appli : les montants calculés n'y figurent jamais).
 4. **Métriques et tableau de bord** (Micrometer, Actuator) : jetons, coût, latence par étape, refus, troncatures, « aucun article », quota.
 5. **Évaluation dans la CI** : sur étiquette `eval` quand une PR touche consignes, recherche ou modèle ; blocage si le score baisse ; historique des scores.
 6. **Prompts versionnés** : consignes dans des fichiers, version inscrite dans chaque réponse et chaque rapport.
