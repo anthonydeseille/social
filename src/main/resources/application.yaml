@@ -12,6 +12,14 @@ spring:
     problemdetails:
       enabled: true
 
+# Métriques (Micrometer) : /actuator/metrics et /actuator/prometheus. Sans donnée personnelle.
+# À protéger (ou exposer sur un port interne) avant toute mise en ligne.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
 droits:
   ingestion:
     base-url: https://raw.githubusercontent.com

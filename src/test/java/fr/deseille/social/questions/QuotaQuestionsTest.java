@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.ErrorResponseException;
@@ -39,7 +40,8 @@ class QuotaQuestionsTest {
     @Test
     void refuse_au_dela_du_quota_puis_repart_le_lendemain() {
         Horloge horloge = new Horloge();
-        QuotaQuestions quota = new QuotaQuestions(new ClaudeProperties("m", 2, Duration.ofMinutes(1), 0), horloge);
+        SimpleMeterRegistry registre = new SimpleMeterRegistry();
+        QuotaQuestions quota = new QuotaQuestions(new ClaudeProperties("m", 2, Duration.ofMinutes(1), 0), horloge, new MetriquesQuestions(registre));
 
         quota.consommer();
         quota.consommer();
@@ -47,6 +49,7 @@ class QuotaQuestionsTest {
                 .isInstanceOfSatisfying(ErrorResponseException.class,
                         e -> org.assertj.core.api.Assertions.assertThat(e.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS));
 
+        org.assertj.core.api.Assertions.assertThat(registre.counter("droits.questions.quota_atteint").count()).isEqualTo(1.0);
         horloge.instant = horloge.instant.plus(Duration.ofDays(1)).atZone(ZoneOffset.UTC).toInstant();
         assertThatCode(quota::consommer).doesNotThrowAnyException();
     }

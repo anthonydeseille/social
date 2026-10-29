@@ -61,6 +61,22 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 - **La qualité dépend d'abord de la recherche** : si le bon article n'est pas parmi les 8, Claude ne peut pas le citer. C'est pourquoi l'évaluation mesure séparément la recherche et les citations.
 - **Les incidents sont visibles** : refus, panne, réponse interrompue, citation introuvable ou absence d'article donnent un statut ou un avertissement explicite, jamais une réponse présentée comme complète.
 
+## Observabilité
+
+Chaque question alimente des métriques (Micrometer), consultables sur `/actuator/metrics` et au
+format Prometheus sur `/actuator/prometheus`, **sans donnée personnelle** (ni question, ni profil) :
+
+| Métrique | Étiquettes | Ce qu'elle suit |
+|---|---|---|
+| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible | issue de chaque question |
+| `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
+| `droits.claude.appels` | etape, issue : succes, refus, erreur | appels à Claude |
+| `droits.claude.jetons` | etape, sens : entree, sortie | jetons consommés (donc le coût) |
+| `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
+| `droits.questions.quota_atteint` | | questions refusées par le quota |
+
+Ces points d'accès sont à protéger, ou à exposer sur un port interne, avant toute mise en ligne.
+
 ## L'évaluation
 
 Le même trajet sert à mesurer la fiabilité des réponses, sur un jeu de questions dont la réponse a été

@@ -82,6 +82,7 @@ public class AssistantClaude implements Assistant {
 
     private final ClaudeProperties properties;
     private final Supplier<AnthropicClient> fabrique;
+    private final MetriquesQuestions metriques;
     private volatile AnthropicClient client;
     private final AtomicLong appels = new AtomicLong();
     private final AtomicLong jetonsEntree = new AtomicLong();
@@ -96,18 +97,19 @@ public class AssistantClaude implements Assistant {
     }
 
     @Autowired
-    public AssistantClaude(ClaudeProperties properties) {
+    public AssistantClaude(ClaudeProperties properties, MetriquesQuestions metriques) {
         this(properties, () -> AnthropicOkHttpClient.builder()
                 .fromEnv()
                 .timeout(properties.delai())
                 .maxRetries(properties.tentatives())
-                .build());
+                .build(), metriques);
     }
 
     /** Pour les tests : client fourni (simulé). */
-    AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique) {
+    AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique, MetriquesQuestions metriques) {
         this.properties = properties;
         this.fabrique = fabrique;
+        this.metriques = metriques;
     }
 
     /** Requêtes de recherche produites par la reformulation (sortie structurée). */
@@ -121,11 +123,14 @@ public class AssistantClaude implements Assistant {
         try {
             message = client().messages().create(params);
         } catch (AnthropicException e) {
+            metriques.appelClaude("reformulation", "erreur");
             log.warn("Reformulation impossible ({}) : recherche sur la question brute", e.getClass().getSimpleName());
             return List.of(question);
         }
         journaliser("reformulation", message.usage());
-        if (message.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
+        boolean refusee = message.stopReason().filter(StopReason.REFUSAL::equals).isPresent();
+        metriques.appelClaude("reformulation", refusee ? "refus" : "succes");
+        if (refusee) {
             log.warn("Reformulation refusée par le modèle : recherche sur la question brute");
             return List.of(question);
         }
@@ -146,11 +151,14 @@ public class AssistantClaude implements Assistant {
         try {
             message = client().messages().create(parametresRedaction(question, contexte, articles));
         } catch (AnthropicException e) {
+            metriques.appelClaude("redaction", "erreur");
             log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
             throw new AssistantIndisponibleException(e);
         }
-        journaliser("rédaction", message.usage());
-        return versReponse(message, articles);
+        journaliser("redaction", message.usage());
+        Reponse reponse = versReponse(message, articles);
+        metriques.appelClaude("redaction", reponse.refus() ? "refus" : "succes");
+        return reponse;
     }
 
     /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. */
@@ -247,6 +255,7 @@ public class AssistantClaude implements Assistant {
         appels.incrementAndGet();
         jetonsEntree.addAndGet(usage.inputTokens());
         jetonsSortie.addAndGet(usage.outputTokens());
+        metriques.jetons(etape, usage.inputTokens(), usage.outputTokens());
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 
