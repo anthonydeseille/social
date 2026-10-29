@@ -45,6 +45,12 @@ public class MappeurNoeud {
         return valeur;
     }
 
+    /** Titre sans espaces superflus (certains titres DILA en ont en fin), null si vide. */
+    public String titre(JsonNode data) {
+        String titre = texte(data, "title");
+        return titre == null || titre.isBlank() ? null : titre.strip();
+    }
+
     public Integer entier(JsonNode data, String champ) {
         JsonNode n = data == null ? null : data.get(champ);
         return n == null || n.isNull() || !n.isNumber() ? null : n.asInt();
