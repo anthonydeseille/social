@@ -64,8 +64,8 @@ public class MappeurNoeud {
         try {
             return EtatJuridique.valueOf(valeur);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("État juridique inconnu : " + valeur
-                    + " (à ajouter à " + EtatJuridique.class.getSimpleName() + ")", e);
+            throw new IllegalArgumentException("État juridique inconnu : " + valeur + " (nœud "
+                    + texte(data, "id") + ", à ajouter à " + EtatJuridique.class.getSimpleName() + ")", e);
         }
     }
 

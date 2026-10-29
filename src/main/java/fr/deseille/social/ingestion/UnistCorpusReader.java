@@ -4,8 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HexFormat;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.batch.infrastructure.item.ItemStreamException;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
@@ -13,6 +21,7 @@ import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Lecteur Spring Batch qui parcourt en profondeur l'arbre unist d'une source (Code ou
@@ -24,8 +33,15 @@ import tools.jackson.databind.ObjectMapper;
  * Le streaming impose que {@code type} et {@code data} précèdent {@code children} dans chaque
  * nœud ; un document qui ne respecte pas cet ordre, ou qui est tronqué, fait échouer la lecture
  * plutôt que de produire des nœuds incomplets (et de fausses disparitions).
+ * <p>
+ * Certaines sections ajoutées par SocialGouv n'ont pas d'identifiant DILA (regroupements
+ * « Textes Attachés », « Textes Salaires » des conventions) : elles reçoivent un identifiant
+ * synthétique stable {@code <id du texte>:<titre normalisé>}, voir {@link #idSynthetique}.
  */
 public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
+
+    /** Taille des colonnes {@code source_id}. */
+    private static final int LONGUEUR_MAX_ID = 64;
 
     private final CorpusDownloader downloader;
     private final ObjectMapper objectMapper;
@@ -34,6 +50,8 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
     private InputStream input;
     private JsonParser parser;
     private final Deque<Frame> pile = new ArrayDeque<>();
+    private String texteSourceId;
+    private final Set<String> idsSynthetiques = new HashSet<>();
 
     /** Identifiant de section à affecter comme parent aux enfants du nœud ouvert (null = racine). */
     private record Frame(String sectionSourceIdPourEnfants) {
@@ -52,6 +70,8 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
             this.input = Files.newInputStream(chemin);
             this.parser = objectMapper.createParser(input);
             this.pile.clear();
+            this.texteSourceId = null;
+            this.idsSynthetiques.clear();
         } catch (IOException e) {
             throw new ItemStreamException("Ouverture de la source " + source.cle() + " impossible", e);
         }
@@ -116,6 +136,11 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
         if (type == null || data == null) {
             throw new IllegalStateException("Source " + source.cle() + " : nœud sans « type » ou « data » (type=" + type + ")");
         }
+        if (estTexte(type)) {
+            texteSourceId = texte(data, "id");
+        } else if ("section".equals(type) && texte(data, "id") == null) {
+            ((ObjectNode) data).put("id", idSynthetique(texte(data, "title")));
+        }
         String parentSectionId = pile.isEmpty() ? null : pile.peek().sectionSourceIdPourEnfants();
         NoeudCorpus item = construire(type, data, parentSectionId);
 
@@ -137,6 +162,53 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
             case "article" -> new NoeudCorpus.ArticleItem(source, data, parentSectionId);
             default -> throw new IllegalStateException("Type de nœud unist inattendu : " + type);
         };
+    }
+
+    /**
+     * Identifiant stable d'une section sans identifiant DILA : id du texte + titre normalisé
+     * (sans accents, en minuscules, mots séparés par des tirets). Au-delà de 64 caractères, le
+     * titre normalisé est tronqué et suffixé de 8 caractères d'empreinte du titre complet, pour
+     * que deux titres longs de même début restent distincts.
+     * <p>
+     * L'identifiant dépend du titre : si la source corrige ce titre, la section est recréée sous
+     * un nouvel identifiant (l'ancienne reste en base, les sections n'étant pas suivies en
+     * disparition) et chaque article enfant est journalisé en {@code CHANGEMENT_METADONNEES}.
+     * Faute d'identifiant DILA, le titre reste le repère le plus stable (l'ordre l'est moins).
+     */
+    String idSynthetique(String titre) {
+        if (texteSourceId == null) {
+            throw new IllegalStateException("Source " + source.cle()
+                    + " : section sans « id » hors d'un texte, impossible de l'identifier");
+        }
+        if (titre == null || titre.isBlank()) {
+            throw new IllegalStateException("Source " + source.cle()
+                    + " : section sans « id » ni titre dans " + texteSourceId);
+        }
+        String slug = Normalizer.normalize(titre, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        String id = texteSourceId + ":" + slug;
+        if (id.length() > LONGUEUR_MAX_ID) {
+            String empreinte = empreinte(titre);
+            id = id.substring(0, LONGUEUR_MAX_ID - empreinte.length() - 1) + "-" + empreinte;
+        }
+        if (!idsSynthetiques.add(id)) {
+            throw new IllegalStateException("Source " + source.cle()
+                    + " : plusieurs sections sans « id » donnent le même identifiant " + id);
+        }
+        return id;
+    }
+
+    /** 8 premiers caractères hexadécimaux du SHA-256 du titre brut. */
+    private static String empreinte(String titre) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(titre.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 4);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponible", e);
+        }
     }
 
     private static boolean estTexte(String type) {

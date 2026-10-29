@@ -22,15 +22,17 @@ class MappeurNoeudTest {
     @Test
     void etat_connu_ou_absent() {
         assertThat(mappeur.etat(json("{\"etat\":\"VIGUEUR_ETEN\"}"))).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
+        assertThat(mappeur.etat(json("{\"etat\":\"ABROGE_DIFF\"}"))).isEqualTo(EtatJuridique.ABROGE_DIFF);
         assertThat(mappeur.etat(json("{}"))).isNull();
         assertThat(mappeur.etat(json("{\"etat\":\"\"}"))).isNull();
     }
 
     @Test
     void etat_inconnu_echoue_explicitement() {
-        assertThatThrownBy(() -> mappeur.etat(json("{\"etat\":\"NOUVEL_ETAT\"}")))
+        assertThatThrownBy(() -> mappeur.etat(json("{\"id\":\"LEGIARTI000000000042\",\"etat\":\"NOUVEL_ETAT\"}")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("NOUVEL_ETAT");
+                .hasMessageContaining("NOUVEL_ETAT")
+                .hasMessageContaining("LEGIARTI000000000042");
     }
 
     @Test
