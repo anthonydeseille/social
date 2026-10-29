@@ -2,6 +2,7 @@ package fr.deseille.social.profil;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.Set;
 
@@ -14,6 +15,8 @@ import java.util.Set;
  * @param dateEntree    date d'entrée dans l'entreprise, pour le calcul de l'ancienneté
  * @param age           âge en années
  * @param statut        cadre ou non cadre
+ * @param classification classification conventionnelle en clair (ex. « ETAM coefficient 250 »,
+ *                      « IC position 2.1 ») : plusieurs règles conventionnelles en dépendent
  * @param typeContrat   nature du contrat de travail
  * @param tempsPartiel  contrat à temps partiel ({@code false} si absent : Jackson 3 refuse par
  *                      défaut une valeur absente pour un {@code boolean} primitif)
@@ -26,6 +29,7 @@ public record ProfilSalarie(
         LocalDate dateEntree,
         @Min(14) @Max(99) Integer age,
         Statut statut,
+        @Size(max = 80) String classification,
         TypeContrat typeContrat,
         Boolean tempsPartiel,
         Set<Situation> situations,
@@ -37,7 +41,8 @@ public record ProfilSalarie(
     }
 
     public ProfilSalarie avecDateReference(LocalDate date) {
-        return new ProfilSalarie(idcc, dateEntree, age, statut, typeContrat, tempsPartiel, situations, date);
+        return new ProfilSalarie(idcc, dateEntree, age, statut, classification, typeContrat, tempsPartiel,
+                situations, date);
     }
 
     public enum Statut { CADRE, NON_CADRE }
