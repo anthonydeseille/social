@@ -19,9 +19,9 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Définit le job d'ingestion : un {@link Step} par source configurée (Code du travail, puis les
- * conventions collectives), chacun
- * orienté chunk reader → processor → writer. Le job est relançable ({@link RunIdIncrementer}) ;
- * l'idempotence est assurée au niveau des données par l'upsert du {@link CorpusWriter}.
+ * conventions collectives), chacun orienté chunk reader → processor → writer. Le job est relançable
+ * ({@link RunIdIncrementer}) ; l'idempotence est assurée au niveau des données par l'upsert du
+ * {@link CorpusWriter}.
  */
 @Configuration
 @EnableConfigurationProperties(IngestionProperties.class)
