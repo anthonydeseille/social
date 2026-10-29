@@ -5,6 +5,7 @@ import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.profil.ProfilSalarie;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
+import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.recherche.RechercheService;
 import fr.deseille.social.recherche.RechercheService.Resultat;
@@ -52,18 +53,22 @@ public class QuestionService {
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         if (articles.isEmpty()) {
             avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
-            return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements);
+            return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
         }
 
         Assistant.Reponse reponse = assistant.rediger(question, contexte, articles);
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }
+        List<Citation> nonVerifiees = VerificationCitations.nonVerifiees(reponse.passages(), articles);
+        if (!nonVerifiees.isEmpty()) {
+            avertissements.add(nonVerifiees.size() + " extrait(s) cité(s) introuvable(s) dans les articles : à vérifier.");
+        }
         if (reponse.tronquee()) {
             avertissements.add("Réponse incomplète : elle a été interrompue avant sa fin. Reformulez une question plus précise.");
         }
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
-                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements);
+                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees);
     }
 
     /**
@@ -96,9 +101,11 @@ public class QuestionService {
      * @param passages  réponse, passage par passage, avec citations
      * @param sources   articles transmis à la rédaction
      * @param refus     le modèle a refusé de répondre
+     * @param citationsNonVerifiees citations dont l'extrait est introuvable dans l'article cité
+     *                  ({@link VerificationCitations}) : à signaler, sans les retirer
      */
     public record ReponseQuestion(String question, ContexteProfil contexte, List<String> requetes,
                                   List<Passage> passages, List<Source> sources, boolean refus,
-                                  List<String> avertissements) {
+                                  List<String> avertissements, List<Citation> citationsNonVerifiees) {
     }
 }

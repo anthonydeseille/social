@@ -63,8 +63,11 @@ class QuestionsIT {
                         throw new AssistantIndisponibleException(new IllegalStateException("panne simulée"));
                     }
                     ArticleDetail premier = articles.getFirst();
+                    // Extrait réel de l'article, sauf pour simuler une citation inventée
+                    String extrait = question.contains("inventée") ? "texte qui n'existe pas"
+                            : AssistantClaude.contenu(premier).substring(0, 20);
                     return new Reponse(List.of(new Passage("Réponse simulée.",
-                            List.of(new Citation(premier.sourceId(), premier.num(), "extrait")))), false, false);
+                            List.of(new Citation(premier.sourceId(), premier.num(), extrait)))), false, false);
                 }
             };
         }
@@ -137,6 +140,23 @@ class QuestionsIT {
                 """);
         assertThat(apres).hasStatusOk().bodyJson().extractingPath("$.sources[*].articleSourceId").asArray()
                 .doesNotContain("LEGIARTI000000000075");
+    }
+
+    @Test
+    void citation_introuvable_signalee_sans_etre_retiree() {
+        var correcte = mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON).content("""
+                {"question": "Ma période d'essai ?", "profil": {"idcc": 7777}}
+                """);
+        assertThat(correcte).hasStatusOk().bodyJson().extractingPath("$.citationsNonVerifiees").asArray().isEmpty();
+
+        var inventee = mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON).content("""
+                {"question": "Ma période d'essai, citation inventée ?", "profil": {"idcc": 7777}}
+                """);
+        assertThat(inventee).hasStatusOk().bodyJson().extractingPath("$.citationsNonVerifiees[0].texteCite")
+                .isEqualTo("texte qui n'existe pas");
+        assertThat(inventee).bodyJson().extractingPath("$.passages[0].citations").asArray().hasSize(1);
+        assertThat(inventee).bodyJson().extractingPath("$.avertissements").asArray()
+                .anySatisfy(a -> assertThat((String) a).contains("introuvable"));
     }
 
     @Test

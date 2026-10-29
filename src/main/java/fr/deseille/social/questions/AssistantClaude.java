@@ -224,7 +224,7 @@ public class AssistantClaude implements Assistant {
      * Texte de l'article : en clair (Code) ou HTML débarrassé de ses balises et entités (conventions),
      * suivi du nota, qui porte souvent des conditions d'application.
      */
-    static String contenu(ArticleDetail a) {
+    public static String contenu(ArticleDetail a) {
         String texte = a.contenuTexte() != null ? a.contenuTexte() : enClair(a.contenuHtml());
         String nota = enClair(a.nota());
         return nota.isEmpty() ? texte : texte + "\n\nNota : " + nota;
