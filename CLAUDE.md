@@ -19,6 +19,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - Javadoc sur les classes et les règles non évidentes ; pas de commentaire qui paraphrase le code.
 - Schéma uniquement par changesets Liquibase (`src/main/resources/db/changelog/changesets/`), jamais en modifiant un changeset existant ; Hibernate est en `ddl-auto: validate`.
 - Chaque PR passe par le CI et la revue Claude ; pas de fusion sans relecture.
+- **Documentation tenue à jour au fil du développement** : toute PR qui change le trajet d'une question (étapes, garde-fous, coûts, erreurs, réponse) met à jour `docs/fonctionnement.md` dans la même PR ; idem pour `FEUILLE_DE_ROUTE.md` quand une étape avance. La revue Claude le vérifie.
 
 ## Architecture
 
