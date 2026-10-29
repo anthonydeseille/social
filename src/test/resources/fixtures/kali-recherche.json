@@ -1,0 +1,33 @@
+{
+  "type": "convention collective",
+  "data": {
+    "id": "KALICONT000000000007",
+    "num": 7777,
+    "title": "Convention collective de test de la recherche"
+  },
+  "children": [
+    {
+      "type": "section",
+      "data": {
+        "id": "KALISCTA000000000071",
+        "cid": "KALISCTA000000000071",
+        "title": "Période d'essai",
+        "etat": "VIGUEUR_ETEN",
+        "intOrdre": 1
+      },
+      "children": [
+        {
+          "type": "article",
+          "data": {
+            "id": "KALIARTI000000000071",
+            "cid": "KALIARTI0000000000C7",
+            "num": "Article 7",
+            "intOrdre": 1,
+            "content": "<p>La période d'essai des ingénieurs et cadres est fixée à <strong>quatre mois</strong>.</p>",
+            "etat": "VIGUEUR_ETEN"
+          }
+        }
+      ]
+    }
+  ]
+}

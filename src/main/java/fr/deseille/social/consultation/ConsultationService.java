@@ -96,9 +96,14 @@ public class ConsultationService {
     }
 
     public ArticleDetail article(String sourceId) {
+        return article(sourceId, aujourdHui());
+    }
+
+    /** Article avec son applicabilité appréciée à {@code date} (ex. date de référence d'un profil). */
+    public ArticleDetail article(String sourceId, LocalDate date) {
         Article a = articleRepository.findBySourceId(sourceId)
                 .orElseThrow(() -> introuvable("Article inconnu : " + sourceId));
-        return new ArticleDetail(a.getSourceId(), a.getCid(), a.getNum(), a.getEtat(), a.estApplicableLe(aujourdHui()),
+        return new ArticleDetail(a.getSourceId(), a.getCid(), a.getNum(), a.getEtat(), a.estApplicableLe(date),
                 a.getDateDebut(), a.getDateFin(), a.getContenuTexte(), a.getContenuHtml(), a.getNota(),
                 a.getDisparuLe(), TexteResume.de(a.getTexte()),
                 a.getSection() == null ? List.of() : filAriane(a.getSection().getId()));

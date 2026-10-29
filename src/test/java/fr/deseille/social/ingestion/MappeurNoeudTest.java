@@ -54,6 +54,20 @@ class MappeurNoeudTest {
     }
 
     @Test
+    void contenu_texte_vide_vaut_null_sans_changer_l_empreinte() {
+        assertThat(mappeur.contenuTexte(json("{\"texte\":\"  \",\"content\":\"<p>A</p>\"}"))).isNull();
+        assertThat(mappeur.hashContenu("", "<p>A</p>", "L1", null))
+                .isEqualTo(mappeur.hashContenu(null, "<p>A</p>", "L1", null));
+    }
+
+    @Test
+    void titre_sans_espaces_superflus() {
+        assertThat(mappeur.titre(json("{\"title\":\"Partie législative  \"}"))).isEqualTo("Partie législative");
+        assertThat(mappeur.titre(json("{\"title\":\"  \"}"))).isNull();
+        assertThat(mappeur.titre(json("{}"))).isNull();
+    }
+
+    @Test
     void champ_obligatoire_absent_echoue_explicitement() {
         assertThatThrownBy(() -> mappeur.texteObligatoire(json("{\"title\":\" \"}"), "title", "texte X"))
                 .isInstanceOf(IllegalStateException.class)

@@ -45,6 +45,12 @@ public class MappeurNoeud {
         return valeur;
     }
 
+    /** Titre sans espaces superflus (certains titres DILA en ont en fin), null si vide. */
+    public String titre(JsonNode data) {
+        String titre = texte(data, "title");
+        return titre == null || titre.isBlank() ? null : titre.strip();
+    }
+
     public Integer entier(JsonNode data, String champ) {
         JsonNode n = data == null ? null : data.get(champ);
         return n == null || n.isNull() || !n.isNumber() ? null : n.asInt();
@@ -94,9 +100,14 @@ public class MappeurNoeud {
         }
     }
 
-    /** Contenu brut en clair : {@code texte} (Code) sinon null. */
+    /**
+     * Contenu brut en clair : {@code texte} (Code) sinon null. Un texte vide vaut null, pour que
+     * l'index de recherche se rabatte sur le HTML (l'empreinte est inchangée : null et vide y
+     * comptent pareil).
+     */
     public String contenuTexte(JsonNode data) {
-        return texte(data, "texte");
+        String texte = texte(data, "texte");
+        return texte == null || texte.isBlank() ? null : texte;
     }
 
     /** Contenu HTML : {@code texteHtml} (Code) sinon {@code content} (convention). */

@@ -41,7 +41,11 @@ jobs:
               cohérence entre entités JPA et changesets Liquibase) ;
             - les problèmes de transactions, de performance (requêtes N+1, chargements inutiles)
               et de sécurité ;
-            - les cas de test manquants.
+            - les cas de test manquants ;
+            - la documentation : si la PR change le trajet d'une question (validation, profil,
+              reformulation, recherche, rédaction, contrôles, coûts, erreurs), vérifie que
+              docs/fonctionnement.md décrit bien le code ; signale tout écart (doc périmée ou
+              qui promet plus que le code), en tenant compte des PR liées citées dans la description.
 
             Ignore les questions de style pur. Utilise des commentaires inline pour les problèmes
             précis et un commentaire de synthèse court. Si rien d'important, dis-le simplement.
