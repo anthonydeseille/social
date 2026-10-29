@@ -22,7 +22,6 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.test.JobOperatorTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +69,7 @@ class IngestionJobIT {
     @Test
     void ingestion_complete_idempotente_et_journal() throws Exception {
         // --- Run 1 : création complète ---
-        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancer()).isEqualTo(BatchStatus.COMPLETED);
 
         assertThat(texteRepository.count()).isEqualTo(2);
         assertThat(sectionRepository.count()).isEqualTo(3);
@@ -106,12 +105,12 @@ class IngestionJobIT {
         });
 
         // --- Run 2 identique : idempotent, aucun ajout ---
-        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancer()).isEqualTo(BatchStatus.COMPLETED);
         assertThat(articleRepository.count()).isEqualTo(5);
         assertThat(journalRepository.count()).isEqualTo(5);
 
         // --- Run 3 : v2 de la convention → modification, changement d'état, nouvelle version ---
-        assertThat(lancerAvecConvention("kali-mini-v2.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancerAvecConvention("kali-mini-v2.json")).isEqualTo(BatchStatus.COMPLETED);
         assertThat(articleRepository.count()).isEqualTo(6);
         assertThat(journalRepository.count()).isEqualTo(8);
         assertThat(journalRepository.findAll())
@@ -122,7 +121,7 @@ class IngestionJobIT {
         assertThat(article("KALIARTI000000000002").getEtat()).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
 
         // --- Run 4 : v3 → article 2 disparu, article 1 déplacé (ordre seul) ---
-        assertThat(lancerAvecConvention("kali-mini-v3.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancerAvecConvention("kali-mini-v3.json")).isEqualTo(BatchStatus.COMPLETED);
         assertThat(journalRepository.count()).isEqualTo(10);
         assertThat(journalRepository.findAll())
                 .anyMatch(entree("KALIARTI000000000002", TypeChangement.DISPARITION))
@@ -132,27 +131,29 @@ class IngestionJobIT {
         assertThat(articleRepository.count()).as("jamais de suppression").isEqualTo(6);
 
         // --- Run 5 : v3 à nouveau → la disparition n'est pas re-journalisée ---
-        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancer()).isEqualTo(BatchStatus.COMPLETED);
         assertThat(journalRepository.count()).isEqualTo(10);
 
         // --- Run 6 : retour à la v2 → réapparition de l'article 2 ---
-        assertThat(lancerAvecConvention("kali-mini-v2.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(lancerAvecConvention("kali-mini-v2.json")).isEqualTo(BatchStatus.COMPLETED);
         assertThat(journalRepository.count()).isEqualTo(12);
         assertThat(journalRepository.findAll())
                 .anyMatch(entree("KALIARTI000000000002", TypeChangement.REAPPARITION));
         assertThat(article("KALIARTI000000000002").getDisparuLe()).isNull();
 
         // --- Run 7 : convention tronquée → step en échec, aucune fausse disparition ---
-        assertThat(lancerAvecConvention("kali-tronque.json").getStatus()).isEqualTo(BatchStatus.FAILED);
+        assertThat(lancerAvecConvention("kali-tronque.json")).isEqualTo(BatchStatus.FAILED);
         assertThat(journalRepository.count()).isEqualTo(12);
         assertThat(articleRepository.findAll()).allMatch(a -> a.getDisparuLe() == null);
     }
 
-    private JobExecution lancer() throws Exception {
-        return jobOperatorTestUtils.startJob();
+    // Les helpers renvoient un BatchStatus et non un JobExecution : @SpringBatchTest prendrait
+    // toute méthode renvoyant un JobExecution pour une fabrique de contexte et l'appellerait.
+    private BatchStatus lancer() throws Exception {
+        return jobOperatorTestUtils.startJob().getStatus();
     }
 
-    private JobExecution lancerAvecConvention(String fixture) throws Exception {
+    private BatchStatus lancerAvecConvention(String fixture) throws Exception {
         copier("/fixtures/" + fixture, repertoire.resolve("kali.json"));
         return lancer();
     }

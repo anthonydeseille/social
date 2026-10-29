@@ -69,7 +69,8 @@ public class IngestionBatchConfig {
         SourceCorpus source = source(cle);
         UnistCorpusReader reader = new UnistCorpusReader(downloader, objectMapper, source);
         return new StepBuilder("ingestion-" + cle, jobRepository)
-                .<NoeudCorpus, CommandeEcriture>chunk(properties.tailleChunk(), transactionManager)
+                .<NoeudCorpus, CommandeEcriture>chunk(properties.tailleChunk())
+                .transactionManager(transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
