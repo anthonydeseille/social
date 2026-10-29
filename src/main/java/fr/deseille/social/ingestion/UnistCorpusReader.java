@@ -4,9 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -162,12 +166,23 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
 
     /**
      * Identifiant stable d'une section sans identifiant DILA : id du texte + titre normalisé
-     * (sans accents, en minuscules, mots séparés par des tirets), tronqué à 64 caractères.
+     * (sans accents, en minuscules, mots séparés par des tirets). Au-delà de 64 caractères, le
+     * titre normalisé est tronqué et suffixé de 8 caractères d'empreinte du titre complet, pour
+     * que deux titres longs de même début restent distincts.
+     * <p>
+     * L'identifiant dépend du titre : si la source corrige ce titre, la section est recréée sous
+     * un nouvel identifiant (l'ancienne reste en base, les sections n'étant pas suivies en
+     * disparition) et chaque article enfant est journalisé en {@code CHANGEMENT_METADONNEES}.
+     * Faute d'identifiant DILA, le titre reste le repère le plus stable (l'ordre l'est moins).
      */
     String idSynthetique(String titre) {
-        if (texteSourceId == null || titre == null || titre.isBlank()) {
+        if (texteSourceId == null) {
             throw new IllegalStateException("Source " + source.cle()
-                    + " : section sans « id » ni titre, impossible de l'identifier");
+                    + " : section sans « id » hors d'un texte, impossible de l'identifier");
+        }
+        if (titre == null || titre.isBlank()) {
+            throw new IllegalStateException("Source " + source.cle()
+                    + " : section sans « id » ni titre dans " + texteSourceId);
         }
         String slug = Normalizer.normalize(titre, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -176,13 +191,24 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
                 .replaceAll("(^-|-$)", "");
         String id = texteSourceId + ":" + slug;
         if (id.length() > LONGUEUR_MAX_ID) {
-            id = id.substring(0, LONGUEUR_MAX_ID);
+            String empreinte = empreinte(titre);
+            id = id.substring(0, LONGUEUR_MAX_ID - empreinte.length() - 1) + "-" + empreinte;
         }
         if (!idsSynthetiques.add(id)) {
             throw new IllegalStateException("Source " + source.cle()
                     + " : plusieurs sections sans « id » donnent le même identifiant " + id);
         }
         return id;
+    }
+
+    /** 8 premiers caractères hexadécimaux du SHA-256 du titre brut. */
+    private static String empreinte(String titre) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(titre.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 4);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponible", e);
+        }
     }
 
     private static boolean estTexte(String type) {

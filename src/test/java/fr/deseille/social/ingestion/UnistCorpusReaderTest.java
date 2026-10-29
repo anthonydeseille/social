@@ -78,6 +78,44 @@ class UnistCorpusReaderTest {
     }
 
     @Test
+    void titres_longs_de_meme_debut_donnent_des_ids_distincts_et_bornes() throws Exception {
+        String debut = "Accord du 1er janvier 2020 relatif aux salaires minima conventionnels";
+        List<NoeudCorpus> noeuds = lire("""
+                {"type": "convention collective", "data": {"id": "KALICONT000000000001", "title": "Convention"},
+                 "children": [
+                   {"type": "section", "data": {"title": "%s des ingénieurs"}},
+                   {"type": "section", "data": {"title": "%s des techniciens"}}
+                 ]}
+                """.formatted(debut, debut));
+
+        String id1 = noeuds.get(1).data().get("id").asText();
+        String id2 = noeuds.get(2).data().get("id").asText();
+        assertThat(id1).hasSize(64).startsWith("KALICONT000000000001:accord-du-1er-janvier");
+        assertThat(id2).hasSize(64).isNotEqualTo(id1);
+        assertThat(id1).matches(".*-[0-9a-f]{8}");
+    }
+
+    @Test
+    void section_sans_id_ni_titre_echoue_explicitement() {
+        assertThatThrownBy(() -> lire("""
+                {"type": "convention collective", "data": {"id": "KALICONT000000000001", "title": "Convention"},
+                 "children": [ {"type": "section", "data": {"etat": "VIGUEUR"}} ]}
+                """))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ni titre")
+                .hasMessageContaining("KALICONT000000000001");
+    }
+
+    @Test
+    void section_sans_id_hors_d_un_texte_echoue_explicitement() {
+        assertThatThrownBy(() -> lire("""
+                {"type": "section", "data": {"title": "Racine inattendue"}, "children": []}
+                """))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("hors d'un texte");
+    }
+
+    @Test
     void fichier_tronque_echoue_explicitement() {
         assertThatThrownBy(() -> lire("""
                 {"type": "convention collective", "data": {"id": "KALICONT000000000001", "title": "Convention"},

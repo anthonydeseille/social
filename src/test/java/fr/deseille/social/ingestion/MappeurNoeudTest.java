@@ -29,9 +29,10 @@ class MappeurNoeudTest {
 
     @Test
     void etat_inconnu_echoue_explicitement() {
-        assertThatThrownBy(() -> mappeur.etat(json("{\"etat\":\"NOUVEL_ETAT\"}")))
+        assertThatThrownBy(() -> mappeur.etat(json("{\"id\":\"LEGIARTI000000000042\",\"etat\":\"NOUVEL_ETAT\"}")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("NOUVEL_ETAT");
+                .hasMessageContaining("NOUVEL_ETAT")
+                .hasMessageContaining("LEGIARTI000000000042");
     }
 
     @Test
