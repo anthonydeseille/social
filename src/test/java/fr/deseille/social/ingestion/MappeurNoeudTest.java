@@ -61,6 +61,13 @@ class MappeurNoeudTest {
     }
 
     @Test
+    void titre_sans_espaces_superflus() {
+        assertThat(mappeur.titre(json("{\"title\":\"Partie législative  \"}"))).isEqualTo("Partie législative");
+        assertThat(mappeur.titre(json("{\"title\":\"  \"}"))).isNull();
+        assertThat(mappeur.titre(json("{}"))).isNull();
+    }
+
+    @Test
     void champ_obligatoire_absent_echoue_explicitement() {
         assertThatThrownBy(() -> mappeur.texteObligatoire(json("{\"title\":\" \"}"), "title", "texte X"))
                 .isInstanceOf(IllegalStateException.class)

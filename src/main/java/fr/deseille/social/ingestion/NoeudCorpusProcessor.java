@@ -37,7 +37,7 @@ public class NoeudCorpusProcessor implements ItemProcessor<NoeudCorpus, Commande
                 sourceId,
                 type,
                 idcc,
-                mappeur.texteObligatoire(data, "title", "texte " + sourceId),
+                mappeur.texteObligatoire(data, "title", "texte " + sourceId).strip(),
                 mappeur.etat(data),
                 mappeur.date(data, "dateDebutVersion"),
                 mappeur.date(data, "dateFinVersion"));
@@ -49,7 +49,7 @@ public class NoeudCorpusProcessor implements ItemProcessor<NoeudCorpus, Commande
                 mappeur.texteObligatoire(data, "id", "section de la source " + item.source().cle()),
                 mappeur.texte(data, "cid"),
                 item.parentSectionSourceId(),
-                mappeur.texte(data, "title"),
+                mappeur.titre(data),
                 mappeur.etat(data),
                 mappeur.entier(data, "intOrdre"),
                 mappeur.date(data, "dateDebut"),
