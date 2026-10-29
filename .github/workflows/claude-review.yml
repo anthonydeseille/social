@@ -1,0 +1,49 @@
+name: Revue Claude
+
+# Revue automatique à l'ouverture d'une PR (hors brouillons). Pour une nouvelle revue après
+# des modifications, mentionner @claude dans la PR.
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Revue Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Fais une revue de code de cette PR, en français. Projet Spring Boot 4 / Java 25,
+            Spring Batch, JPA, Liquibase, PostgreSQL, tests Testcontainers.
+
+            Concentre-toi sur :
+            - les bugs et erreurs de logique (idempotence de l'ingestion, journal des changements,
+              cohérence entre entités JPA et changesets Liquibase) ;
+            - les problèmes de transactions, de performance (requêtes N+1, chargements inutiles)
+              et de sécurité ;
+            - les cas de test manquants.
+
+            Ignore les questions de style pur. Utilise des commentaires inline pour les problèmes
+            précis et un commentaire de synthèse court. Si rien d'important, dis-le simplement.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
