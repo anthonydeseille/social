@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import fr.deseille.social.corpus.EtatJuridique;
 import fr.deseille.social.corpus.Texte;
 import fr.deseille.social.corpus.TexteRepository;
 import fr.deseille.social.corpus.TypeTexte;
@@ -34,6 +35,10 @@ class ProfilServiceTest {
         Texte syntec = new Texte("KALICONT000005635173", TypeTexte.CONVENTION_COLLECTIVE, "Syntec");
         syntec.setIdcc(1486);
         when(texteRepository.findByIdcc(1486)).thenReturn(List.of(syntec));
+        Texte denoncee = new Texte("KALICONT000000000002", TypeTexte.CONVENTION_COLLECTIVE, "Convention dénoncée");
+        denoncee.setIdcc(2000);
+        denoncee.setEtat(EtatJuridique.DENONCE);
+        when(texteRepository.findByIdcc(2000)).thenReturn(List.of(denoncee));
     }
 
     private static ProfilSalarie profil(Integer idcc, LocalDate dateEntree, LocalDate dateReference) {
@@ -84,6 +89,16 @@ class ProfilServiceTest {
 
         ContexteProfil sansIdcc = service.contexte(profil(null, null, null));
         assertThat(sansIdcc.avertissements()).singleElement().asString().contains("fiche de paie");
+    }
+
+    @Test
+    void convention_integree_mais_non_applicable_exclue_et_signalee() {
+        ContexteProfil contexte = service.contexte(profil(2000, null, null));
+
+        assertThat(contexte.conventionDisponible()).isFalse();
+        assertThat(contexte.textesApplicables()).extracting("sourceId").containsExactly("LEGITEXT000006072050");
+        assertThat(contexte.avertissements()).singleElement().asString()
+                .contains("IDCC 2000").contains("n'est pas applicable").contains("DENONCE");
     }
 
     @Test

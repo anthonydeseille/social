@@ -4,6 +4,7 @@ import fr.deseille.social.corpus.Article;
 import fr.deseille.social.corpus.EtatJuridique;
 import fr.deseille.social.corpus.JournalChangement;
 import fr.deseille.social.corpus.Section;
+import fr.deseille.social.corpus.SectionRepository;
 import fr.deseille.social.corpus.Texte;
 import fr.deseille.social.corpus.TypeChangement;
 import fr.deseille.social.corpus.TypeTexte;
@@ -32,29 +33,40 @@ public final class VuesConsultation {
         public static SectionResume de(Section s) {
             return new SectionResume(s.getSourceId(), s.getTitre(), s.getEtat());
         }
+
+        public static SectionResume de(SectionRepository.ElementChemin e) {
+            return new SectionResume(e.getSourceId(), e.getTitre(),
+                    e.getEtat() == null ? null : EtatJuridique.valueOf(e.getEtat()));
+        }
     }
 
     public record ArticleResume(String sourceId, String num, EtatJuridique etat, boolean applicable,
                                 LocalDate dateDebut, LocalDate dateFin) {
 
-        public static ArticleResume de(Article a) {
-            return new ArticleResume(a.getSourceId(), a.getNum(), a.getEtat(), VuesConsultation.applicable(a),
+        public static ArticleResume de(Article a, LocalDate date) {
+            return new ArticleResume(a.getSourceId(), a.getNum(), a.getEtat(), a.estApplicableLe(date),
                     a.getDateDebut(), a.getDateFin());
         }
     }
 
-    /** Élément d'un niveau du sommaire : une section (à déplier) ou un article. */
+    /**
+     * Élément d'un niveau du sommaire : une section (à déplier) ou un article.
+     *
+     * @param applicable pour un article, s'il s'applique aujourd'hui ; null pour une section
+     */
     public record ElementSommaire(Nature nature, String sourceId, String libelle, EtatJuridique etat,
-                                  Integer intOrdre) {
+                                  Boolean applicable, Integer intOrdre) {
 
         public enum Nature { SECTION, ARTICLE }
 
         public static ElementSommaire de(Section s) {
-            return new ElementSommaire(Nature.SECTION, s.getSourceId(), s.getTitre(), s.getEtat(), s.getIntOrdre());
+            return new ElementSommaire(Nature.SECTION, s.getSourceId(), s.getTitre(), s.getEtat(), null,
+                    s.getIntOrdre());
         }
 
-        public static ElementSommaire de(Article a) {
-            return new ElementSommaire(Nature.ARTICLE, a.getSourceId(), a.getNum(), a.getEtat(), a.getIntOrdre());
+        public static ElementSommaire de(Article a, LocalDate date) {
+            return new ElementSommaire(Nature.ARTICLE, a.getSourceId(), a.getNum(), a.getEtat(),
+                    a.estApplicableLe(date), a.getIntOrdre());
         }
     }
 
@@ -87,10 +99,5 @@ public final class VuesConsultation {
      * @param evenements journal des changements de ces versions, du plus ancien au plus récent
      */
     public record Historique(String cid, List<ArticleResume> versions, List<EvenementJournal> evenements) {
-    }
-
-    /** Un article est applicable si son état l'est et qu'il n'a pas disparu du dump source. */
-    static boolean applicable(Article a) {
-        return a.getEtat() != null && a.getEtat().estApplicable() && a.getDisparuLe() == null;
     }
 }

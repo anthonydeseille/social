@@ -1,4 +1,4 @@
-package fr.deseille.social.profil;
+package fr.deseille.social;
 
 import java.time.Clock;
 import java.time.ZoneId;

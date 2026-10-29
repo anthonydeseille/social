@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,8 @@ public class ProfilService {
         List<String> avertissements = new ArrayList<>();
         List<TexteResume> textes = new ArrayList<>();
 
-        List<Texte> codes = texteRepository.findByType(TypeTexte.CODE);
+        LocalDate date = normalise.dateReference();
+        List<Texte> codes = applicables(texteRepository.findByType(TypeTexte.CODE), date);
         if (codes.isEmpty()) {
             avertissements.add("Le Code du travail n'est pas encore intégré : aucun droit ne peut être évalué.");
         }
@@ -49,17 +51,30 @@ public class ProfilService {
             avertissements.add("Convention collective non renseignée : seules les dispositions du Code du travail "
                     + "sont prises en compte. Son numéro (IDCC) figure sur la fiche de paie.");
         } else {
-            List<Texte> conventions = texteRepository.findByIdcc(normalise.idcc());
+            List<Texte> integrees = texteRepository.findByIdcc(normalise.idcc());
+            List<Texte> conventions = applicables(integrees, date);
             conventionDisponible = !conventions.isEmpty();
-            if (!conventionDisponible) {
+            if (integrees.isEmpty()) {
                 avertissements.add("La convention collective IDCC " + normalise.idcc() + " n'est pas encore intégrée : "
                         + "seules les dispositions du Code du travail sont prises en compte, alors que la convention "
                         + "peut prévoir des droits plus favorables.");
+            } else if (conventions.isEmpty()) {
+                avertissements.add("La convention collective IDCC " + normalise.idcc() + " n'est pas applicable au "
+                        + date + " (état : " + integrees.getFirst().getEtat() + ") : seules les dispositions du Code "
+                        + "du travail sont prises en compte.");
             }
             conventions.stream().map(TexteResume::de).forEach(textes::add);
         }
 
         return new ContexteProfil(normalise, anciennete(normalise), textes, conventionDisponible, avertissements);
+    }
+
+    /** Textes applicables à la date, dans un ordre stable. */
+    private static List<Texte> applicables(List<Texte> textes, LocalDate date) {
+        return textes.stream()
+                .filter(t -> t.estApplicableLe(date))
+                .sorted(Comparator.comparing(Texte::getSourceId))
+                .toList();
     }
 
     /** Ancienneté à la date de référence, ou null si la date d'entrée n'est pas connue. */

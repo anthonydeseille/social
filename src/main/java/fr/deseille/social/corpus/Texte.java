@@ -65,6 +65,19 @@ public class Texte {
         this.titre = titre;
     }
 
+    /**
+     * Indique si le texte s'applique à une date. Un état absent (cas des conventions dans les
+     * dumps KALI) est inconnu et ne l'exclut pas ; sinon l'état et les dates décident.
+     */
+    public boolean estApplicableLe(LocalDate date) {
+        if (etat == null) {
+            return true;
+        }
+        return etat.peutEtreApplicable()
+                && (dateDebut == null || !dateDebut.isAfter(date))
+                && (dateFin == null || date.isBefore(dateFin));
+    }
+
     @PrePersist
     void onCreate() {
         this.creeLe = Instant.now();

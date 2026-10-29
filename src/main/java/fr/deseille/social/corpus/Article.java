@@ -102,6 +102,22 @@ public class Article {
         this.texte = texte;
     }
 
+    /**
+     * Indique si l'article s'applique à une date : état compatible, toujours présent dans le dump
+     * source, et date comprise dans [dateDebut, dateFin[. Un {@code ABROGE_DIFF} cesse donc de
+     * s'appliquer à sa date de fin, un {@code VIGUEUR_DIFF} commence à sa date de début (et ne
+     * s'applique pas sans date de début connue). Sans dates (conventions), l'état seul décide.
+     */
+    public boolean estApplicableLe(LocalDate date) {
+        if (etat == null || !etat.peutEtreApplicable() || disparuLe != null) {
+            return false;
+        }
+        if (etat == EtatJuridique.VIGUEUR_DIFF && dateDebut == null) {
+            return false;
+        }
+        return (dateDebut == null || !dateDebut.isAfter(date)) && (dateFin == null || date.isBefore(dateFin));
+    }
+
     @PrePersist
     void onCreate() {
         this.ingereLe = Instant.now();

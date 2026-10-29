@@ -15,8 +15,8 @@ import fr.deseille.social.corpus.Section;
 import fr.deseille.social.corpus.SectionRepository;
 import fr.deseille.social.corpus.Texte;
 import fr.deseille.social.corpus.TexteRepository;
+import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -46,13 +46,16 @@ public class ConsultationService {
     private final SectionRepository sectionRepository;
     private final ArticleRepository articleRepository;
     private final JournalChangementRepository journalRepository;
+    private final Clock clock;
 
     public ConsultationService(TexteRepository texteRepository, SectionRepository sectionRepository,
-                               ArticleRepository articleRepository, JournalChangementRepository journalRepository) {
+                               ArticleRepository articleRepository, JournalChangementRepository journalRepository,
+                               Clock clock) {
         this.texteRepository = texteRepository;
         this.sectionRepository = sectionRepository;
         this.articleRepository = articleRepository;
         this.journalRepository = journalRepository;
+        this.clock = clock;
     }
 
     public List<TexteResume> textes() {
@@ -68,12 +71,13 @@ public class ConsultationService {
      */
     public Sommaire sommaire(String texteSourceId, String sectionSourceId) {
         Texte texte = texte(texteSourceId);
+        LocalDate aujourdHui = aujourdHui();
         if (sectionSourceId == null) {
             List<ElementSommaire> elements = Stream.concat(
                             sectionRepository.findByTexteIdAndParentIsNullOrderByIntOrdreAsc(texte.getId()).stream()
                                     .map(ElementSommaire::de),
                             articleRepository.findByTexteIdAndSectionIsNullOrderByIntOrdreAsc(texte.getId()).stream()
-                                    .map(ElementSommaire::de))
+                                    .map(a -> ElementSommaire.de(a, aujourdHui)))
                     .sorted(ORDRE_SOMMAIRE)
                     .toList();
             return new Sommaire(TexteResume.de(texte), null, List.of(), elements);
@@ -85,25 +89,27 @@ public class ConsultationService {
                         sectionRepository.findByParentIdOrderByIntOrdreAsc(section.getId()).stream()
                                 .map(ElementSommaire::de),
                         articleRepository.findBySectionIdOrderByIntOrdreAsc(section.getId()).stream()
-                                .map(ElementSommaire::de))
+                                .map(a -> ElementSommaire.de(a, aujourdHui)))
                 .sorted(ORDRE_SOMMAIRE)
                 .toList();
-        return new Sommaire(TexteResume.de(texte), SectionResume.de(section), filAriane(section), elements);
+        return new Sommaire(TexteResume.de(texte), SectionResume.de(section), filAriane(section.getId()), elements);
     }
 
     public ArticleDetail article(String sourceId) {
         Article a = articleRepository.findBySourceId(sourceId)
                 .orElseThrow(() -> introuvable("Article inconnu : " + sourceId));
-        return new ArticleDetail(a.getSourceId(), a.getCid(), a.getNum(), a.getEtat(), VuesConsultation.applicable(a),
+        return new ArticleDetail(a.getSourceId(), a.getCid(), a.getNum(), a.getEtat(), a.estApplicableLe(aujourdHui()),
                 a.getDateDebut(), a.getDateFin(), a.getContenuTexte(), a.getContenuHtml(), a.getNota(),
-                a.getDisparuLe(), TexteResume.de(a.getTexte()), filAriane(a.getSection()));
+                a.getDisparuLe(), TexteResume.de(a.getTexte()),
+                a.getSection() == null ? List.of() : filAriane(a.getSection().getId()));
     }
 
     /** Versions d'un article d'un texte par numéro (ex. {@code L1221-1}), applicables d'abord. */
     public List<ArticleResume> articlesParNumero(String texteSourceId, String num) {
         Texte texte = texte(texteSourceId);
+        LocalDate aujourdHui = aujourdHui();
         return articleRepository.findByTexteIdAndNum(texte.getId(), num).stream()
-                .map(ArticleResume::de)
+                .map(a -> ArticleResume.de(a, aujourdHui))
                 .sorted(ORDRE_VERSIONS)
                 .toList();
     }
@@ -113,8 +119,9 @@ public class ConsultationService {
                 .orElseThrow(() -> introuvable("Article inconnu : " + sourceId));
         List<Article> versions = article.getCid() == null ? List.of(article) : articleRepository.findByCid(article.getCid());
         List<String> ids = versions.stream().map(Article::getSourceId).toList();
+        LocalDate aujourdHui = aujourdHui();
         return new Historique(article.getCid(),
-                versions.stream().map(ArticleResume::de).sorted(ORDRE_VERSIONS).toList(),
+                versions.stream().map(v -> ArticleResume.de(v, aujourdHui)).sorted(ORDRE_VERSIONS).toList(),
                 journalRepository.findByArticleSourceIdInOrderByDetecteLeAscIdAsc(ids).stream()
                         .map(EvenementJournal::de).toList());
     }
@@ -124,13 +131,13 @@ public class ConsultationService {
                 .orElseThrow(() -> introuvable("Texte inconnu : " + sourceId));
     }
 
-    /** Sections de la racine jusqu'à {@code section} incluse (vide si null). */
-    private static List<SectionResume> filAriane(Section section) {
-        List<SectionResume> fil = new ArrayList<>();
-        for (Section s = section; s != null; s = s.getParent()) {
-            fil.addFirst(SectionResume.de(s));
-        }
-        return fil;
+    /** Sections de la racine jusqu'à la section donnée incluse, en une requête. */
+    private List<SectionResume> filAriane(Long sectionId) {
+        return sectionRepository.findChemin(sectionId).stream().map(SectionResume::de).toList();
+    }
+
+    private LocalDate aujourdHui() {
+        return LocalDate.now(clock);
     }
 
     private static ResponseStatusException introuvable(String message) {

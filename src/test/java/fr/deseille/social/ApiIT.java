@@ -81,6 +81,8 @@ class ApiIT {
                 .containsExactly("LEGISCTA000000000001", "LEGIARTI000000000003");
         assertThat(reponse).bodyJson().extractingPath("$.elements[*].nature").asArray()
                 .containsExactly("SECTION", "ARTICLE");
+        assertThat(reponse).bodyJson().extractingPath("$.elements[1].applicable").isEqualTo(false);
+        assertThat(reponse).bodyJson().extractingPath("$.elements[0].applicable").isNull();
     }
 
     @Test
@@ -95,6 +97,18 @@ class ApiIT {
     @Test
     void section_d_un_autre_texte_introuvable() {
         assertThat(mvc.get().uri("/api/textes/{id}/sommaire?section={s}", CODE, "KALISCTA000000000001"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void texte_ou_section_inconnus_introuvables() {
+        assertThat(mvc.get().uri("/api/textes/{id}/sommaire", "LEGITEXT999999999999"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(mvc.get().uri("/api/textes/{id}/articles?num={n}", "LEGITEXT999999999999", "L1"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(mvc.get().uri("/api/textes/{id}/sommaire?section={s}", CODE, "LEGISCTA999999999999"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(mvc.get().uri("/api/articles/{id}/historique", "LEGIARTI999999999999"))
                 .hasStatus(HttpStatus.NOT_FOUND);
     }
 
@@ -168,6 +182,10 @@ class ApiIT {
                 .hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(mvc.post().uri("/api/profil/contexte").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"statut\": \"STAGIAIRE\"}")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.post().uri("/api/profil/contexte").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idcc\": 0}")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.post().uri("/api/profil/contexte").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"age\": 100}")).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     private static void copier(String ressource, Path cible) throws IOException {
