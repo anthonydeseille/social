@@ -21,7 +21,6 @@ management:
       exposure:
         include: health
 
-
 droits:
   ingestion:
     base-url: https://raw.githubusercontent.com

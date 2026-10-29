@@ -64,12 +64,12 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 ## Observabilité
 
 Chaque question alimente des métriques (Micrometer), **sans donnée personnelle** (ni question, ni
-profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/metrics` et `/actuator/prometheus`
-s'ouvrent avec le profil `observabilite` :
+profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/actuator/metrics` et
+`/actuator/prometheus` s'ouvrent avec le profil `observabilite` :
 
 | Métrique | Étiquettes | Ce qu'elle suit |
 |---|---|---|
-| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question (toutes comptées) |
+| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question qui atteint le service (le quota et la validation du corps de requête refusent avant) |
 | `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
 | `droits.claude.appels` | etape, issue : succes, refus, tronquee, erreur | appels à Claude |
 | `droits.claude.jetons` | etape, sens : entree, sortie | jetons consommés (donc le coût) |
