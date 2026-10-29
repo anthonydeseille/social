@@ -22,6 +22,7 @@ import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,17 @@ public class AssistantClaude implements Assistant {
     private final ClaudeProperties properties;
     private final Supplier<AnthropicClient> fabrique;
     private volatile AnthropicClient client;
+    private final AtomicLong appels = new AtomicLong();
+    private final AtomicLong jetonsEntree = new AtomicLong();
+    private final AtomicLong jetonsSortie = new AtomicLong();
+
+    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
+    public record Consommation(long appels, long jetonsEntree, long jetonsSortie) {
+    }
+
+    public Consommation consommation() {
+        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
+    }
 
     @Autowired
     public AssistantClaude(ClaudeProperties properties) {
@@ -226,7 +238,10 @@ public class AssistantClaude implements Assistant {
         return titres.isEmpty() ? a.texte().titre() : String.join(" > ", titres);
     }
 
-    private static void journaliser(String etape, Usage usage) {
+    private void journaliser(String etape, Usage usage) {
+        appels.incrementAndGet();
+        jetonsEntree.addAndGet(usage.inputTokens());
+        jetonsSortie.addAndGet(usage.outputTokens());
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 

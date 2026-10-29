@@ -40,3 +40,6 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 
 - Vérifier qu'un nouveau test échoue bien sans le correctif (mutation volontaire, puis retour arrière).
 - `src/test/resources/evaluation/questions.yaml` : jeu de questions de salariés avec réponses de référence validées par une juriste (champ `valide`).
+- `EvaluationIT` pose ces questions sur les vraies sources ; désactivé par défaut car il appelle Claude (payant, `ANTHROPIC_API_KEY`) :
+  `./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true`
+  (`-Devaluation.simulee=true` : faux assistant, gratuit). Rapport dans `target/evaluation/`.
