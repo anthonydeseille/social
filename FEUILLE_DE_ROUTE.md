@@ -24,7 +24,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 ## LLMOps
 
 1. **Juge automatique** ✅ : note les points clés et les erreurs à éviter ; la juriste n'arbitre que les désaccords.
-2. **Évaluation via l'API Batch** ✅ (`-Devaluation.lots=true`) : moitié prix, trois lots successifs ; testée sans appel réseau, premier lancement réel à faire.
+2. **Évaluation via l'API Batch** ✅ (`-Devaluation.lots=true`) : moitié prix, trois lots successifs ; testée sans appel réseau, premier lancement réel à faire. Limite : pas de reprise si un lot dépasse le délai d'attente (les lots déjà terminés sont perdus pour le rapport).
 3. **Vérification déterministe des citations** ✅ : chaque extrait cité doit exister dans l'article (aux espaces près), signalé sinon. Reste à faire : un indicateur d'évaluation pour les chiffres absents des articles cités (pas dans l'appli : les montants calculés n'y figurent jamais).
 4. **Métriques et tableau de bord** (Micrometer, Actuator) : jetons, coût, latence par étape, refus, troncatures, « aucun article », quota.
    - Métriques ✅ (`/actuator/metrics`, `/actuator/prometheus`, voir `docs/fonctionnement.md`) ; reste le tableau de bord (Prometheus et Grafana, par exemple) et la protection des points d'accès.

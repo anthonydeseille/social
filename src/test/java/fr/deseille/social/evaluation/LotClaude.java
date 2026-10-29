@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * Envoi d'un lot de requêtes à l'API Batch d'Anthropic (moitié prix, traitement asynchrone), suivi
@@ -23,6 +24,8 @@ import java.util.function.Supplier;
  * champs propres aux appels directs (repli côté serveur) ne sont pas transmis.
  */
 final class LotClaude {
+
+    private static final Pattern IDENTIFIANT = Pattern.compile("[a-zA-Z0-9_-]{1,64}");
 
     private final Supplier<AnthropicClient> fabrique;
     private final Duration delaiMax;
@@ -52,6 +55,11 @@ final class LotClaude {
         if (requetes.isEmpty()) {
             return Map.of();
         }
+        // Un identifiant hors du format de l'API ferait rejeter tout le lot, après l'aller-retour réseau
+        requetes.keySet().stream().filter(id -> !IDENTIFIANT.matcher(id).matches()).findFirst().ifPresent(id -> {
+            throw new IllegalArgumentException("Identifiant de requête refusé par l'API Batch : « " + id
+                    + " » (lettres sans accent, chiffres, « - » et « _ », 64 caractères au plus)");
+        });
         if (client == null) {
             client = fabrique.get();
         }

@@ -136,6 +136,17 @@ class LotClaudeTest {
     }
 
     @Test
+    void identifiant_hors_format_refuse_avant_tout_envoi() {
+        AnthropicClient client = mock(AnthropicClient.class);
+        LotClaude lots = new LotClaude(() -> client, Duration.ofMinutes(1), Duration.ofMillis(1));
+
+        assertThatThrownBy(() -> lots.executer("test", Map.of("période-essai",
+                ASSISTANT.parametresRedaction("Q ?", CONTEXTE, List.of(ARTICLE)))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("période-essai");
+        org.mockito.Mockito.verifyNoInteractions(client);
+    }
+
+    @Test
     void lot_non_termine_dans_le_delai_signale() throws Exception {
         AnthropicClient client = client(batches(lot("in_progress"), lot("in_progress")));
         LotClaude lots = new LotClaude(() -> client, Duration.ZERO, Duration.ofMillis(1));

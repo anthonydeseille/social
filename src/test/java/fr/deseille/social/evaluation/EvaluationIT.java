@@ -173,6 +173,11 @@ class EvaluationIT {
         Map<String, List<String>> requetes = new HashMap<>();
         for (Question q : questions) {
             LotClaude.Resultat r = r1.get(q.id());
+            if (r == null || r.message() == null) {
+                // Comme en mode normal, repli sur la question brute ; signalé pour lire les scores de recherche
+                System.out.println("Reformulation en échec pour " + q.id() + " ("
+                        + (r == null ? "résultat absent du lot" : r.erreur()) + ") : recherche sur la question brute");
+            }
             requetes.put(q.id(), r == null || r.message() == null ? List.of(q.question())
                     : AssistantClaude.requetesDepuis(r.message(), q.question()));
             compter(jetons.get(q.id()), r);
