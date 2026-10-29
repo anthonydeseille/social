@@ -70,7 +70,8 @@ class JugeClaudeTest {
                 List.of(new ErreurJugee("8 mois d'emblée", true, "Annonce 8 mois.")), "Omet l'accord écrit.");
         Resultat r = new Resultat(q, reponse(q), null, 5_000, 2_000, 1_000).avecVerdict(verdict, null);
 
-        String md = RapportEvaluation.markdown(List.of(r), "claude-opus-5-5", false, 1_000, 500);
+        String md = RapportEvaluation.markdown(List.of(r), Tarif.pour("claude-opus-5-5"), false,
+                Tarif.pour("claude-opus-5-5"), 1_000, 500, 1);
         assertThat(md).contains("Qualité (points clés présents, selon le juge) : 100 %",
                 "Erreurs à éviter commises : 1", "Coût du juge : 0,01 $",
                 "| q-validee | 1/2 | 1/2 | 100 % | 1 |", "- ✅ 4 mois : Durée exacte.",

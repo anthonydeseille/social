@@ -11,6 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -62,48 +64,44 @@ final class RapportEvaluation {
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
 
-        double scoreRecherche() {
+        /** Part des articles attendus transmis au modèle ; null sans article attendu (rien à mesurer). */
+        Double scoreRecherche() {
             return ratio(trouves().size(), question.articlesAttendus().size());
         }
 
-        double scoreCitations() {
+        /** Part des articles attendus cités ; null sans article attendu. */
+        Double scoreCitations() {
             return ratio(cites().size(), question.articlesAttendus().size());
         }
 
-        private static double ratio(int n, int total) {
-            return total == 0 ? 1.0 : (double) n / total;
+        private static Double ratio(int n, int total) {
+            return total == 0 ? null : (double) n / total;
         }
     }
-
-    /** Tarif de Claude Opus 5.5, en dollars par million de jetons. */
-    static final double PRIX_ENTREE = 4.0;
-    static final double PRIX_SORTIE = 20.0;
 
     private RapportEvaluation() {
     }
 
-    static double cout(long jetonsEntree, long jetonsSortie) {
-        return (jetonsEntree * PRIX_ENTREE + jetonsSortie * PRIX_SORTIE) / 1_000_000;
-    }
-
     static String markdown(List<Resultat> resultats, String modele, boolean simule) {
-        return markdown(resultats, modele, simule, 0, 0);
+        return markdown(resultats, Tarif.pour(modele), simule, Tarif.pour(modele), 0, 0, resultats.size());
     }
 
-    static String markdown(List<Resultat> resultats, String modele, boolean simule, long jetonsJugeEntree,
-                           long jetonsJugeSortie) {
+    /**
+     * @param prevues nombre de questions prévues : le rapport est réécrit après chaque question, et
+     *                signalé partiel tant qu'elles ne sont pas toutes passées
+     */
+    static String markdown(List<Resultat> resultats, Tarif tarif, boolean simule, Tarif tarifJuge,
+                           long jetonsJugeEntree, long jetonsJugeSortie, int prevues) {
         StringBuilder md = new StringBuilder();
         List<Resultat> juges = resultats.stream().filter(r -> r.verdict() != null).toList();
         long entree = resultats.stream().mapToLong(Resultat::jetonsEntree).sum();
         long sortie = resultats.stream().mapToLong(Resultat::jetonsSortie).sum();
-        md.append("# Rapport d'évaluation\n\n");
-        md.append("- Modèle : ").append(simule ? "simulé (aucun appel payant)" : modele).append('\n');
-        md.append("- Questions : ").append(resultats.size())
+        md.append("# Rapport d'évaluation").append(resultats.size() < prevues ? " (partiel)" : "").append("\n\n");
+        md.append("- Modèle : ").append(simule ? "simulé (aucun appel payant)" : tarif.libelle()).append('\n');
+        md.append("- Questions : ").append(resultats.size()).append('/').append(prevues)
                 .append(", en erreur : ").append(resultats.stream().filter(r -> r.erreur() != null).count()).append('\n');
-        md.append(String.format(Locale.FRANCE, "- Recherche (articles attendus transmis) : %.0f %%%n",
-                100 * resultats.stream().mapToDouble(Resultat::scoreRecherche).average().orElse(0)));
-        md.append(String.format(Locale.FRANCE, "- Citations (articles attendus cités) : %.0f %%%n",
-                100 * resultats.stream().mapToDouble(Resultat::scoreCitations).average().orElse(0)));
+        md.append("- Recherche (articles attendus transmis) : ").append(moyenne(resultats, Resultat::scoreRecherche)).append('\n');
+        md.append("- Citations (articles attendus cités) : ").append(moyenne(resultats, Resultat::scoreCitations)).append('\n');
         if (juges.isEmpty()) {
             md.append("- Qualité : juge non lancé\n");
         } else {
@@ -112,18 +110,24 @@ final class RapportEvaluation {
             md.append("- Erreurs à éviter commises : ")
                     .append(juges.stream().mapToLong(r -> r.verdict().erreursCommises().size()).sum()).append('\n');
         }
-        md.append(String.format(Locale.FRANCE, "- Jetons : %d en entrée, %d en sortie ; coût : %.2f $ (%.3f $ par question)%n",
-                entree, sortie, cout(entree, sortie), resultats.isEmpty() ? 0 : cout(entree, sortie) / resultats.size()));
-        md.append(String.format(Locale.FRANCE, "- Coût du juge : %.2f $%n%n", cout(jetonsJugeEntree, jetonsJugeSortie)));
+        double cout = tarif.cout(entree, sortie);
+        md.append(String.format(Locale.FRANCE, "- Jetons : %d en entrée, %d en sortie ; coût : %s (%s par question)%n",
+                entree, sortie, Tarif.dollars(cout, "%.2f $"),
+                Tarif.dollars(resultats.isEmpty() ? 0 : cout / resultats.size(), "%.3f $")));
+        md.append("- Coût du juge : ").append(Tarif.dollars(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie), "%.2f $"))
+                .append(tarifJuge.modele().equals(tarif.modele()) ? "" : " (" + tarifJuge.libelle() + ")").append("\n\n");
 
         md.append("| Question | Recherche | Citations | Qualité | Erreurs | Coût | Durée |\n|---|---|---|---|---|---|---|\n");
         for (Resultat r : resultats) {
             String qualite = r.verdict() == null ? "-" : String.format(Locale.FRANCE, "%.0f %%", 100 * r.verdict().scoreQualite());
             String erreurs = r.verdict() == null ? "-" : String.valueOf(r.verdict().erreursCommises().size());
-            md.append(String.format(Locale.FRANCE, "| %s | %d/%d | %d/%d | %s | %s | %.3f $ | %.1f s |%n",
-                    r.question().id(), r.trouves().size(), r.question().articlesAttendus().size(),
-                    r.cites().size(), r.question().articlesAttendus().size(), qualite, erreurs,
-                    cout(r.jetonsEntree(), r.jetonsSortie()), r.dureeMs() / 1000.0));
+            int attendus = r.question().articlesAttendus().size();
+            md.append(String.format(Locale.FRANCE, "| %s | %s | %s | %s | %s | %s | %.1f s |%n",
+                    r.question().id(),
+                    attendus == 0 ? "n/a" : r.trouves().size() + "/" + attendus,
+                    attendus == 0 ? "n/a" : r.cites().size() + "/" + attendus,
+                    qualite, erreurs, Tarif.dollars(tarif.cout(r.jetonsEntree(), r.jetonsSortie()), "%.3f $"),
+                    r.dureeMs() / 1000.0));
         }
 
         for (Resultat r : resultats) {
@@ -188,5 +192,15 @@ final class RapportEvaluation {
             }
         }
         return md.toString();
+    }
+
+    /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */
+    private static String moyenne(List<Resultat> resultats, Function<Resultat, Double> score) {
+        List<Double> scores = resultats.stream().map(score).filter(Objects::nonNull).toList();
+        if (scores.isEmpty()) {
+            return "n/a";
+        }
+        return String.format(Locale.FRANCE, "%.0f %% (sur %d question(s))",
+                100 * scores.stream().mapToDouble(Double::doubleValue).average().orElse(0), scores.size());
     }
 }

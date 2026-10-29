@@ -83,6 +83,14 @@ class EvaluationIT {
         JugeClaude juge = simulee || !Boolean.parseBoolean(System.getProperty("evaluation.juge", "true")) ? null
                 : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 
+        Tarif tarif = Tarif.pour(claudeProperties.modele(), "evaluation");
+        Tarif tarifJuge = juge == null ? tarif
+                : Tarif.pour(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), "evaluation.juge");
+        Path rapport = Path.of("target", "evaluation",
+                "rapport-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".md");
+        Files.createDirectories(rapport.getParent());
+        System.out.println("Rapport d'évaluation (mis à jour après chaque question) : " + rapport.toAbsolutePath());
+
         List<Resultat> resultats = new ArrayList<>();
         for (Question q : questions) {
             var avant = assistantClaude.consommation();
@@ -92,7 +100,7 @@ class EvaluationIT {
             try {
                 reponse = service.repondre(q.question(), q.profil());
             } catch (RuntimeException e) {
-                erreur = e.getClass().getSimpleName() + " : " + e.getMessage();
+                erreur = decrire(e);
             }
             var apres = assistantClaude.consommation();
             Resultat resultat = new Resultat(q, reponse, erreur, apres.jetonsEntree() - avant.jetonsEntree(),
@@ -101,18 +109,19 @@ class EvaluationIT {
                 try {
                     resultat = resultat.avecVerdict(juge.juger(q, reponse), null);
                 } catch (RuntimeException e) {
-                    resultat = resultat.avecVerdict(null, e.getClass().getSimpleName() + " : " + e.getMessage());
+                    resultat = resultat.avecVerdict(null, decrire(e));
                 }
             }
             resultats.add(resultat);
+            // Réécrit après chaque question : une interruption ne perd pas ce qui a déjà été payé
+            Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif, simulee, tarifJuge,
+                    juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie(), questions.size()),
+                    StandardCharsets.UTF_8);
         }
+    }
 
-        Path rapport = Path.of("target", "evaluation",
-                "rapport-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".md");
-        Files.createDirectories(rapport.getParent());
-        Files.writeString(rapport, RapportEvaluation.markdown(resultats, claudeProperties.modele(), simulee,
-                juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie()), StandardCharsets.UTF_8);
-        System.out.println("Rapport d'évaluation : " + rapport.toAbsolutePath());
+    private static String decrire(Throwable e) {
+        return e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " : " + e.getMessage());
     }
 
     private static JeuEvaluation jeu() throws Exception {
