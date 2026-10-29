@@ -1,0 +1,24 @@
+# Jeu minimal pour tester la lecture du format (voir questions.yaml).
+version: 1
+date_reference: 2026-11-01
+questions:
+  - id: q-validee
+    theme: essai
+    valide: true
+    question: "Ma période d'essai ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2026-10-01, dateReference: 2026-11-01, situations: [GROSSESSE]}
+    reponse_attendue: "4 mois."
+    points_cles: ["4 mois"]
+    articles_attendus:
+      - {num: "3.4", texte: SYNTEC, sourceId: KALIARTI000047513825}
+      - {num: L1221-19, texte: CODE, sourceId: LEGIARTI000019071113}
+    erreurs_a_eviter: ["8 mois d'emblée"]
+  - id: q-non-validee
+    theme: cdd
+    valide: false
+    question: "Ma prime de fin de CDD ?"
+    profil: {typeContrat: CDD}
+    reponse_attendue: "10 %."
+    points_cles: ["10 %"]
+    articles_attendus:
+      - {num: L1243-8, texte: CODE, sourceId: LEGIARTI000006901219}

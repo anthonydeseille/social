@@ -9,14 +9,14 @@ import java.util.Locale;
 
 /**
  * Décrit en français le contexte d'un profil pour le modèle : uniquement les éléments utiles au
- * raisonnement juridique, aucune donnée d'identité.
+ * raisonnement juridique, aucune donnée d'identité. Partagée avec le juge de l'évaluation.
  */
-final class DescriptionProfil {
+public final class DescriptionProfil {
 
     private DescriptionProfil() {
     }
 
-    static String decrire(ContexteProfil contexte) {
+    public static String decrire(ContexteProfil contexte) {
         ProfilSalarie p = contexte.profil();
         List<String> lignes = new ArrayList<>();
         lignes.add("Profil du salarié, à la date du " + p.dateReference() + " :");

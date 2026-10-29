@@ -22,6 +22,7 @@ import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,17 @@ public class AssistantClaude implements Assistant {
     private final ClaudeProperties properties;
     private final Supplier<AnthropicClient> fabrique;
     private volatile AnthropicClient client;
+    private final AtomicLong appels = new AtomicLong();
+    private final AtomicLong jetonsEntree = new AtomicLong();
+    private final AtomicLong jetonsSortie = new AtomicLong();
+
+    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
+    public record Consommation(long appels, long jetonsEntree, long jetonsSortie) {
+    }
+
+    public Consommation consommation() {
+        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
+    }
 
     @Autowired
     public AssistantClaude(ClaudeProperties properties) {
@@ -104,15 +116,7 @@ public class AssistantClaude implements Assistant {
 
     @Override
     public List<String> reformuler(String question, ContexteProfil contexte) {
-        StructuredMessageCreateParams<Requetes> params = MessageCreateParams.builder()
-                .model(properties.modele())
-                .maxTokens(MAX_TOKENS)
-                .system(CONSIGNES_REFORMULATION)
-                .outputConfig(Requetes.class)
-                .addUserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)
-                .putAdditionalHeader("anthropic-beta", BETA_REPLI)
-                .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
-                .build();
+        StructuredMessageCreateParams<Requetes> params = parametresReformulation(question, contexte);
         StructuredMessage<Requetes> message;
         try {
             message = client().messages().create(params);
@@ -147,6 +151,19 @@ public class AssistantClaude implements Assistant {
         }
         journaliser("rédaction", message.usage());
         return versReponse(message, articles);
+    }
+
+    /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. */
+    StructuredMessageCreateParams<Requetes> parametresReformulation(String question, ContexteProfil contexte) {
+        return MessageCreateParams.builder()
+                .model(properties.modele())
+                .maxTokens(MAX_TOKENS)
+                .system(CONSIGNES_REFORMULATION)
+                .outputConfig(Requetes.class)
+                .addUserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)
+                .putAdditionalHeader("anthropic-beta", BETA_REPLI)
+                .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
+                .build();
     }
 
     /** Requête de rédaction : un document par article, dans l'ordre, puis le profil et la question. */
@@ -226,7 +243,10 @@ public class AssistantClaude implements Assistant {
         return titres.isEmpty() ? a.texte().titre() : String.join(" > ", titres);
     }
 
-    private static void journaliser(String etape, Usage usage) {
+    private void journaliser(String etape, Usage usage) {
+        appels.incrementAndGet();
+        jetonsEntree.addAndGet(usage.inputTokens());
+        jetonsSortie.addAndGet(usage.outputTokens());
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 
