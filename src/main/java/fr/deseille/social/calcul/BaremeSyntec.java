@@ -34,7 +34,7 @@ class BaremeSyntec implements BaremeConventionnel {
     }
 
     @Override
-    public Optional<Calcul> calculer(ProfilSalarie profil, int moisComplets) {
+    public Optional<Indemnite.Evalue> calculer(ProfilSalarie profil, int moisComplets) {
         if (profil.statut() == null) {
             return Optional.empty();
         }
@@ -44,8 +44,9 @@ class BaremeSyntec implements BaremeConventionnel {
         detail.add(cadre ? "Ingénieurs et cadres : 1/4 de mois par année en deçà de 2 ans, 1/3 à partir de 2 ans"
                 : "ETAM : 1/4 de mois par année jusqu'à 10 ans, 1/3 au-delà");
         detail.addAll(r.detail());
-        return Optional.of(new Calcul("Convention Syntec, article 4.5", r.mois().setScale(2, RoundingMode.HALF_UP),
-                detail, List.of(new Source("4.5", SYNTEC), new Source("3.7", SYNTEC))));
+        return Optional.of(new Indemnite.Evalue(new Calcul("Convention Syntec, article 4.5",
+                r.mois().setScale(2, RoundingMode.HALF_UP), detail,
+                List.of(new Source("4.5", SYNTEC), new Source("3.7", SYNTEC))), r.mois()));
     }
 
     @Override

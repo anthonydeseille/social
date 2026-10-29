@@ -28,7 +28,7 @@ class CalculControllerTest {
 
         assertThat(reponse).hasStatusOk().bodyJson().extractingPath("$.retenue").isEqualTo("CONVENTIONNELLE");
         assertThat(reponse).bodyJson().extractingPath("$.moisRetenus").isEqualTo(2.36);
-        assertThat(reponse).bodyJson().extractingPath("$.montantBrut").isEqualTo(10620.00);
+        assertThat(reponse).bodyJson().extractingPath("$.montantBrut").isEqualTo(10625.00);
         assertThat(reponse).bodyJson().extractingPath("$.conventionnelle.sources[0].num").isEqualTo("4.5");
         assertThat(reponse).bodyJson().extractingPath("$.legale.detail").asArray().isNotEmpty();
         assertThat(reponse).bodyJson().extractingPath("$.hypotheses").asArray().isNotEmpty();

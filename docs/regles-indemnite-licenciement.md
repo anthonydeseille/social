@@ -9,7 +9,7 @@ le modèle de langage. **Les points marqués « à valider » attendent l'avis d
 | Règle | Source | Implémentation |
 |---|---|---|
 | Droit : CDI, licenciement hors faute grave ou lourde, au moins 8 mois d'ancienneté ininterrompue | L1234-9, Syntec 4.5 (1) | Faute grave ou lourde, CDD, intérim, ou moins de 8 mois complets à la notification : pas d'indemnité, avec la raison |
-| Années incomplètes au prorata des mois complets | R1234-1, Syntec 4.5 (2) | Ancienneté en mois complets, divisée par 12 |
+| Années incomplètes au prorata des mois complets | R1234-1, Syntec 4.5 (2) | Ancienneté en mois complets, divisée par 12 ; calcul exact, arrondi au centième de mois seulement à l'affichage, montant en euros au centime |
 | Barème légal : 1/4 de mois par année jusqu'à 10 ans, 1/3 à partir de 10 ans | R1234-2 | Par tranche : exactement 10 ans = 10 × 1/4 |
 | Barème Syntec ETAM : 1/4 jusqu'à 10 ans, 1/3 après | Syntec 4.5 (2) | Par tranche (**à valider**, question 1) |
 | Barème Syntec ingénieurs et cadres : 1/4 en deçà de 2 ans, 1/3 à partir de 2 ans | Syntec 4.5 (2) | Toutes les années au tiers dès 2 ans (**à valider**, question 1) |
@@ -31,6 +31,10 @@ seuil passé. Deux lectures possibles :
 |---|---|---|
 | Cadre, 7 ans et 1 mois | 2 × 1/4 + 5,08 × 1/3 = **2,19 mois** | 7,08 × 1/3 = **2,36 mois** (retenu) |
 | ETAM, 12 ans et 1 mois | 10 × 1/4 + 2,08 × 1/3 = **3,19 mois** (retenu) | 12,08 × 1/3 = **4,03 mois** |
+
+Élément à peser : en lecture « toutes les années », l'indemnité d'un cadre **saute** au passage des
+2 ans (0,48 mois à 1 an et 11 mois, 0,67 mois à 2 ans) ; en lecture par tranche, elle progresse
+continûment (0,48 puis 0,50).
 
 Le calculateur applique aujourd'hui « toutes les années » aux cadres et « par tranche » aux ETAM,
 comme le jeu d'évaluation. C'est **incohérent** pour deux phrases construites de la même façon : il

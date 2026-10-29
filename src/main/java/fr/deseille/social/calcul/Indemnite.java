@@ -45,6 +45,13 @@ public final class Indemnite {
     public record Calcul(String regle, BigDecimal mois, List<String> detail, List<Source> sources) {
     }
 
+    /**
+     * Calcul affiché et sa valeur exacte (10 décimales) : la comparaison et le montant en euros
+     * partent de la valeur exacte, l'arrondi ne sert qu'à l'affichage.
+     */
+    record Evalue(Calcul calcul, BigDecimal moisExact) {
+    }
+
     public enum Retenue { LEGALE, CONVENTIONNELLE, IDENTIQUES }
 
     /**

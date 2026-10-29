@@ -17,7 +17,7 @@ interface BaremeConventionnel {
      *
      * @param moisComplets ancienneté de calcul, en mois complets
      */
-    Optional<Indemnite.Calcul> calculer(ProfilSalarie profil, int moisComplets);
+    Optional<Indemnite.Evalue> calculer(ProfilSalarie profil, int moisComplets);
 
     /** Hypothèses propres à la convention, à afficher avec le résultat. */
     List<String> hypotheses();

@@ -52,7 +52,7 @@ class CalculIndemniteServiceTest {
         assertThat(r.conventionnelle().mois()).isEqualByComparingTo(mois("2.36")); // 7,0833 × 1/3
         assertThat(r.retenue()).isEqualTo(Retenue.CONVENTIONNELLE);
         assertThat(r.moisRetenus()).isEqualByComparingTo(mois("2.36"));
-        assertThat(r.montantBrut()).isEqualByComparingTo(new BigDecimal("10620.00"));    // 2,36 × 4500
+        assertThat(r.montantBrut()).isEqualByComparingTo(new BigDecimal("10625.00"));    // 2,3611… × 4500, valeur exacte
         assertThat(r.conventionnelle().sources()).contains(new Source("4.5", BaremeSyntec.SYNTEC));
         assertThat(r.legale().sources()).extracting(Source::num).containsExactly("L1234-9", "R1234-1", "R1234-2", "R1234-4");
     }
@@ -68,6 +68,47 @@ class CalculIndemniteServiceTest {
         assertThat(r.retenue()).isEqualTo(Retenue.IDENTIQUES);
         assertThat(r.montantBrut()).isNull();
         assertThat(r.legale().detail()).anyMatch(l -> l.startsWith("10 premières années × 1/4"));
+    }
+
+    @Test
+    void montant_en_euros_calcule_sur_la_valeur_exacte_et_non_arrondie() {
+        // 12 ans et 1 mois : 3,19444… mois exactement ; × 5000 = 15 972,22 € (et non 3,19 × 5000 = 15 950 €)
+        Resultat r = calculer(profil(1486, Statut.NON_CADRE, TypeContrat.CDI, LocalDate.of(2014, 10, 1)),
+                Motif.LICENCIEMENT_PERSONNEL, new BigDecimal("5000"));
+
+        assertThat(r.moisRetenus()).isEqualByComparingTo(mois("3.19"));
+        assertThat(r.montantBrut()).isEqualByComparingTo(new BigDecimal("15972.22"));
+    }
+
+    @Test
+    void motif_economique_ou_personnel_meme_montant() {
+        ProfilSalarie p = profil(1486, Statut.CADRE, TypeContrat.CDI, LocalDate.of(2019, 10, 1));
+
+        assertThat(calculer(p, Motif.LICENCIEMENT_ECONOMIQUE, null).moisRetenus())
+                .isEqualByComparingTo(calculer(p, Motif.LICENCIEMENT_PERSONNEL, null).moisRetenus());
+    }
+
+    /**
+     * À VALIDER (docs/regles-indemnite-licenciement.md, question 1) : en lecture « toutes les années »,
+     * le barème cadres saute de 0,48 à 0,67 mois au passage des 2 ans ; en lecture par tranche, il
+     * passerait de 0,48 à 0,50. Ce test fige le comportement actuel pour qu'il ne passe pas pour voulu.
+     */
+    @Test
+    void saut_du_bareme_cadres_a_2_ans_en_lecture_toutes_les_annees() {
+        Resultat avant = calculer(profil(1486, Statut.CADRE, TypeContrat.CDI, NOTIFICATION.minusMonths(23)),
+                Motif.LICENCIEMENT_PERSONNEL, null);
+        Resultat apres = calculer(profil(1486, Statut.CADRE, TypeContrat.CDI, NOTIFICATION.minusMonths(24)),
+                Motif.LICENCIEMENT_PERSONNEL, null);
+
+        assertThat(avant.conventionnelle().mois()).isEqualByComparingTo(mois("0.48"));
+        assertThat(apres.conventionnelle().mois()).isEqualByComparingTo(mois("0.67"));
+    }
+
+    @Test
+    void deux_baremes_pour_le_meme_idcc_refuses_au_demarrage() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new CalculIndemniteService(List.of(new BaremeSyntec(), new BaremeSyntec())))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("IDCC 1486");
     }
 
     @Test

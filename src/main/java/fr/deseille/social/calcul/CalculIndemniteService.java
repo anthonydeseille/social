@@ -3,6 +3,7 @@ package fr.deseille.social.calcul;
 import fr.deseille.social.calcul.Bareme.Lecture;
 import fr.deseille.social.calcul.Indemnite.Calcul;
 import fr.deseille.social.calcul.Indemnite.Demande;
+import fr.deseille.social.calcul.Indemnite.Evalue;
 import fr.deseille.social.calcul.Indemnite.Motif;
 import fr.deseille.social.calcul.Indemnite.Resultat;
 import fr.deseille.social.calcul.Indemnite.Retenue;
@@ -37,7 +38,11 @@ public class CalculIndemniteService {
     private final Map<Integer, BaremeConventionnel> conventions;
 
     public CalculIndemniteService(List<BaremeConventionnel> conventions) {
-        this.conventions = conventions.stream().collect(Collectors.toMap(BaremeConventionnel::idcc, Function.identity()));
+        this.conventions = conventions.stream().collect(Collectors.toMap(BaremeConventionnel::idcc, Function.identity(),
+                (a, b) -> {
+                    throw new IllegalStateException("Deux barèmes conventionnels pour l'IDCC " + a.idcc() + " : "
+                            + a.getClass().getSimpleName() + " et " + b.getClass().getSimpleName());
+                }));
     }
 
     public Resultat calculer(Demande demande) {
@@ -71,25 +76,27 @@ public class CalculIndemniteService {
         }
 
         int moisComplets = (int) anciennete.toTotalMonths();
-        Calcul legale = legale(moisComplets);
-        Calcul conventionnelle = conventionnelle(profil, moisComplets, hypotheses, avertissements);
+        Evalue legale = legale(moisComplets);
+        Evalue conventionnelle = conventionnelle(profil, moisComplets, hypotheses, avertissements);
 
+        // Comparaison et montant sur les valeurs exactes ; arrondi seulement à l'affichage
         Retenue retenue = Retenue.LEGALE;
-        BigDecimal mois = legale.mois();
+        BigDecimal moisExact = legale.moisExact();
         if (conventionnelle != null) {
-            int comparaison = conventionnelle.mois().compareTo(legale.mois());
+            int comparaison = conventionnelle.moisExact().compareTo(legale.moisExact());
             retenue = comparaison > 0 ? Retenue.CONVENTIONNELLE : comparaison == 0 ? Retenue.IDENTIQUES : Retenue.LEGALE;
-            mois = mois.max(conventionnelle.mois());
+            moisExact = moisExact.max(conventionnelle.moisExact());
         }
         BigDecimal montant = null;
         if (demande.salaireMensuelBrut() != null) {
-            montant = mois.multiply(demande.salaireMensuelBrut()).setScale(2, RoundingMode.HALF_UP);
+            montant = moisExact.multiply(demande.salaireMensuelBrut()).setScale(2, RoundingMode.HALF_UP);
             hypotheses.add("Montant en euros : indemnité en mois × salaire mensuel brut de référence fourni. Pour "
                     + "l'indemnité légale, la référence est la plus favorable entre la moyenne des 12 derniers mois "
                     + "et le tiers des 3 derniers mois (R1234-4).");
         }
-        return new Resultat(true, null, anciennete.getYears(), anciennete.getMonths(), legale, conventionnelle,
-                retenue, mois, montant, hypotheses, avertissements);
+        return new Resultat(true, null, anciennete.getYears(), anciennete.getMonths(), legale.calcul(),
+                conventionnelle == null ? null : conventionnelle.calcul(), retenue,
+                moisExact.setScale(2, RoundingMode.HALF_UP), montant, hypotheses, avertissements);
     }
 
     private static String absenceDroit(Demande demande, ProfilSalarie profil, long moisANotification) {
@@ -107,18 +114,18 @@ public class CalculIndemniteService {
         return null;
     }
 
-    static Calcul legale(int moisComplets) {
+    static Evalue legale(int moisComplets) {
         Bareme.Resultat r = LEGAL.appliquer(moisComplets);
         List<String> detail = new ArrayList<>();
         detail.add("Ancienneté : " + moisComplets + " mois complets, soit " + Bareme.format(Bareme.annees(moisComplets))
                 + " années (les mois au-delà des années pleines comptent au prorata)");
         detail.addAll(r.detail());
-        return new Calcul("Code du travail (minimum légal)", r.mois().setScale(2, RoundingMode.HALF_UP), detail,
-                List.of(new Source("L1234-9", CODE), new Source("R1234-1", CODE), new Source("R1234-2", CODE),
-                        new Source("R1234-4", CODE)));
+        return new Evalue(new Calcul("Code du travail (minimum légal)", r.mois().setScale(2, RoundingMode.HALF_UP),
+                detail, List.of(new Source("L1234-9", CODE), new Source("R1234-1", CODE), new Source("R1234-2", CODE),
+                        new Source("R1234-4", CODE))), r.mois());
     }
 
-    private Calcul conventionnelle(ProfilSalarie profil, int moisComplets, List<String> hypotheses,
+    private Evalue conventionnelle(ProfilSalarie profil, int moisComplets, List<String> hypotheses,
                                    List<String> avertissements) {
         if (profil.idcc() == null) {
             avertissements.add("Convention collective non renseignée : seule l'indemnité légale est calculée ; "
