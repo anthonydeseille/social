@@ -85,8 +85,31 @@ flowchart LR
 
 Lancement : voir `CLAUDE.md` (section Tests).
 
+## Calculateur d'indemnité de licenciement
+
+`POST /api/calculs/indemnite-licenciement` calcule l'indemnité **par le code**, sans appel au modèle
+(gratuit) : légale et, si la convention est intégrée, conventionnelle ; le montant le plus élevé est
+retenu, avec le détail des deux calculs, les articles sources et les hypothèses.
+
+```mermaid
+flowchart LR
+    D(["Profil + date de notification<br/>+ fin du contrat + motif<br/>+ salaire (facultatif)"]) --> C{"Droit ?<br/>CDI · hors faute grave<br/>8 mois à la notification"}
+    C -->|"non"| N["Pas d'indemnité<br/>+ raison"]
+    C -->|"oui"| L["Légal<br/>R1234-2"]
+    C -->|"oui"| K["Conventionnel<br/>ex. Syntec 4.5"]
+    L --> M["Le plus élevé<br/>en mois de salaire<br/>(× salaire = euros)"]
+    K --> M
+
+    classDef gratuit fill:#e3f2e1,stroke:#2e7d32,color:#000
+    class C,L,K,M gratuit
+```
+
+Règles, sources et questions en cours de validation juridique :
+[`regles-indemnite-licenciement.md`](regles-indemnite-licenciement.md).
+
 ## Évolution prévue
 
-Le calculateur d'indemnité de licenciement s'insérera entre la recherche et la rédaction : le code
-calculera les montants (légal et conventionnel), et Claude expliquera le résultat au lieu de le
-calculer. La suite est décrite dans [`FEUILLE_DE_ROUTE.md`](../FEUILLE_DE_ROUTE.md).
+Le calculateur sera branché sur le trajet des questions, entre la recherche et la rédaction : quand la
+question porte sur l'indemnité de licenciement, le montant calculé sera transmis à Claude, qui
+l'expliquera au lieu de le calculer. La suite est décrite dans
+[`FEUILLE_DE_ROUTE.md`](../FEUILLE_DE_ROUTE.md).
