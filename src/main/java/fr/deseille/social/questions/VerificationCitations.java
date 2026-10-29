@@ -35,7 +35,8 @@ public final class VerificationCitations {
         return !extrait.isEmpty() && texte != null && texte.contains(extrait);
     }
 
+    /** Espaces Unicode comprises : insécable, fine insécable (typographie française avant ; : %)… */
     private static String normaliser(String texte) {
-        return texte == null ? "" : texte.replace('\u00A0', ' ').replaceAll("\\s+", " ").strip();
+        return texte == null ? "" : texte.replaceAll("(?U)\\s+", " ").strip();
     }
 }

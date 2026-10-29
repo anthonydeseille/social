@@ -32,6 +32,24 @@ class VerificationCitationsTest {
     }
 
     @Test
+    void espace_fine_insecable_de_la_typographie_francaise() {
+        ArticleDetail article = new ArticleDetail("LEGIARTI1", null, "L3123-29", EtatJuridique.VIGUEUR, true, null,
+                null, "majoration de 10\u202F% ; puis de 25\u202F%", null, null, null, SYNTEC, List.of());
+
+        assertThat(VerificationCitations.nonVerifiees(List.of(new Passage("…",
+                List.of(new Citation("LEGIARTI1", "L3123-29", "majoration de 10 % ; puis de 25 %")))), List.of(article)))
+                .isEmpty();
+    }
+
+    @Test
+    void citation_non_verifiee_listee_une_seule_fois_meme_dans_deux_passages() {
+        Citation inventee = new Citation("KALIARTI1", "4.5", "1/2 mois par année");
+
+        assertThat(VerificationCitations.nonVerifiees(List.of(new Passage("a", List.of(inventee)),
+                new Passage("b", List.of(inventee))), List.of(ARTICLE))).containsExactly(inventee);
+    }
+
+    @Test
     void extrait_absent_vide_ou_article_inconnu_non_verifie() {
         Citation inventee = new Citation("KALIARTI1", "4.5", "1/2 mois par année");
         Citation vide = new Citation("KALIARTI1", "4.5", " ");
