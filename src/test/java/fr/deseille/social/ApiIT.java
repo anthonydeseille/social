@@ -154,6 +154,15 @@ class ApiIT {
         assertThat(mvc.get().uri("/actuator/health")).hasStatusOk();
     }
 
+    @Test
+    void page_web_servie_avec_ses_fichiers() {
+        assertThat(mvc.get().uri("/")).hasStatusOk();
+        assertThat(mvc.get().uri("/index.html")).hasStatusOk().bodyText()
+                .contains("Mes droits au travail", "id=\"formulaire\"", "app.js", "pas un conseil juridique");
+        assertThat(mvc.get().uri("/app.js")).hasStatusOk().bodyText().contains("/api/questions");
+        assertThat(mvc.get().uri("/style.css")).hasStatusOk();
+    }
+
     // --- Profil ---
 
     @Test

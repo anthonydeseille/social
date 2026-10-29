@@ -44,6 +44,10 @@ flowchart TD
 
 Légende : orange = appel payant à Claude, vert = code et base de données (gratuit), rouge = sortie en erreur.
 
+La page web (`/`, fichiers statiques sans framework) garde le profil dans le navigateur, envoie la
+question et le profil à `POST /api/questions`, puis affiche la réponse avec ses citations : un clic
+sur une citation ouvre le texte de l'article (`GET /api/articles/{id}`).
+
 ## Les étapes
 
 | Étape | Rôle | Coût |

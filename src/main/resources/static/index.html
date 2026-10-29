@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mes droits au travail</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Mes droits au travail</h1>
+      <p class="chapeau">Posez votre question : la réponse s'appuie sur le Code du travail et sur votre convention collective, et cite les articles exacts.</p>
+    </header>
+
+    <form id="formulaire" novalidate>
+      <fieldset>
+        <legend>Votre situation</legend>
+        <p class="aide">Ces informations restent dans votre navigateur ; elles ne sont envoyées qu'avec votre question et ne sont pas conservées.</p>
+        <div class="grille">
+          <label for="idcc">Convention collective
+            <select id="idcc" name="idcc"><option value="">Je ne sais pas</option></select>
+            <span class="aide">Elle figure sur votre fiche de paie (IDCC).</span>
+          </label>
+          <label for="statut">Statut
+            <select id="statut" name="statut">
+              <option value="">Non précisé</option>
+              <option value="CADRE">Cadre</option>
+              <option value="NON_CADRE">Non cadre</option>
+            </select>
+          </label>
+          <label for="typeContrat">Contrat
+            <select id="typeContrat" name="typeContrat">
+              <option value="">Non précisé</option>
+              <option value="CDI">CDI</option>
+              <option value="CDD">CDD</option>
+              <option value="INTERIM">Intérim</option>
+              <option value="APPRENTISSAGE">Apprentissage</option>
+              <option value="PROFESSIONNALISATION">Professionnalisation</option>
+            </select>
+          </label>
+          <label for="dateEntree">Date d'entrée dans l'entreprise
+            <input type="date" id="dateEntree" name="dateEntree">
+          </label>
+          <label for="classification">Classification (facultatif)
+            <input type="text" id="classification" name="classification" maxlength="80" placeholder="ex. ETAM coefficient 250">
+          </label>
+        </div>
+        <div class="cases">
+          <label><input type="checkbox" id="tempsPartiel" name="tempsPartiel"> Temps partiel</label>
+          <label><input type="checkbox" name="situations" value="GROSSESSE"> Grossesse</label>
+          <label><input type="checkbox" name="situations" value="ARRET_MALADIE"> Arrêt maladie</label>
+          <label><input type="checkbox" name="situations" value="ACCIDENT_DU_TRAVAIL"> Accident du travail</label>
+          <label><input type="checkbox" name="situations" value="TRAVAILLEUR_HANDICAPE"> Travailleur handicapé</label>
+          <label><input type="checkbox" name="situations" value="SALARIE_PROTEGE"> Représentant du personnel</label>
+        </div>
+      </fieldset>
+
+      <label for="question" class="question">Votre question
+        <textarea id="question" name="question" maxlength="1000" rows="3" required placeholder="ex. Combien de temps dure ma période d'essai ?"></textarea>
+      </label>
+      <div class="actions">
+        <button type="submit" id="envoyer">Obtenir une réponse</button>
+        <span id="attente" class="aide" hidden>Recherche des articles et rédaction en cours, cela peut prendre jusqu'à une minute…</span>
+      </div>
+    </form>
+
+    <section id="resultat" aria-live="polite" hidden>
+      <div id="erreur" class="erreur" hidden></div>
+      <div id="avertissements" class="avertissements" hidden></div>
+      <div id="reponse" class="reponse"></div>
+      <div id="sources" class="sources" hidden></div>
+    </section>
+
+    <footer>Information générale à partir des textes officiels, pas un conseil juridique. En cas de litige, l'inspection du travail, un syndicat ou un avocat peuvent vous aider.</footer>
+  </main>
+
+  <dialog id="article">
+    <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
+    <p id="article-fil" class="aide"></p>
+    <h2 id="article-titre"></h2>
+    <p id="article-etat" class="aide"></p>
+    <div id="article-texte" class="texte-article"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
