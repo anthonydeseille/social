@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
  * Recherche plein texte des articles (PostgreSQL) sur la colonne générée {@code recherche}
  * (changeset 007) : configuration {@code francais} insensible aux accents, syntaxe
  * {@code websearch_to_tsquery} (« expression exacte », or, -exclusion), classement par pertinence
- * et extrait surligné.
+ * et extrait surligné. Une requête sans terme positif (mots vides seuls, exclusion seule) ne
+ * renvoie rien ({@code querytree} vaut {@code T}) plutôt que presque tout le corpus.
  */
 @Repository
 public class RechercheRepository {
@@ -23,7 +24,7 @@ public class RechercheRepository {
      * Applicabilité à {@code :date}, reproduction SQL de {@code Article.estApplicable} : les
      * modifier ensemble.
      */
-    private static final String APPLICABLE = """
+    static final String APPLICABLE = """
             a.etat in ('VIGUEUR', 'VIGUEUR_DIFF', 'VIGUEUR_ETEN', 'VIGUEUR_NON_ETEN', 'ABROGE_DIFF')
             and a.disparu_le is null
             and not (a.etat = 'VIGUEUR_DIFF' and a.date_debut is null)
@@ -43,9 +44,10 @@ public class RechercheRepository {
             join texte t on t.id = a.texte_id,
                  websearch_to_tsquery('francais', :requete) q
             where a.recherche @@ q
+              and querytree(q) <> 'T'
               and t.source_id in (:textes)
               %s
-            order by rang desc, a.num
+            order by rang desc, a.num, a.id
             limit :limite
             """;
 

@@ -86,6 +86,48 @@
             "dateDebut": 1577836800000,
             "dateFin": 1704067200000
           }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000076",
+            "cid": "LEGIARTC000000000076",
+            "num": "L1221-97",
+            "texte": "Mesure relative au télétravail, marquée disparue par le test.",
+            "texteHtml": "<p>Mesure relative au télétravail, marquée disparue par le test.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 6,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000077",
+            "cid": "LEGIARTC000000000077",
+            "num": "L1221-96",
+            "texte": "Mesure future relative au télétravail.",
+            "texteHtml": "<p>Mesure future relative au télétravail.</p>",
+            "etat": "VIGUEUR_DIFF",
+            "intOrdre": 7,
+            "dateDebut": 1798761600000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000078",
+            "cid": "LEGIARTC000000000078",
+            "num": "L1221-95",
+            "texte": "Mesure différée sans date relative au télétravail.",
+            "texteHtml": "<p>Mesure différée sans date relative au télétravail.</p>",
+            "etat": "VIGUEUR_DIFF",
+            "intOrdre": 8,
+            "dateDebut": null,
+            "dateFin": null
+          }
         }
       ]
     }

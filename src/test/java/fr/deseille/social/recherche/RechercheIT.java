@@ -3,10 +3,16 @@ package fr.deseille.social.recherche;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import fr.deseille.social.TestcontainersConfiguration;
+import fr.deseille.social.corpus.Article;
+import fr.deseille.social.corpus.ArticleRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -19,13 +25,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 /**
  * Recherche plein texte sur un corpus issu du job d'ingestion : {@code legi-recherche} (période
- * d'essai, préavis, grossesse, un article abrogé, une abrogation différée échue en 2024) et
+ * d'essai, préavis, grossesse, un article abrogé, une abrogation différée échue en 2024, des cas
+ * charnières d'applicabilité sur le télétravail) et
  * {@code kali-recherche} (IDCC 7777, période d'essai des cadres).
  */
 @SpringBootTest
@@ -40,9 +48,16 @@ class RechercheIT {
     private static final String GROSSESSE = "LEGIARTI000000000074";
     private static final String ABROGE_DIFF_ECHU = "LEGIARTI000000000075";
     private static final String CONVENTION = "KALIARTI000000000071";
+    private static final String DISPARU = "LEGIARTI000000000076";
+    private static final String VIGUEUR_DIFF = "LEGIARTI000000000077";
+    private static final String VIGUEUR_DIFF_SANS_DATE = "LEGIARTI000000000078";
 
     @Autowired
     private MockMvcTester mvc;
+    @Autowired
+    private JdbcClient jdbcClient;
+    @Autowired
+    private ArticleRepository articleRepository;
 
     @DynamicPropertySource
     static void sources(DynamicPropertyRegistry registry) throws IOException {
@@ -119,11 +134,65 @@ class RechercheIT {
     }
 
     @Test
-    void parametres_invalides_refuses() {
+    void parametres_invalides_refuses_et_bornes_acceptees() {
         assertThat(mvc.get().uri("/api/recherche?q=")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.get().uri("/api/recherche?q=   ")).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(mvc.get().uri("/api/recherche")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.get().uri("/api/recherche?q={q}", "a".repeat(201))).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(mvc.get().uri("/api/recherche?q=essai&limite=0")).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(mvc.get().uri("/api/recherche?q=essai&limite=51")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.get().uri("/api/recherche?q=essai&limite=1")).hasStatusOk().bodyJson()
+                .extractingPath("$").asArray().hasSize(1);
+        assertThat(mvc.get().uri("/api/recherche?q=essai&limite=50")).hasStatusOk();
+    }
+
+    @Test
+    void requete_sans_terme_positif_renvoie_une_liste_vide() {
+        // « les » n'est pas un mot vide de PostgreSQL (il devient « le ») : mots vides garantis ici
+        assertThat(mvc.get().uri("/api/recherche?q={q}", "du de des au aux")).hasStatusOk().bodyJson()
+                .extractingPath("$").asArray().isEmpty();
+        assertThat(mvc.get().uri("/api/recherche?q={q}&applicables=false", "-grossesse")).hasStatusOk().bodyJson()
+                .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void idcc_inconnu_seulement_le_code() {
+        assertThat(mvc.get().uri("/api/recherche?q={q}&idcc=1234", "période d'essai")).hasStatusOk().bodyJson()
+                .extractingPath("$[*].articleSourceId").asArray().containsExactly(PERIODE_ESSAI);
+    }
+
+    /**
+     * Le filtre SQL d'applicabilité reproduit {@code Article.estApplicable} : les deux doivent
+     * retenir les mêmes articles, notamment aux dates charnières (fin d'un ABROGE_DIFF au
+     * 1er janvier 2024, début d'un VIGUEUR_DIFF au 1er janvier 2027, VIGUEUR_DIFF sans date,
+     * article disparu).
+     */
+    @Test
+    void filtre_sql_et_regle_java_concordent_aux_dates_charnieres() {
+        jdbcClient.sql("update article set disparu_le = now() where source_id = :id").param("id", DISPARU).update();
+        List<Article> articles = articleRepository.findAll();
+
+        for (LocalDate date : List.of(LocalDate.of(2023, 12, 31), LocalDate.of(2024, 1, 1),
+                LocalDate.of(2026, 12, 31), LocalDate.of(2027, 1, 1), LocalDate.now())) {
+            Set<String> sql = Set.copyOf(jdbcClient
+                    .sql("select a.source_id from article a where " + RechercheRepository.APPLICABLE)
+                    .param("date", date).query(String.class).list());
+            Set<String> java = articles.stream().filter(a -> a.estApplicableLe(date))
+                    .map(Article::getSourceId).collect(Collectors.toSet());
+            assertThat(sql).as("articles applicables au %s", date).isEqualTo(java);
+        }
+
+        // Les cas charnières sont bien exercés
+        assertThat(applicablesSql(LocalDate.of(2023, 12, 31))).contains(ABROGE_DIFF_ECHU);
+        assertThat(applicablesSql(LocalDate.of(2024, 1, 1))).doesNotContain(ABROGE_DIFF_ECHU);
+        assertThat(applicablesSql(LocalDate.of(2026, 12, 31))).doesNotContain(VIGUEUR_DIFF);
+        assertThat(applicablesSql(LocalDate.of(2027, 1, 1))).contains(VIGUEUR_DIFF);
+        assertThat(applicablesSql(LocalDate.of(2027, 1, 1))).doesNotContain(VIGUEUR_DIFF_SANS_DATE, DISPARU);
+    }
+
+    private List<String> applicablesSql(LocalDate date) {
+        return jdbcClient.sql("select a.source_id from article a where " + RechercheRepository.APPLICABLE)
+                .param("date", date).query(String.class).list();
     }
 
     private static void copier(String ressource, Path cible) throws IOException {
