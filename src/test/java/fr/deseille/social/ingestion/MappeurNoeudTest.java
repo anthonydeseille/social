@@ -22,6 +22,7 @@ class MappeurNoeudTest {
     @Test
     void etat_connu_ou_absent() {
         assertThat(mappeur.etat(json("{\"etat\":\"VIGUEUR_ETEN\"}"))).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
+        assertThat(mappeur.etat(json("{\"etat\":\"ABROGE_DIFF\"}"))).isEqualTo(EtatJuridique.ABROGE_DIFF);
         assertThat(mappeur.etat(json("{}"))).isNull();
         assertThat(mappeur.etat(json("{\"etat\":\"\"}"))).isNull();
     }

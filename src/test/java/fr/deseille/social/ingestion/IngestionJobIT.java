@@ -27,6 +27,7 @@ import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -57,6 +58,8 @@ class IngestionJobIT {
     private JournalChangementRepository journalRepository;
     @Autowired
     private PlatformTransactionManager transactionManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
     static void sourcesFichierLocal(DynamicPropertyRegistry registry) throws IOException {
@@ -140,6 +143,14 @@ class IngestionJobIT {
         assertThat(journalRepository.findAll())
                 .anyMatch(entree("KALIARTI000000000002", TypeChangement.REAPPARITION));
         assertThat(article("KALIARTI000000000002").getDisparuLe()).isNull();
+
+        // Traçabilité : exécutions persistées (dépôt JDBC) et identifiant distinct par run
+        assertThat(jdbcTemplate.queryForObject("select count(*) from batch_job_execution", Long.class))
+                .isEqualTo(6);
+        // Les runs 1, 3, 4 et 6 écrivent au journal (2 et 5 sont sans changement)
+        assertThat(journalRepository.findAll().stream().map(JournalChangement::getExecutionId).distinct())
+                .doesNotContainNull()
+                .hasSize(4);
     }
 
     // Renvoie un BatchStatus et non un JobExecution : voir FixturesIngestion.
