@@ -15,6 +15,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 ## Plan de base
 
 1. **Évaluation de référence** : valider le jeu de questions avec la juriste, lancer l'évaluation, ajuster reformulation, consignes ou recherche selon les résultats.
+   - Jeu de 20 questions prêt ✅ (articles vérifiés dans le corpus à chaque lancement) ; validation juridique en attente (champ `valide`).
 2. **Calculateur d'indemnité de licenciement** : légale et Syntec, application de la plus favorable, montants calculés par le code (jamais par le modèle), expliqués par Claude.
 3. **Recherche sémantique** (embeddings) : seulement si l'évaluation montre des articles pertinents introuvables.
 

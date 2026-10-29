@@ -1,0 +1,450 @@
+# Jeu d'évaluation des réponses aux salariés (Code du travail + convention Syntec, IDCC 1486).
+#
+# Chaque réponse attendue a été établie à partir du texte des articles du corpus ingéré
+# (révisions épinglées dans application.yaml), pas de mémoire. À faire valider par un humain
+# avant de servir de référence : champ « valide » à passer à true.
+#
+# Champs :
+#   question           formulation d'un salarié, sans vocabulaire juridique imposé
+#   profil             corps de POST /api/profil/contexte (dateReference fixée pour la stabilité)
+#   reponse_attendue   synthèse de la bonne réponse
+#   points_cles        affirmations qu'une réponse correcte doit contenir (notation)
+#   articles_attendus  articles qu'une réponse correcte doit citer (sourceId du corpus)
+#   erreurs_a_eviter   erreurs plausibles, à pénaliser
+#   remarques          limites connues (profil incomplet, texte hors corpus...)
+
+version: 1
+date_reference: 2026-11-01
+
+questions:
+
+  - id: periode-essai-cadre
+    theme: période d'essai
+    valide: false
+    question: "Je viens d'être embauché en CDI comme cadre dans une société de conseil (convention Syntec). Combien de temps peut durer ma période d'essai ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2026-10-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      4 mois maximum pour un ingénieur ou cadre Syntec, renouvelable une fois pour 4 mois maximum,
+      soit 8 mois au total, ce qui correspond au plafond légal pour les cadres. Le renouvellement est
+      exceptionnel et exige un accord écrit du salarié. La période d'essai et sa possibilité de
+      renouvellement doivent figurer dans la proposition d'embauche ou le contrat.
+    points_cles:
+      - "durée initiale de 4 mois maximum"
+      - "renouvelable une fois, 4 mois maximum, soit 8 mois au total"
+      - "renouvellement exceptionnel avec accord écrit du salarié"
+      - "doit être expressément prévue dans le contrat ou la proposition d'embauche"
+    articles_attendus:
+      - {num: "3.4", texte: SYNTEC, sourceId: KALIARTI000047513825}
+      - {num: L1221-19, texte: CODE, sourceId: LEGIARTI000019071113}
+      - {num: L1221-21, texte: CODE, sourceId: LEGIARTI000019071109}
+    erreurs_a_eviter:
+      - "affirmer que le renouvellement est automatique ou décidé par l'employeur seul"
+      - "annoncer une durée totale supérieure à 8 mois"
+
+  - id: periode-essai-etam-250
+    theme: période d'essai
+    valide: false
+    question: "Je suis employé (ETAM, coefficient 250) dans un bureau d'études, en CDI depuis 3 semaines. Ma période d'essai peut durer combien de temps ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2026-10-11, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Pour un ETAM du coefficient 230 au coefficient 250, la période d'essai Syntec est de 2 mois
+      maximum, renouvelable une fois pour 2 mois maximum (4 mois au total, plafond légal pour les
+      employés). Renouvellement exceptionnel, avec accord écrit.
+    points_cles:
+      - "2 mois maximum"
+      - "renouvelable une fois pour 2 mois maximum"
+      - "renouvellement exceptionnel avec accord écrit"
+    articles_attendus:
+      - {num: "3.4", texte: SYNTEC, sourceId: KALIARTI000047513825}
+      - {num: L1221-19, texte: CODE, sourceId: LEGIARTI000019071113}
+    erreurs_a_eviter:
+      - "appliquer la durée des ETAM coefficient 275 à 500 (3 mois)"
+    remarques: "Le coefficient n'est pas dans le profil : il n'est donné que par la question (voir limites)."
+
+  - id: preavis-demission-cadre
+    theme: préavis
+    valide: false
+    question: "Je suis cadre Syntec depuis 4 ans et je veux démissionner. Quel préavis dois-je faire ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2022-09-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      3 mois pour un ingénieur ou cadre Syntec, quelle que soit l'ancienneté. Le Code du travail renvoie
+      la durée du préavis de démission à la loi, à la convention ou aux usages. Une durée différente
+      peut être convenue par accord entre les parties. Pendant le préavis de démission, les heures pour
+      recherche d'emploi ne sont pas rémunérées.
+    points_cles:
+      - "3 mois"
+      - "durée fixée par la convention collective (le Code y renvoie)"
+      - "une autre durée peut être fixée d'un commun accord"
+    articles_attendus:
+      - {num: "4.2", texte: SYNTEC, sourceId: KALIARTI000047513833}
+      - {num: L1237-1, texte: CODE, sourceId: LEGIARTI000006901174}
+    erreurs_a_eviter:
+      - "appliquer les durées de préavis de licenciement du Code (1 ou 2 mois)"
+
+  - id: preavis-licenciement-etam-3ans
+    theme: préavis
+    valide: false
+    question: "Je suis technicien (ETAM, coefficient 310) chez un employeur Syntec depuis 3 ans et je viens d'être licencié, sans faute grave. Combien de temps dure mon préavis ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-10-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      2 mois : la convention Syntec prévoit 2 mois pour un ETAM de plus de 2 ans d'ancienneté, comme le
+      Code du travail pour une ancienneté d'au moins deux ans. Pas de préavis en cas de faute grave.
+    points_cles:
+      - "2 mois"
+      - "même durée dans le Code et dans Syntec pour plus de 2 ans d'ancienneté"
+      - "pas de préavis en cas de faute grave"
+    articles_attendus:
+      - {num: "4.2", texte: SYNTEC, sourceId: KALIARTI000047513833}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+
+  - id: absences-recherche-emploi
+    theme: préavis
+    valide: false
+    question: "Je suis cadre Syntec, licencié et en préavis. Ai-je le droit de m'absenter pour chercher un emploi, et suis-je payé ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2020-01-06, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui : la convention Syntec accorde 6 jours ouvrés par mois pour rechercher un emploi pendant le
+      préavis, pris en une ou plusieurs fois, en principe par demi-journée, fixés pour moitié par
+      l'employeur et pour moitié par le salarié. En cas de licenciement, ces absences ne réduisent pas
+      la rémunération ; non utilisées, elles ne donnent pas lieu à indemnité.
+    points_cles:
+      - "6 jours ouvrés par mois"
+      - "rémunérés en cas de licenciement"
+      - "fixés pour moitié par l'employeur, pour moitié par le salarié"
+      - "pas d'indemnité si les heures ne sont pas utilisées"
+    articles_attendus:
+      - {num: "4.3", texte: SYNTEC, sourceId: KALIARTI000047513835}
+    erreurs_a_eviter:
+      - "dire que ces absences ne sont pas payées (c'est le cas seulement en démission)"
+    remarques: "Le Code du travail ne prévoit pas de droit général : la réponse repose sur la convention."
+
+  - id: indemnite-licenciement-cadre-7ans
+    theme: indemnité de licenciement
+    valide: false
+    question: "Je suis cadre Syntec, j'ai 7 ans d'ancienneté et je suis licencié pour un motif économique. Combien vais-je toucher d'indemnité de licenciement ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2019-10-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Indemnité conventionnelle Syntec, plus favorable que l'indemnité légale : pour un cadre de 2 ans
+      d'ancienneté ou plus, 1/3 de mois par année de présence. Avec 7 ans et 1 mois (7,08 années, le
+      mois au-delà des années pleines comptant au prorata) : 7,08 × 1/3 ≈ 2,36 mois de rémunération.
+      L'indemnité légale serait de 1/4 de mois par année jusqu'à 10 ans, soit 7,08 × 1/4 ≈ 1,77 mois. Le mois de
+      rémunération Syntec est 1/12 de la rémunération des 12 derniers mois, primes contractuelles
+      comprises. L'indemnité s'ajoute à l'indemnité compensatrice de préavis éventuelle.
+    points_cles:
+      - "1/3 de mois par année de présence (cadre, 2 ans ou plus)"
+      - "environ 2,36 mois de rémunération (7 ans et 1 mois)"
+      - "plus favorable que l'indemnité légale (1/4 de mois par année, soit environ 1,77 mois)"
+      - "base : 1/12 de la rémunération des 12 derniers mois"
+    articles_attendus:
+      - {num: "4.5", texte: SYNTEC, sourceId: KALIARTI000047513839}
+      - {num: L1234-9, texte: CODE, sourceId: LEGIARTI000035644154}
+      - {num: R1234-2, texte: CODE, sourceId: LEGIARTI000035644692}
+    erreurs_a_eviter:
+      - "appliquer seulement le barème légal"
+      - "appliquer 1/3 seulement aux années au-delà de 10 ans pour un cadre"
+    remarques: >
+      Lecture du barème cadre à valider (docs/regles-indemnite-licenciement.md, question 1) : en lecture
+      par tranche (1/4 les 2 premières années, 1/3 au-delà), le résultat serait 2,19 mois.
+
+  - id: indemnite-licenciement-etam-12ans
+    theme: indemnité de licenciement
+    valide: false
+    question: "Je suis ETAM chez un employeur Syntec depuis 12 ans et je suis licencié. Comment est calculée mon indemnité ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2014-10-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Pour un ETAM, la convention Syntec reprend le barème légal : 1/4 de mois par année jusqu'à 10 ans,
+      puis 1/3 de mois par année au-delà. Avec 12 ans et 1 mois (12,08 années) : 10 × 1/4 + 2,08 × 1/3
+      ≈ 3,19 mois de rémunération, identique au minimum légal.
+    points_cles:
+      - "1/4 de mois par année jusqu'à 10 ans"
+      - "1/3 de mois par année au-delà de 10 ans"
+      - "environ 3,19 mois (12 ans et 1 mois)"
+    articles_attendus:
+      - {num: "4.5", texte: SYNTEC, sourceId: KALIARTI000047513839}
+      - {num: R1234-2, texte: CODE, sourceId: LEGIARTI000035644692}
+    erreurs_a_eviter:
+      - "appliquer le barème cadre (1/3 dès 2 ans)"
+    remarques: >
+      Lecture du barème ETAM à valider (docs/regles-indemnite-licenciement.md, question 1) : en lecture
+      « toutes les années » (1/3 pour toutes les années après 10 ans), le résultat serait 4,03 mois.
+
+  - id: licenciement-6-mois
+    theme: indemnité de licenciement
+    valide: false
+    question: "Je suis employé (ETAM) chez un employeur Syntec depuis 6 mois et on me licencie. Ai-je droit à une indemnité et à un préavis ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2026-05-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Pas d'indemnité de licenciement : il faut au moins 8 mois d'ancienneté ininterrompue (Code et
+      Syntec). Préavis : 1 mois (ETAM de moins de 2 ans selon Syntec ; le Code prévoit 1 mois entre
+      six mois et deux ans d'ancienneté).
+    points_cles:
+      - "pas d'indemnité de licenciement avant 8 mois d'ancienneté"
+      - "préavis d'un mois"
+    articles_attendus:
+      - {num: L1234-9, texte: CODE, sourceId: LEGIARTI000035644154}
+      - {num: "4.5", texte: SYNTEC, sourceId: KALIARTI000047513839}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+      - {num: "4.2", texte: SYNTEC, sourceId: KALIARTI000047513833}
+    erreurs_a_eviter:
+      - "annoncer une indemnité de licenciement"
+
+  - id: grossesse-annonce
+    theme: grossesse
+    valide: false
+    question: "Je suis enceinte et en entretien d'embauche la semaine prochaine. Suis-je obligée de le dire ? Et une fois embauchée ?"
+    profil: {situations: [GROSSESSE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Non : une candidate ou une salariée n'est pas tenue de révéler sa grossesse, sauf si elle demande
+      à bénéficier des protections légales de la femme enceinte (pour lesquelles l'employeur doit être
+      informé).
+    points_cles:
+      - "pas d'obligation de révéler la grossesse, à l'embauche comme en poste"
+      - "sauf pour bénéficier des protections liées à la grossesse"
+    articles_attendus:
+      - {num: L1225-2, texte: CODE, sourceId: LEGIARTI000006900881}
+    remarques: "Convention non renseignée : la réponse doit le signaler sans que cela change le fond."
+
+  - id: grossesse-licenciement
+    theme: grossesse
+    valide: false
+    question: "Je suis enceinte (grossesse constatée par mon médecin) et mon employeur parle de me licencier. En a-t-il le droit ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-03-01, situations: [GROSSESSE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      En principe non : la salariée est protégée pendant la grossesse médicalement constatée, le congé
+      de maternité (qu'elle le prenne ou non), les congés payés pris juste après, et les 10 semaines
+      suivantes. Exceptions : faute grave non liée à la grossesse, ou impossibilité de maintenir le
+      contrat pour un motif étranger à la grossesse ; même alors, la rupture ne peut ni prendre effet
+      ni être notifiée pendant le congé de maternité. La convention Syntec interdit aussi toute
+      discrimination liée à la grossesse.
+    points_cles:
+      - "interdiction pendant la grossesse, le congé maternité, les congés payés accolés et les 10 semaines suivantes"
+      - "exceptions : faute grave non liée à la grossesse ou impossibilité de maintenir le contrat pour un motif étranger"
+      - "même dans ces cas, pas de rupture notifiée ou effective pendant le congé maternité"
+    articles_attendus:
+      - {num: L1225-4, texte: CODE, sourceId: LEGIARTI000033022614}
+      - {num: "9.3", texte: SYNTEC, sourceId: KALIARTI000053769476}
+    erreurs_a_eviter:
+      - "dire que le licenciement est toujours impossible, sans les exceptions"
+
+  - id: grossesse-amenagement-horaire
+    theme: grossesse
+    valide: false
+    question: "Je suis enceinte de 4 mois, salariée Syntec. Ai-je droit à des aménagements d'horaires ou à des absences ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2021-09-01, situations: [GROSSESSE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui. La convention Syntec accorde à la salariée ayant déclaré sa grossesse une réduction horaire
+      rémunérée de 20 minutes par jour à partir du 3e mois, puis 30 minutes à partir du 5e mois (donc
+      20 minutes au 4e mois). Les absences pour les examens médicaux obligatoires sont autorisées (Code
+      et Syntec), sans perte de rémunération et assimilées à du travail effectif pour les congés et
+      l'ancienneté. En forfait jours, l'employeur doit adapter l'amplitude et la charge de travail.
+    points_cles:
+      - "20 minutes par jour rémunérées à partir du 3e mois, 30 minutes à partir du 5e"
+      - "au 4e mois : 20 minutes par jour"
+      - "absences pour examens médicaux obligatoires, sans perte de salaire"
+      - "la grossesse doit avoir été déclarée pour la réduction horaire"
+    articles_attendus:
+      - {num: "9.3", texte: SYNTEC, sourceId: KALIARTI000053769476}
+      - {num: L1225-16, texte: CODE, sourceId: LEGIARTI000051829294}
+    erreurs_a_eviter:
+      - "ignorer la réduction horaire conventionnelle"
+
+  - id: conge-maternite
+    theme: grossesse
+    valide: false
+    question: "J'attends mon premier enfant, je suis salariée Syntec depuis 3 ans. Combien dure mon congé maternité et suis-je payée ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2023-09-01, situations: [GROSSESSE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Le congé maternité dure 16 semaines : 6 semaines avant la date présumée de l'accouchement et 10
+      semaines après ; jusqu'à 3 semaines du congé prénatal peuvent être reportées après la naissance,
+      sur avis favorable du professionnel de santé. Avec plus d'un an d'ancienneté au début du congé,
+      la convention Syntec maintient le salaire intégralement pendant le congé légal, sous déduction des
+      indemnités de sécurité sociale et de prévoyance.
+    points_cles:
+      - "6 semaines avant et 10 semaines après l'accouchement"
+      - "report possible de 3 semaines maximum du prénatal vers le postnatal, sur avis médical"
+      - "maintien intégral du salaire (Syntec) avec plus d'un an d'ancienneté"
+    articles_attendus:
+      - {num: L1225-17, texte: CODE, sourceId: LEGIARTI000018764596}
+      - {num: "9.3", texte: SYNTEC, sourceId: KALIARTI000053769476}
+    remarques: "Durées différentes pour naissances multiples (L1225-18) ou à partir du 3e enfant : hors du profil."
+
+  - id: conges-payes-6ans
+    theme: congés
+    valide: false
+    question: "Je suis salarié Syntec depuis 6 ans. Combien ai-je de jours de congés payés par an ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2020-09-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      25 jours ouvrés (30 jours ouvrables, soit 2,5 jours ouvrables par mois selon le Code), plus 1 jour
+      ouvré de congé d'ancienneté après 5 ans d'ancienneté (Syntec), soit 26 jours ouvrés. Des jours de
+      fractionnement peuvent s'ajouter si des congés sont pris hors de la période du 1er mai au 31 octobre.
+    points_cles:
+      - "25 jours ouvrés (30 ouvrables)"
+      - "1 jour ouvré supplémentaire d'ancienneté après 5 ans"
+      - "26 jours ouvrés au total"
+    articles_attendus:
+      - {num: "5.1", texte: SYNTEC, sourceId: KALIARTI000047513845}
+      - {num: L3141-3, texte: CODE, sourceId: LEGIARTI000033020826}
+    erreurs_a_eviter:
+      - "oublier le jour d'ancienneté"
+      - "confondre jours ouvrés et jours ouvrables"
+
+  - id: conge-mariage
+    theme: congés
+    valide: false
+    question: "Je me marie le mois prochain, je suis salariée Syntec. Ai-je des jours de congé en plus ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2022-01-03, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui : 4 jours ouvrés d'absence exceptionnelle pour un mariage ou un Pacs, sans réduction de salaire
+      et non déduits des congés payés (Syntec). Le Code fixe un minimum de 4 jours pour le mariage ou le
+      Pacs.
+    points_cles:
+      - "4 jours ouvrés"
+      - "sans réduction de salaire, non déduits des congés payés"
+      - "aussi pour un Pacs"
+    articles_attendus:
+      - {num: "5.7", texte: SYNTEC, sourceId: KALIARTI000053769478}
+      - {num: L3142-4, texte: CODE, sourceId: LEGIARTI000054251220}
+
+  - id: maladie-cadre-2ans
+    theme: maladie
+    valide: false
+    question: "Je suis cadre Syntec depuis 2 ans et en arrêt maladie. Mon salaire est-il maintenu ?"
+    profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2024-10-01, situations: [ARRET_MALADIE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui : avec plus d'un an d'ancienneté, un cadre Syntec perçoit 100 % de son salaire brut pendant 90
+      jours (complément de l'employeur aux indemnités journalières et à la prévoyance), dès le premier
+      jour d'absence constatée par certificat médical, sur 12 mois consécutifs. Au-delà de 90 jours, la
+      prévoyance de branche prend le relais. Le salarié ne peut pas percevoir plus que son salaire net.
+    points_cles:
+      - "90 jours à 100 % du salaire brut"
+      - "à partir d'un an d'ancienneté"
+      - "dès le premier jour d'absence"
+      - "relais par la prévoyance au-delà"
+    articles_attendus:
+      - {num: "9.2", texte: SYNTEC, sourceId: KALIARTI000047513889}
+      - {num: L1226-1, texte: CODE, sourceId: LEGIARTI000054331868}
+
+  - id: maladie-etam-6mois
+    theme: maladie
+    valide: false
+    question: "Je suis ETAM Syntec depuis 6 mois et en arrêt maladie (pas un accident du travail). Mon employeur doit-il compléter mon salaire ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2026-05-01, situations: [ARRET_MALADIE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Non : pour une maladie non professionnelle, le complément de l'employeur exige un an d'ancienneté,
+      selon la convention Syntec comme selon le Code. Seules les indemnités journalières de la sécurité
+      sociale sont versées. En cas d'accident du travail ou de maladie professionnelle, en revanche, le
+      droit au complément Syntec est acquis dès le premier jour de présence.
+    points_cles:
+      - "pas de complément employeur avant un an d'ancienneté pour une maladie ordinaire"
+      - "condition identique dans le Code et dans Syntec"
+      - "pour un accident du travail ou une maladie professionnelle, droit dès le premier jour (Syntec)"
+    articles_attendus:
+      - {num: "9.2", texte: SYNTEC, sourceId: KALIARTI000047513889}
+      - {num: L1226-1, texte: CODE, sourceId: LEGIARTI000054331868}
+    erreurs_a_eviter:
+      - "annoncer un maintien de salaire"
+
+  - id: temps-partiel-heures-complementaires
+    theme: temps de travail
+    valide: false
+    question: "Je travaille à temps partiel (24 h par semaine) dans une entreprise Syntec. Mon employeur me demande des heures en plus : combien peut-il m'en demander et comment sont-elles payées ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, tempsPartiel: true, dateEntree: 2024-01-08, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Ce sont des heures complémentaires. Sans accord d'entreprise ou de branche étendu le permettant,
+      l'employeur peut en demander au plus le dixième des heures du contrat, soit 2,4 h par semaine
+      ici, chacune majorée de 10 %. Un accord d'entreprise ou un accord de branche étendu peut porter
+      cette limite jusqu'au tiers (8 h) ; les heures entre le dixième et le tiers sont alors majorées
+      de 25 %, sauf taux conventionnel (au moins 10 %). L'accord Syntec sur le temps partiel prévoit
+      33 %, mais cet alinéa est exclu de l'extension. Les heures complémentaires ne peuvent jamais
+      porter la durée du travail à 35 h.
+    points_cles:
+      - "sans accord, au plus le dixième des heures du contrat, soit 2,4 h par semaine"
+      - "majoration de 10 % dans cette limite"
+      - "jusqu'au tiers seulement si un accord d'entreprise ou de branche étendu le prévoit, avec 25 % au-delà du dixième sauf taux conventionnel"
+      - "clause Syntec de 33 % exclue de l'extension"
+      - "pas de durée portée à 35 h"
+    articles_attendus:
+      - {num: L3123-28, texte: CODE, sourceId: LEGIARTI000033019950}
+      - {num: L3123-29, texte: CODE, sourceId: LEGIARTI000033019947}
+      - {num: L3123-20, texte: CODE, sourceId: LEGIARTI000033019991}
+      - {num: L3123-9, texte: CODE, sourceId: LEGIARTI000033020058}
+      - {num: "Chapitre IX", texte: SYNTEC, sourceId: KALIARTI000005851652}
+    erreurs_a_eviter:
+      - "dire que l'employeur peut demander jusqu'au tiers des heures (8 h) sans accord"
+      - "parler d'heures supplémentaires et de majorations de 25 % / 50 %"
+      - "présenter la limite de 33 % comme applicable à tous les employeurs Syntec"
+    remarques: >
+      L'article Syntec du temps partiel n'a pas de numéro dans le dump (accord de 1999, chapitre IX).
+      À valider : à défaut d'accord d'entreprise ou d'établissement, L3123-20 exige un accord de branche
+      étendu ; la clause Syntec de 33 %, exclue de l'extension, peut-elle s'appliquer aux employeurs
+      adhérents d'une organisation signataire ?
+
+  - id: heures-supplementaires
+    theme: temps de travail
+    valide: false
+    question: "Je suis technicien Syntec à 35 h. Cette semaine j'ai fait 45 heures à la demande de mon chef. Comment sont payées les heures en plus ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2022-04-04, dateReference: 2026-11-01}
+    reponse_attendue: >
+      10 heures supplémentaires au-delà des 35 heures légales. Syntec renvoie aux majorations légales :
+      à défaut d'accord, +25 % pour les 8 premières (de la 36e à la 43e heure) et +50 % au-delà (44e et
+      45e). Un accord d'entreprise peut fixer un autre taux, sans descendre sous 10 %. Contingent Syntec
+      ETAM : 130 heures supplémentaires par an.
+    points_cles:
+      - "10 heures supplémentaires"
+      - "8 heures à +25 %, 2 heures à +50 % à défaut d'accord"
+      - "un accord d'entreprise peut prévoir un taux différent, minimum 10 %"
+      - "contingent annuel ETAM de 130 heures"
+    articles_attendus:
+      - {num: "6.2", texte: SYNTEC, sourceId: KALIARTI000047513868}
+      - {num: L3121-36, texte: CODE, sourceId: LEGIARTI000033020341}
+      - {num: L3121-27, texte: CODE, sourceId: LEGIARTI000033020376}
+      - {num: L3121-33, texte: CODE, sourceId: LEGIARTI000038610166}
+
+  - id: fin-cdd
+    theme: CDD
+    valide: false
+    question: "Mon CDD se termine à la fin du mois et mon employeur ne me propose rien après. Ai-je droit à une prime ?"
+    profil: {typeContrat: CDD, dateEntree: 2026-03-02, dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui : l'indemnité de fin de contrat (prime de précarité) est de 10 % de la rémunération totale
+      brute versée, si la relation ne se poursuit pas en CDI. Elle n'est pas due notamment si le salarié
+      refuse un CDI pour le même emploi ou un emploi similaire à rémunération au moins équivalente, en
+      cas de rupture anticipée à son initiative, pour faute grave ou force majeure, pour certains
+      contrats (saisonniers, vacances scolaires des jeunes).
+    points_cles:
+      - "10 % de la rémunération totale brute"
+      - "due si le contrat ne se poursuit pas en CDI"
+      - "exclusions : refus d'un CDI équivalent, rupture anticipée par le salarié, faute grave..."
+      - "convention non renseignée : elle peut prévoir des règles particulières"
+    articles_attendus:
+      - {num: L1243-8, texte: CODE, sourceId: LEGIARTI000006901219}
+      - {num: L1243-10, texte: CODE, sourceId: LEGIARTI000006901221}
+
+  - id: handicap-preavis
+    theme: préavis
+    valide: false
+    question: "Je suis reconnu travailleur handicapé, ETAM chez un employeur Syntec depuis 3 ans, et je suis licencié. Mon préavis est-il plus long ?"
+    profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-10-01, situations: [TRAVAILLEUR_HANDICAPE], dateReference: 2026-11-01}
+    reponse_attendue: >
+      Oui : le préavis de licenciement est doublé pour un travailleur handicapé, dans la limite de 3 mois.
+      Le préavis normal serait de 2 mois (Code et Syntec, plus de 2 ans d'ancienneté), soit 4 mois
+      doublé, ramené au plafond de 3 mois. Le doublement ne joue pas si la convention prévoit déjà au
+      moins 3 mois, ce qui n'est pas le cas pour un ETAM Syntec (mais l'est pour un cadre).
+    points_cles:
+      - "préavis doublé, plafonné à 3 mois"
+      - "ici 2 mois doublés, ramenés à 3 mois"
+      - "pas de doublement si la convention prévoit déjà au moins 3 mois"
+    articles_attendus:
+      - {num: L5213-9, texte: CODE, sourceId: LEGIARTI000006903707}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+      - {num: "4.2", texte: SYNTEC, sourceId: KALIARTI000047513833}
+    erreurs_a_eviter:
+      - "annoncer 4 mois de préavis"
+
+# Limites connues du jeu et du profil actuel :
+# - Le profil ne porte pas la classification conventionnelle (coefficient ETAM / IC) : plusieurs règles
+#   Syntec en dépendent (période d'essai, préavis des ETAM 400-500). À ajouter au profil.
+# - La sécurité sociale (indemnités journalières) n'est pas dans le corpus : les réponses peuvent la
+#   mentionner sans la citer.
+# - La convention contient des avenants qui reprennent les mêmes articles (ex. « 14 » qui réécrit 4.4) :
+#   citer l'article consolidé (Titre N) est attendu, l'avenant est toléré.

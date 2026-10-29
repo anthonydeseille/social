@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import fr.deseille.social.TestcontainersConfiguration;
 import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
+import fr.deseille.social.corpus.Article;
+import fr.deseille.social.corpus.ArticleRepository;
+import fr.deseille.social.evaluation.JeuEvaluation.ArticleAttendu;
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
 import fr.deseille.social.profil.ProfilService;
@@ -18,11 +21,16 @@ import fr.deseille.social.recherche.RechercheService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.batch.core.BatchStatus;
@@ -67,6 +75,8 @@ class EvaluationIT {
     private AssistantClaude assistantClaude;
     @Autowired
     private ClaudeProperties claudeProperties;
+    @Autowired
+    private ArticleRepository articleRepository;
 
     @Test
     void evaluer() throws Exception {
@@ -77,6 +87,7 @@ class EvaluationIT {
         var ingestion = jobOperator.start(ingestionJob,
                 new JobParametersBuilder().addLong("horodatage", System.nanoTime()).toJobParameters());
         assertThat(ingestion.getStatus()).as("ingestion des vraies sources").isEqualTo(BatchStatus.COMPLETED);
+        verifierArticlesAttendus(questions);
 
         Assistant assistant = simulee ? new AssistantSimule() : assistantClaude;
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant);
@@ -124,6 +135,34 @@ class EvaluationIT {
         return e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " : " + e.getMessage());
     }
 
+    /**
+     * Chaque article attendu doit exister dans le corpus ingéré, porter le numéro annoncé (quand le
+     * corpus en a un) et être applicable à la date de référence de la question : sinon (révision
+     * épinglée changée, identifiant erroné), arrêt avant le premier appel payant, avec la liste des
+     * anomalies.
+     */
+    private void verifierArticlesAttendus(List<Question> questions) {
+        Map<String, Article> articles = articleRepository.findBySourceIdIn(questions.stream()
+                        .flatMap(q -> q.articlesAttendus().stream()).map(ArticleAttendu::sourceId).toList())
+                .stream().collect(Collectors.toMap(Article::getSourceId, Function.identity()));
+        List<String> anomalies = new ArrayList<>();
+        for (Question q : questions) {
+            LocalDate date = q.profil().dateReference() != null ? q.profil().dateReference() : LocalDate.now();
+            for (ArticleAttendu attendu : q.articlesAttendus()) {
+                Article article = articles.get(attendu.sourceId());
+                String reference = q.id() + " : " + attendu.num() + " (" + attendu.sourceId() + ")";
+                if (article == null) {
+                    anomalies.add(reference + " absent du corpus");
+                } else if (article.getNum() != null && !article.getNum().equals(attendu.num())) {
+                    anomalies.add(reference + " porte le numéro " + article.getNum());
+                } else if (!article.estApplicableLe(date)) {
+                    anomalies.add(reference + " non applicable au " + date + " (" + article.getEtat() + ")");
+                }
+            }
+        }
+        assertThat(anomalies).as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
+    }
+
     private static JeuEvaluation jeu() throws Exception {
         String fichier = System.getProperty("evaluation.fichier");
         return fichier == null || fichier.isBlank()
@@ -150,10 +189,10 @@ class EvaluationIT {
 
         @Override
         public List<String> reformuler(String question, ContexteProfil contexte) {
-            String mots = Arrays.stream(question.toLowerCase(java.util.Locale.ROOT).split("[^\\p{L}0-9]+"))
+            String mots = Arrays.stream(question.toLowerCase(Locale.ROOT).split("[^\\p{L}0-9]+"))
                     .filter(m -> m.length() >= 5)
                     .distinct()
-                    .collect(java.util.stream.Collectors.joining(" or "));
+                    .collect(Collectors.joining(" or "));
             return List.of(mots.isBlank() ? question : mots);
         }
 
@@ -166,7 +205,7 @@ class EvaluationIT {
 
         /** Début du texte de l'article : un extrait que la vérification des citations retrouve. */
         private static String debut(ArticleDetail a) {
-            String texte = fr.deseille.social.questions.AssistantClaude.contenu(a);
+            String texte = AssistantClaude.contenu(a);
             return texte.substring(0, Math.min(60, texte.length()));
         }
     }
