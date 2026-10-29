@@ -101,7 +101,9 @@ flowchart LR
 | Citations vérifiées | Les extraits cités existent-ils dans les articles ? |
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
-Lancement : voir `CLAUDE.md` (section Tests).
+Lancement : voir `CLAUDE.md` (section Tests). En mode lots (`-Devaluation.lots=true`), les appels
+passent par l'API Batch d'Anthropic, à moitié prix : trois lots successifs (reformulations, puis
+rédactions après la recherche locale, puis juge), traités en quelques minutes à quelques heures.
 
 ## Calculateur d'indemnité de licenciement
 

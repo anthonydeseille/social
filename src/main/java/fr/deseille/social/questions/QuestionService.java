@@ -70,18 +70,40 @@ public class QuestionService {
         LocalDate date = contexte.profil().dateReference();
         List<String> requetes = metriques.chronometrer("reformulation", () -> assistant.reformuler(question, contexte));
 
-        List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> selectionner(requetes, profil.idcc(), date)
-                .stream()
-                .map(r -> consultationService.article(r.articleSourceId(), date))
-                .toList());
-        List<String> avertissements = new ArrayList<>(contexte.avertissements());
+        List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> articles(requetes, profil.idcc(), date));
         if (articles.isEmpty()) {
-            metriques.question("aucun_article");
-            avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
-            return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
+            return sansArticle(question, contexte, requetes);
         }
 
         Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
+        return assembler(question, contexte, requetes, articles, reponse);
+    }
+
+    /**
+     * Articles retenus pour des requêtes : recherche, fusion, puis détail des meilleurs, avec leur
+     * applicabilité à la date donnée. Étape publique pour l'évaluation par lots.
+     */
+    public List<ArticleDetail> articles(List<String> requetes, Integer idcc, LocalDate date) {
+        return selectionner(requetes, idcc, date).stream()
+                .map(r -> consultationService.article(r.articleSourceId(), date))
+                .toList();
+    }
+
+    /** Réponse quand aucun article n'a été trouvé : pas de rédaction. */
+    public ReponseQuestion sansArticle(String question, ContexteProfil contexte, List<String> requetes) {
+        metriques.question("aucun_article");
+        List<String> avertissements = new ArrayList<>(contexte.avertissements());
+        avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
+        return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
+    }
+
+    /**
+     * Réponse finale à partir de la rédaction : contrôles de sortie (citations, troncature),
+     * avertissements et métriques. Étape publique pour l'évaluation par lots.
+     */
+    public ReponseQuestion assembler(String question, ContexteProfil contexte, List<String> requetes,
+                                     List<ArticleDetail> articles, Assistant.Reponse reponse) {
+        List<String> avertissements = new ArrayList<>(contexte.avertissements());
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }
