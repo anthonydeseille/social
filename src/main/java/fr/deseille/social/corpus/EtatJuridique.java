@@ -24,5 +24,18 @@ public enum EtatJuridique {
     SUBSTITUE,
     PERIME,
     DENONCE,
-    REMPLACE
+    REMPLACE;
+
+    /**
+     * Indique si une disposition dans cet état peut s'appliquer, sous réserve de ses dates de
+     * début et de fin : en vigueur (étendue ou non), en vigueur différée (à partir de sa date de
+     * début) ou abrogée de façon différée (jusqu'à sa date de fin). Voir
+     * {@link Article#estApplicableLe}.
+     */
+    public boolean peutEtreApplicable() {
+        return switch (this) {
+            case VIGUEUR, VIGUEUR_DIFF, VIGUEUR_ETEN, VIGUEUR_NON_ETEN, ABROGE_DIFF -> true;
+            default -> false;
+        };
+    }
 }

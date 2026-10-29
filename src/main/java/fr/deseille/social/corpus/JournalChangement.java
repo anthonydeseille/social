@@ -134,6 +134,10 @@ public class JournalChangement {
         this.hashApres = hashApres;
     }
 
+    public Instant getDetecteLe() {
+        return detecteLe;
+    }
+
     public Long getExecutionId() {
         return executionId;
     }

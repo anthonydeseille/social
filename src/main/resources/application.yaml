@@ -8,6 +8,9 @@ spring:
   batch:
     job:
       enabled: false
+  mvc:
+    problemdetails:
+      enabled: true
 
 droits:
   ingestion:
