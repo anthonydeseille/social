@@ -1,7 +1,11 @@
 package fr.deseille.social.ingestion;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.job.builder.SimpleJobBuilder;
 import org.springframework.batch.core.job.parameters.RunIdIncrementer;
 import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.repository.JobRepository;
@@ -14,9 +18,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Définit le job d'ingestion : un {@link Step} par source (Code puis Syntec), chacun
- * orienté chunk reader → processor → writer. Le job est relançable ({@link RunIdIncrementer}) ;
- * l'idempotence est assurée au niveau des données par l'upsert du {@link CorpusWriter}.
+ * Définit le job d'ingestion : un {@link Step} par source configurée (Code du travail, puis les
+ * conventions collectives), chacun orienté chunk reader → processor → writer. Le job est relançable
+ * ({@link RunIdIncrementer}) ; l'idempotence est assurée au niveau des données par l'upsert du
+ * {@link CorpusWriter}.
  */
 @Configuration
 @EnableConfigurationProperties(IngestionProperties.class)
@@ -46,29 +51,39 @@ public class IngestionBatchConfig {
         this.writer = writer;
     }
 
+    /**
+     * Un step par source déclarée ({@code droits.ingestion.sources}), dans l'ordre de la
+     * configuration ; le job s'arrête au premier step en échec.
+     */
     @Bean
-    public Job ingestionJob(Step ingestionCodeStep, Step ingestionSyntecStep) {
-        return new JobBuilder("ingestionJob", jobRepository)
+    public Job ingestionJob() {
+        List<SourceCorpus> sources = properties.sources();
+        if (sources == null || sources.isEmpty()) {
+            throw new IllegalStateException("Aucune source d'ingestion configurée (droits.ingestion.sources)");
+        }
+        Set<String> cles = new HashSet<>();
+        Set<String> fichiers = new HashSet<>();
+        for (SourceCorpus source : sources) {
+            if (!cles.add(source.cle())) {
+                throw new IllegalStateException("Clé de source en double : " + source.cle());
+            }
+            // La seconde source écraserait la première par upsert, sans erreur
+            if (!fichiers.add(source.repo() + "/" + source.fichier())) {
+                throw new IllegalStateException("Deux sources lisent le même fichier : " + source.fichier());
+            }
+        }
+        SimpleJobBuilder job = new JobBuilder("ingestionJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
-                .start(ingestionCodeStep)
-                .next(ingestionSyntecStep)
-                .build();
+                .start(stepPourSource(sources.getFirst()));
+        for (SourceCorpus source : sources.subList(1, sources.size())) {
+            job.next(stepPourSource(source));
+        }
+        return job.build();
     }
 
-    @Bean
-    public Step ingestionCodeStep() {
-        return stepPourSource("code");
-    }
-
-    @Bean
-    public Step ingestionSyntecStep() {
-        return stepPourSource("syntec");
-    }
-
-    private Step stepPourSource(String cle) {
-        SourceCorpus source = source(cle);
+    private Step stepPourSource(SourceCorpus source) {
         UnistCorpusReader reader = new UnistCorpusReader(downloader, objectMapper, source);
-        return new StepBuilder("ingestion-" + cle, jobRepository)
+        return new StepBuilder("ingestion-" + source.cle(), jobRepository)
                 .<NoeudCorpus, CommandeEcriture>chunk(properties.tailleChunk())
                 .transactionManager(transactionManager)
                 .reader(reader)
@@ -76,12 +91,5 @@ public class IngestionBatchConfig {
                 .writer(writer)
                 .listener((StepExecutionListener) writer)
                 .build();
-    }
-
-    private SourceCorpus source(String cle) {
-        return properties.sources().stream()
-                .filter(s -> s.cle().equals(cle))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Source non configurée : " + cle));
     }
 }
