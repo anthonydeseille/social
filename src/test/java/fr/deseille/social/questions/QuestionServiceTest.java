@@ -32,8 +32,10 @@ import org.mockito.ArgumentCaptor;
 class QuestionServiceTest {
 
     private static final TexteResume CODE = new TexteResume("LEGITEXT1", TypeTexte.CODE, null, "Code", null);
+    /** Date de référence du profil, distincte d'aujourd'hui : c'est elle qui doit servir partout. */
+    private static final LocalDate DATE = LocalDate.of(2023, 12, 31);
     private static final ProfilSalarie PROFIL =
-            new ProfilSalarie(1486, null, null, null, null, null, false, null, LocalDate.of(2026, 11, 1));
+            new ProfilSalarie(1486, null, null, null, null, null, false, null, DATE);
     private static final ContexteProfil CONTEXTE =
             new ContexteProfil(PROFIL, null, List.of(CODE), true, List.of("avertissement du profil"));
 
@@ -47,7 +49,7 @@ class QuestionServiceTest {
     @BeforeEach
     void preparer() {
         when(profilService.contexte(PROFIL)).thenReturn(CONTEXTE);
-        when(consultationService.article(anyString())).thenAnswer(i -> article(i.getArgument(0)));
+        when(consultationService.article(anyString(), eq(DATE))).thenAnswer(i -> article(i.getArgument(0)));
     }
 
     private static Resultat resultat(String id, double pertinence) {
@@ -62,12 +64,12 @@ class QuestionServiceTest {
     @Test
     void fusionne_les_requetes_garde_la_meilleure_pertinence_et_redige() {
         when(assistant.reformuler(eq("question"), any())).thenReturn(List.of("période essai", "essai cadre"));
-        when(rechercheService.rechercher("période essai", 1486, true, 10))
+        when(rechercheService.rechercher("période essai", 1486, true, 10, DATE))
                 .thenReturn(List.of(resultat("A", 0.2), resultat("B", 0.9)));
-        when(rechercheService.rechercher("essai cadre", 1486, true, 10))
+        when(rechercheService.rechercher("essai cadre", 1486, true, 10, DATE))
                 .thenReturn(List.of(resultat("A", 1.5), resultat("C", 0.1)));
         when(assistant.rediger(eq("question"), eq(CONTEXTE), any()))
-                .thenReturn(new Reponse(List.of(new Passage("réponse", List.of())), false));
+                .thenReturn(new Reponse(List.of(new Passage("réponse", List.of())), false, false));
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
@@ -84,9 +86,9 @@ class QuestionServiceTest {
     @Test
     void au_plus_huit_articles_transmis() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
-        when(rechercheService.rechercher("q", 1486, true, 10))
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
                 .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("A" + i, 10 - i)).toList());
-        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), false));
+        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
 
         assertThat(service.repondre("question", PROFIL).sources()).hasSize(QuestionService.ARTICLES_MAX);
     }
@@ -94,7 +96,7 @@ class QuestionServiceTest {
     @Test
     void sans_article_trouve_pas_de_redaction() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("introuvable"));
-        when(rechercheService.rechercher("introuvable", 1486, true, 10)).thenReturn(List.of());
+        when(rechercheService.rechercher("introuvable", 1486, true, 10, DATE)).thenReturn(List.of());
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
@@ -104,10 +106,20 @@ class QuestionServiceTest {
     }
 
     @Test
+    void reponse_tronquee_signalee() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any()))
+                .thenReturn(new Reponse(List.of(new Passage("début", List.of())), false, true));
+
+        assertThat(service.repondre("question", PROFIL).avertissements()).last().asString().contains("incomplète");
+    }
+
+    @Test
     void refus_du_modele_signale() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
-        when(rechercheService.rechercher("q", 1486, true, 10)).thenReturn(List.of(resultat("A", 1)));
-        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), true));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), true, false));
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 

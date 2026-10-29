@@ -59,9 +59,12 @@ class QuestionsIT {
 
                 @Override
                 public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+                    if (question.contains("panne")) {
+                        throw new AssistantIndisponibleException(new IllegalStateException("panne simulée"));
+                    }
                     ArticleDetail premier = articles.getFirst();
                     return new Reponse(List.of(new Passage("Réponse simulée.",
-                            List.of(new Citation(premier.sourceId(), premier.num(), "extrait")))), false);
+                            List.of(new Citation(premier.sourceId(), premier.num(), "extrait")))), false, false);
                 }
             };
         }
@@ -118,6 +121,32 @@ class QuestionsIT {
         assertThat(reponse).hasStatusOk().bodyJson().extractingPath("$.sources[*].articleSourceId").asArray()
                 .containsExactly("LEGIARTI000000000071");
         assertThat(reponse).bodyJson().extractingPath("$.avertissements[0]").asString().contains("fiche de paie");
+    }
+
+    @Test
+    void articles_retenus_selon_la_date_de_reference() {
+        // L1221-98 (ABROGE_DIFF) cesse de s'appliquer le 1er janvier 2024 : retenu au 31 décembre 2023 seulement
+        var avant = mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON).content("""
+                {"question": "Ma période d'essai ?", "profil": {"dateReference": "2023-12-31"}}
+                """);
+        assertThat(avant).hasStatusOk().bodyJson().extractingPath("$.sources[*].articleSourceId").asArray()
+                .contains("LEGIARTI000000000075");
+
+        var apres = mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON).content("""
+                {"question": "Ma période d'essai ?", "profil": {"dateReference": "2024-01-01"}}
+                """);
+        assertThat(apres).hasStatusOk().bodyJson().extractingPath("$.sources[*].articleSourceId").asArray()
+                .doesNotContain("LEGIARTI000000000075");
+    }
+
+    @Test
+    void modele_indisponible_en_503() {
+        var reponse = mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON).content("""
+                {"question": "Ma période d'essai en cas de panne ?", "profil": {}}
+                """);
+        assertThat(reponse).hasStatus(HttpStatus.SERVICE_UNAVAILABLE).hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(reponse).bodyJson().extractingPath("$.detail").asString().contains("indisponible")
+                .doesNotContain("panne simulée");
     }
 
     @Test

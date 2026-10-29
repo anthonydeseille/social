@@ -16,15 +16,20 @@ public interface Assistant {
      */
     List<String> reformuler(String question, ContexteProfil contexte);
 
-    /** Rédige la réponse à partir des seuls articles fournis, chaque affirmation citant sa source. */
+    /**
+     * Rédige la réponse à partir des seuls articles fournis, chaque affirmation citant sa source.
+     *
+     * @throws AssistantIndisponibleException si le service du modèle ne répond pas
+     */
     Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles);
 
     /**
      * @param passages  réponse découpée en passages, chacun avec ses citations (vides pour un
      *                  passage de liaison)
      * @param refus     le modèle a refusé de répondre ; les passages sont alors vides
+     * @param tronquee  la réponse a été interrompue avant sa fin (limite de jetons)
      */
-    record Reponse(List<Passage> passages, boolean refus) {
+    record Reponse(List<Passage> passages, boolean refus, boolean tronquee) {
     }
 
     record Passage(String texte, List<Citation> citations) {

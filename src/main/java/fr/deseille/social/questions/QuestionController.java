@@ -21,13 +21,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class QuestionController {
 
     private final QuestionService service;
+    private final QuotaQuestions quota;
 
-    public QuestionController(QuestionService service) {
+    public QuestionController(QuestionService service, QuotaQuestions quota) {
         this.service = service;
+        this.quota = quota;
     }
 
+    /** Répond à la question, dans la limite du quota journalier (429 au-delà, 503 si le modèle est indisponible). */
     @PostMapping
     public ReponseQuestion repondre(@Valid @RequestBody QuestionSalarie demande) {
+        quota.consommer();
         return service.repondre(demande.question(), demande.profil());
     }
 

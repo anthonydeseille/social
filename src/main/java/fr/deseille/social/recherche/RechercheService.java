@@ -34,7 +34,15 @@ public class RechercheService {
      * @param seulementApplicables ne retenir que les articles applicables aujourd'hui
      */
     public List<Resultat> rechercher(String requete, Integer idcc, boolean seulementApplicables, int limite) {
-        LocalDate aujourdHui = LocalDate.now(clock);
+        return rechercher(requete, idcc, seulementApplicables, limite, LocalDate.now(clock));
+    }
+
+    /**
+     * @param seulementApplicables ne retenir que les articles applicables à {@code date}
+     * @param date                 date d'appréciation de l'applicabilité (ex. date de référence d'un profil)
+     */
+    public List<Resultat> rechercher(String requete, Integer idcc, boolean seulementApplicables, int limite,
+                                     LocalDate date) {
         List<String> textes = new ArrayList<>();
         texteRepository.findByType(TypeTexte.CODE).stream().map(Texte::getSourceId).forEach(textes::add);
         if (idcc != null) {
@@ -43,9 +51,9 @@ public class RechercheService {
         if (textes.isEmpty()) {
             return List.of();
         }
-        return rechercheRepository.rechercher(requete, textes, seulementApplicables, aujourdHui, limite).stream()
+        return rechercheRepository.rechercher(requete, textes, seulementApplicables, date, limite).stream()
                 .map(l -> new Resultat(l.sourceId(), l.num(), l.etat(),
-                        Article.estApplicable(l.etat(), l.dateDebut(), l.dateFin(), l.disparuLe(), aujourdHui),
+                        Article.estApplicable(l.etat(), l.dateDebut(), l.dateFin(), l.disparuLe(), date),
                         l.texteSourceId(), l.texteType(), l.texteTitre(), l.extrait(), l.rang()))
                 .toList();
     }

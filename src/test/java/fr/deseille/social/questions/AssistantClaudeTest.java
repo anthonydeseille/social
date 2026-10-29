@@ -1,11 +1,20 @@
 package fr.deseille.social.questions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
+import com.anthropic.errors.AnthropicException;
+import com.anthropic.errors.AnthropicIoException;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.anthropic.services.blocking.MessageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.consultation.VuesConsultation.SectionResume;
@@ -17,6 +26,7 @@ import fr.deseille.social.profil.ProfilService.Anciennete;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Reponse;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +37,9 @@ import org.junit.jupiter.api.Test;
  * l'interprétation d'une réponse au format de l'API (désérialisée par le SDK).
  */
 class AssistantClaudeTest {
+
+    private static final ClaudeProperties PROPRIETES =
+            new ClaudeProperties("claude-opus-5-5", 200, Duration.ofMinutes(3), 2);
 
     private static final TexteResume CODE =
             new TexteResume("LEGITEXT000006072050", TypeTexte.CODE, null, "Code du travail", EtatJuridique.VIGUEUR);
@@ -46,7 +59,7 @@ class AssistantClaudeTest {
                     ProfilSalarie.TypeContrat.CDI, false, Set.of(ProfilSalarie.Situation.GROSSESSE), LocalDate.of(2026, 11, 1)),
             new Anciennete(0, 1, 1), List.of(CODE, SYNTEC), true, List.of());
 
-    private final AssistantClaude assistant = new AssistantClaude(new ClaudeProperties("claude-opus-5-5"));
+    private final AssistantClaude assistant = new AssistantClaude(PROPRIETES);
 
     @Test
     void requete_de_redaction_un_document_cite_par_article_puis_la_question() throws Exception {
@@ -100,6 +113,7 @@ class AssistantClaudeTest {
         Reponse reponse = AssistantClaude.versReponse(message, List.of(L1221_19, SYNTEC_3_4));
 
         assertThat(reponse.refus()).isFalse();
+        assertThat(reponse.tronquee()).isFalse();
         assertThat(reponse.passages()).hasSize(2);
         assertThat(reponse.passages().get(0).citations()).isEmpty();
         assertThat(reponse.passages().get(1).citations())
@@ -115,7 +129,56 @@ class AssistantClaudeTest {
                  "usage": {"input_tokens": 10, "output_tokens": 0}, "content": []}
                 """, Message.class);
 
-        assertThat(AssistantClaude.versReponse(message, List.of(L1221_19))).isEqualTo(new Reponse(List.of(), true));
+        assertThat(AssistantClaude.versReponse(message, List.of(L1221_19))).isEqualTo(new Reponse(List.of(), true, false));
+    }
+
+    @Test
+    void reponse_interrompue_par_la_limite_de_jetons_signalee() throws Exception {
+        Message message = ObjectMappers.jsonMapper().readValue("""
+                {"id": "msg_3", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+                 "stop_reason": "max_tokens", "stop_sequence": null,
+                 "usage": {"input_tokens": 10, "output_tokens": 16000},
+                 "content": [{"type": "text", "text": "Votre indemnité se calcule ainsi : 7 ×", "citations": null}]}
+                """, Message.class);
+
+        Reponse reponse = AssistantClaude.versReponse(message, List.of(L1221_19));
+        assertThat(reponse.tronquee()).isTrue();
+        assertThat(reponse.passages()).hasSize(1);
+    }
+
+    @Test
+    void contenu_sans_balises_ni_entites_et_avec_le_nota() {
+        ArticleDetail article = new ArticleDetail("KALIARTI1", null, "4.5", EtatJuridique.VIGUEUR_ETEN, true, null,
+                null, null, "<p>Indemnit&eacute; de 1/3&nbsp;de mois &amp; plus.</p>", "<p>Applicable aux IC.</p>",
+                null, SYNTEC, List.of());
+
+        assertThat(AssistantClaude.contenu(article))
+                .isEqualTo("Indemnité de 1/3 de mois & plus.\n\nNota : Applicable aux IC.");
+    }
+
+    @Test
+    void erreur_du_service_reformulation_sur_la_question_brute_redaction_en_503() {
+        AnthropicClient client = mock(AnthropicClient.class);
+        MessageService messages = mock(MessageService.class);
+        when(client.messages()).thenReturn(messages);
+        when(messages.create(any(StructuredMessageCreateParams.class))).thenThrow(new AnthropicIoException("délai dépassé"));
+        when(messages.create(any(MessageCreateParams.class))).thenThrow(new AnthropicIoException("délai dépassé"));
+        AssistantClaude enPanne = new AssistantClaude(PROPRIETES, () -> client);
+
+        assertThat(enPanne.reformuler("Ma période d'essai ?", CONTEXTE)).containsExactly("Ma période d'essai ?");
+        assertThatThrownBy(() -> enPanne.rediger("Ma période d'essai ?", CONTEXTE, List.of(L1221_19)))
+                .isInstanceOf(AssistantIndisponibleException.class);
+    }
+
+    @Test
+    void cle_absente_traitee_comme_une_indisponibilite() {
+        AssistantClaude sansCle = new AssistantClaude(PROPRIETES, () -> {
+            throw new AnthropicException("aucune clé d'API");
+        });
+
+        assertThat(sansCle.reformuler("question", CONTEXTE)).containsExactly("question");
+        assertThatThrownBy(() -> sansCle.rediger("question", CONTEXTE, List.of(L1221_19)))
+                .isInstanceOf(AssistantIndisponibleException.class);
     }
 
     @Test

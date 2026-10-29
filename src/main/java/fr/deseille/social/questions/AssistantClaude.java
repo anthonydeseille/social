@@ -3,6 +3,7 @@ package fr.deseille.social.questions;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.core.JsonValue;
+import com.anthropic.errors.AnthropicException;
 import com.anthropic.models.messages.CitationsConfigParam;
 import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.DocumentBlockParam;
@@ -11,6 +12,7 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
 import com.anthropic.models.messages.PlainTextSource;
 import com.anthropic.models.messages.StopReason;
+import com.anthropic.models.messages.StructuredMessage;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
 import com.anthropic.models.messages.TextCitation;
 import com.anthropic.models.messages.Usage;
@@ -20,10 +22,13 @@ import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 /**
  * {@link Assistant} adossé à Claude (SDK officiel Anthropic).
@@ -34,7 +39,8 @@ import org.springframework.stereotype.Component;
  * </ul>
  * Repli côté serveur activé ({@code fallbacks: "default"}) : une requête refusée par les filtres
  * de sécurité est rejouée sur un autre modèle ; un refus final est signalé, jamais masqué. Le
- * client n'est créé qu'au premier appel, pour que l'application démarre sans clé d'API.
+ * client n'est créé qu'au premier appel, pour que l'application démarre sans clé d'API. Une erreur du
+ * service fait chercher sur la question brute (reformulation) ou renvoie un 503 (rédaction).
  */
 @Component
 @EnableConfigurationProperties(ClaudeProperties.class)
@@ -74,10 +80,22 @@ public class AssistantClaude implements Assistant {
             l'inspection du travail, un syndicat ou un avocat peuvent aider.""";
 
     private final ClaudeProperties properties;
+    private final Supplier<AnthropicClient> fabrique;
     private volatile AnthropicClient client;
 
+    @Autowired
     public AssistantClaude(ClaudeProperties properties) {
+        this(properties, () -> AnthropicOkHttpClient.builder()
+                .fromEnv()
+                .timeout(properties.delai())
+                .maxRetries(properties.tentatives())
+                .build());
+    }
+
+    /** Pour les tests : client fourni (simulé). */
+    AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique) {
         this.properties = properties;
+        this.fabrique = fabrique;
     }
 
     /** Requêtes de recherche produites par la reformulation (sortie structurée). */
@@ -95,7 +113,13 @@ public class AssistantClaude implements Assistant {
                 .putAdditionalHeader("anthropic-beta", BETA_REPLI)
                 .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
                 .build();
-        var message = client().messages().create(params);
+        StructuredMessage<Requetes> message;
+        try {
+            message = client().messages().create(params);
+        } catch (AnthropicException e) {
+            log.warn("Reformulation impossible ({}) : recherche sur la question brute", e.getClass().getSimpleName());
+            return List.of(question);
+        }
         journaliser("reformulation", message.usage());
         if (message.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
             log.warn("Reformulation refusée par le modèle : recherche sur la question brute");
@@ -114,7 +138,13 @@ public class AssistantClaude implements Assistant {
 
     @Override
     public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
-        Message message = client().messages().create(parametresRedaction(question, contexte, articles));
+        Message message;
+        try {
+            message = client().messages().create(parametresRedaction(question, contexte, articles));
+        } catch (AnthropicException e) {
+            log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
+            throw new AssistantIndisponibleException(e);
+        }
         journaliser("rédaction", message.usage());
         return versReponse(message, articles);
     }
@@ -150,10 +180,12 @@ public class AssistantClaude implements Assistant {
     static Reponse versReponse(Message message, List<ArticleDetail> articles) {
         if (message.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
             log.warn("Rédaction refusée par le modèle");
-            return new Reponse(List.of(), true);
+            return new Reponse(List.of(), true, false);
         }
-        if (message.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
-            log.warn("Rédaction tronquée : limite de jetons atteinte");
+        // Toute autre fin qu'une fin normale (limite de jetons, pause...) laisse une réponse inachevée
+        boolean tronquee = message.stopReason().filter(r -> !StopReason.END_TURN.equals(r)).isPresent();
+        if (tronquee) {
+            log.warn("Rédaction inachevée : {}", message.stopReason().get());
         }
         List<Passage> passages = message.content().stream()
                 .flatMap(bloc -> bloc.text().stream())
@@ -161,7 +193,7 @@ public class AssistantClaude implements Assistant {
                         .flatMap(c -> citation(c, articles).stream())
                         .toList()))
                 .toList();
-        return new Reponse(passages, false);
+        return new Reponse(passages, false, tronquee);
     }
 
     private static Optional<Citation> citation(TextCitation c, List<ArticleDetail> articles) {
@@ -171,13 +203,22 @@ public class AssistantClaude implements Assistant {
                 .map(a -> new Citation(a.sourceId(), a.num(), c.citedText()));
     }
 
-    /** Texte de l'article : en clair (Code) ou HTML débarrassé de ses balises (conventions). */
+    /**
+     * Texte de l'article : en clair (Code) ou HTML débarrassé de ses balises et entités (conventions),
+     * suivi du nota, qui porte souvent des conditions d'application.
+     */
     static String contenu(ArticleDetail a) {
-        if (a.contenuTexte() != null) {
-            return a.contenuTexte();
+        String texte = a.contenuTexte() != null ? a.contenuTexte() : enClair(a.contenuHtml());
+        String nota = enClair(a.nota());
+        return nota.isEmpty() ? texte : texte + "\n\nNota : " + nota;
+    }
+
+    private static String enClair(String html) {
+        if (html == null) {
+            return "";
         }
-        String html = a.contenuHtml() == null ? "" : a.contenuHtml();
-        return html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").strip();
+        return HtmlUtils.htmlUnescape(html.replaceAll("<[^>]+>", " ")).replace('\u00A0', ' ')
+                .replaceAll("\\s+", " ").strip();
     }
 
     private static String filAriane(ArticleDetail a) {
@@ -189,12 +230,13 @@ public class AssistantClaude implements Assistant {
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 
+    /** Client créé au premier appel ; une clé absente lève une {@link AnthropicException}. */
     private AnthropicClient client() {
         AnthropicClient c = client;
         if (c == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = AnthropicOkHttpClient.fromEnv();
+                    client = fabrique.get();
                 }
                 c = client;
             }

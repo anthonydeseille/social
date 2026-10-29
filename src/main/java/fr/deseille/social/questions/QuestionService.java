@@ -8,6 +8,7 @@ import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.recherche.RechercheService;
 import fr.deseille.social.recherche.RechercheService.Resultat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -41,10 +42,12 @@ public class QuestionService {
 
     public ReponseQuestion repondre(String question, ProfilSalarie profil) {
         ContexteProfil contexte = profilService.contexte(profil);
+        // Le modèle raisonne à la date de référence : la recherche et l'applicabilité aussi
+        LocalDate date = contexte.profil().dateReference();
         List<String> requetes = assistant.reformuler(question, contexte);
 
-        List<ArticleDetail> articles = selectionner(requetes, profil.idcc()).stream()
-                .map(r -> consultationService.article(r.articleSourceId()))
+        List<ArticleDetail> articles = selectionner(requetes, profil.idcc(), date).stream()
+                .map(r -> consultationService.article(r.articleSourceId(), date))
                 .toList();
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         if (articles.isEmpty()) {
@@ -56,6 +59,9 @@ public class QuestionService {
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }
+        if (reponse.tronquee()) {
+            avertissements.add("Réponse incomplète : elle a été interrompue avant sa fin. Reformulez une question plus précise.");
+        }
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
                 articles.stream().map(Source::de).toList(), reponse.refus(), avertissements);
     }
@@ -64,10 +70,10 @@ public class QuestionService {
      * Fusionne les résultats des requêtes : chaque article garde sa meilleure pertinence, puis les
      * {@link #ARTICLES_MAX} meilleurs sont retenus.
      */
-    private List<Resultat> selectionner(List<String> requetes, Integer idcc) {
+    private List<Resultat> selectionner(List<String> requetes, Integer idcc, LocalDate date) {
         Map<String, Resultat> meilleurs = new LinkedHashMap<>();
         for (String requete : requetes) {
-            for (Resultat r : rechercheService.rechercher(requete, idcc, true, RESULTATS_PAR_REQUETE)) {
+            for (Resultat r : rechercheService.rechercher(requete, idcc, true, RESULTATS_PAR_REQUETE, date)) {
                 meilleurs.merge(r.articleSourceId(), r, (a, b) -> a.pertinence() >= b.pertinence() ? a : b);
             }
         }
