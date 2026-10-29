@@ -367,6 +367,7 @@ questions:
       - {num: L3123-28, texte: CODE, sourceId: LEGIARTI000033019950}
       - {num: L3123-29, texte: CODE, sourceId: LEGIARTI000033019947}
       - {num: L3123-20, texte: CODE, sourceId: LEGIARTI000033019991}
+      - {num: L3123-9, texte: CODE, sourceId: LEGIARTI000033020058}
       - {num: "Chapitre IX", texte: SYNTEC, sourceId: KALIARTI000005851652}
     erreurs_a_eviter:
       - "dire que l'employeur peut demander jusqu'au tiers des heures (8 h) sans accord"
@@ -374,8 +375,9 @@ questions:
       - "présenter la limite de 33 % comme applicable à tous les employeurs Syntec"
     remarques: >
       L'article Syntec du temps partiel n'a pas de numéro dans le dump (accord de 1999, chapitre IX).
-      À valider : L3123-20 exige un accord de branche étendu ; la clause Syntec de 33 %, exclue de
-      l'extension, peut-elle s'appliquer aux employeurs adhérents d'une organisation signataire ?
+      À valider : à défaut d'accord d'entreprise ou d'établissement, L3123-20 exige un accord de branche
+      étendu ; la clause Syntec de 33 %, exclue de l'extension, peut-elle s'appliquer aux employeurs
+      adhérents d'une organisation signataire ?
 
   - id: heures-supplementaires
     theme: temps de travail
