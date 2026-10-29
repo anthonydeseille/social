@@ -92,6 +92,23 @@ class AssistantClaudeTest {
     }
 
     @Test
+    void requete_de_reformulation_en_sortie_structuree() throws Exception {
+        var params = assistant.parametresReformulation("Combien dure ma période d'essai ?", CONTEXTE);
+        JsonNode corps = ObjectMappers.jsonMapper().readTree(
+                ObjectMappers.jsonMapper().writeValueAsString(params.rawParams()._body()));
+
+        JsonNode format = corps.path("output_config").path("format");
+        assertThat(format.path("type").asText()).isEqualTo("json_schema");
+        assertThat(format.path("schema").path("properties").has("requetes")).isTrue();
+        assertThat(corps.path("messages").get(0).path("content").toString()).contains("Question du salarié");
+        assertThat(params.rawParams()._additionalBodyProperties()).containsEntry("fallbacks", JsonValue.from("default"));
+
+        // Ce que le SDK désérialisera depuis la réponse du modèle
+        assertThat(ObjectMappers.jsonMapper().readValue("{\"requetes\": [\"période essai\", \"essai cadre\"]}",
+                AssistantClaude.Requetes.class).requetes()).containsExactly("période essai", "essai cadre");
+    }
+
+    @Test
     void reponse_passages_et_citations_rapportees_aux_articles() throws Exception {
         Message message = ObjectMappers.jsonMapper().readValue("""
                 {"id": "msg_1", "type": "message", "role": "assistant", "model": "claude-opus-5-5",

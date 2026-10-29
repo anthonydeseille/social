@@ -116,15 +116,7 @@ public class AssistantClaude implements Assistant {
 
     @Override
     public List<String> reformuler(String question, ContexteProfil contexte) {
-        StructuredMessageCreateParams<Requetes> params = MessageCreateParams.builder()
-                .model(properties.modele())
-                .maxTokens(MAX_TOKENS)
-                .system(CONSIGNES_REFORMULATION)
-                .outputConfig(Requetes.class)
-                .addUserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)
-                .putAdditionalHeader("anthropic-beta", BETA_REPLI)
-                .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
-                .build();
+        StructuredMessageCreateParams<Requetes> params = parametresReformulation(question, contexte);
         StructuredMessage<Requetes> message;
         try {
             message = client().messages().create(params);
@@ -159,6 +151,19 @@ public class AssistantClaude implements Assistant {
         }
         journaliser("rédaction", message.usage());
         return versReponse(message, articles);
+    }
+
+    /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. */
+    StructuredMessageCreateParams<Requetes> parametresReformulation(String question, ContexteProfil contexte) {
+        return MessageCreateParams.builder()
+                .model(properties.modele())
+                .maxTokens(MAX_TOKENS)
+                .system(CONSIGNES_REFORMULATION)
+                .outputConfig(Requetes.class)
+                .addUserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)
+                .putAdditionalHeader("anthropic-beta", BETA_REPLI)
+                .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
+                .build();
     }
 
     /** Requête de rédaction : un document par article, dans l'ordre, puis le profil et la question. */

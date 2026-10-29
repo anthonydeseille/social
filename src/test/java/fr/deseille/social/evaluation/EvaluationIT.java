@@ -39,7 +39,10 @@ import org.springframework.context.annotation.Import;
  * <pre>
  * ./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true
  * </pre>
- * Options : {@code -Devaluation.simulee=true} (faux assistant, gratuit, pour vérifier le circuit),
+ * Chaque réponse est notée par un juge (Claude, sortie structurée) au regard des points clés et des
+ * erreurs à éviter, sauf {@code -Devaluation.juge=false}.
+ * Options : {@code -Devaluation.simulee=true} (faux assistant, sans juge, gratuit, pour vérifier le circuit),
+ * {@code -Devaluation.juge.modele=…} (modèle du juge, celui de l'application par défaut),
  * {@code -Devaluation.toutes=true} (y compris les questions non validées),
  * {@code -Devaluation.questions=id1,id2} (sélection), {@code -Devaluation.fichier=chemin}
  * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}).
@@ -77,6 +80,8 @@ class EvaluationIT {
 
         Assistant assistant = simulee ? new AssistantSimule() : assistantClaude;
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant);
+        JugeClaude juge = simulee || !Boolean.parseBoolean(System.getProperty("evaluation.juge", "true")) ? null
+                : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 
         List<Resultat> resultats = new ArrayList<>();
         for (Question q : questions) {
@@ -90,15 +95,23 @@ class EvaluationIT {
                 erreur = e.getClass().getSimpleName() + " : " + e.getMessage();
             }
             var apres = assistantClaude.consommation();
-            resultats.add(new Resultat(q, reponse, erreur, apres.jetonsEntree() - avant.jetonsEntree(),
-                    apres.jetonsSortie() - avant.jetonsSortie(), System.currentTimeMillis() - debut));
+            Resultat resultat = new Resultat(q, reponse, erreur, apres.jetonsEntree() - avant.jetonsEntree(),
+                    apres.jetonsSortie() - avant.jetonsSortie(), System.currentTimeMillis() - debut);
+            if (juge != null && reponse != null && !reponse.refus() && !reponse.passages().isEmpty()) {
+                try {
+                    resultat = resultat.avecVerdict(juge.juger(q, reponse), null);
+                } catch (RuntimeException e) {
+                    resultat = resultat.avecVerdict(null, e.getClass().getSimpleName() + " : " + e.getMessage());
+                }
+            }
+            resultats.add(resultat);
         }
 
         Path rapport = Path.of("target", "evaluation",
                 "rapport-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".md");
         Files.createDirectories(rapport.getParent());
-        Files.writeString(rapport, RapportEvaluation.markdown(resultats, claudeProperties.modele(), simulee),
-                StandardCharsets.UTF_8);
+        Files.writeString(rapport, RapportEvaluation.markdown(resultats, claudeProperties.modele(), simulee,
+                juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie()), StandardCharsets.UTF_8);
         System.out.println("Rapport d'évaluation : " + rapport.toAbsolutePath());
     }
 
