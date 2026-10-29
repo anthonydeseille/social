@@ -109,6 +109,15 @@ public class Article {
      * s'applique pas sans date de début connue). Sans dates (conventions), l'état seul décide.
      */
     public boolean estApplicableLe(LocalDate date) {
+        return estApplicable(etat, dateDebut, dateFin, disparuLe, date);
+    }
+
+    /**
+     * Règle d'applicabilité, partagée avec les lectures qui ne chargent pas l'entité. Le filtre
+     * SQL de {@code RechercheRepository} la reproduit : les modifier ensemble.
+     */
+    public static boolean estApplicable(EtatJuridique etat, LocalDate dateDebut, LocalDate dateFin,
+                                        Instant disparuLe, LocalDate date) {
         if (etat == null || !etat.peutEtreApplicable() || disparuLe != null) {
             return false;
         }

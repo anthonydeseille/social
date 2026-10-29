@@ -1,0 +1,93 @@
+{
+  "type": "code",
+  "data": {
+    "id": "LEGITEXT000000000007",
+    "cid": "LEGITEXT000000000007",
+    "title": "Code de test de la recherche",
+    "etat": "VIGUEUR"
+  },
+  "children": [
+    {
+      "type": "section",
+      "data": {
+        "id": "LEGISCTA000000000071",
+        "cid": "LEGISCTA000000000071",
+        "title": "Contrat de travail",
+        "etat": "VIGUEUR",
+        "intOrdre": 1
+      },
+      "children": [
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000071",
+            "cid": "LEGIARTC000000000071",
+            "num": "L1221-19",
+            "texte": "Le contrat de travail à durée indéterminée peut comporter une période d'essai dont la durée maximale est de deux mois pour les ouvriers et les employés et de quatre mois pour les cadres.",
+            "texteHtml": "<p>Le contrat de travail à durée indéterminée peut comporter une période d'essai dont la durée maximale est de deux mois pour les ouvriers et les employés et de quatre mois pour les cadres.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 1,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000072",
+            "cid": "LEGIARTC000000000072",
+            "num": "L1234-1",
+            "texte": "Lorsque le licenciement n'est pas motivé par une faute grave, le salarié a droit à un préavis.",
+            "texteHtml": "<p>Lorsque le licenciement n'est pas motivé par une faute grave, le salarié a droit à un préavis.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 2,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000073",
+            "cid": "LEGIARTC000000000073",
+            "num": "L1221-99",
+            "texte": "Ancienne disposition relative à la période d'essai.",
+            "texteHtml": "<p>Ancienne disposition relative à la période d'essai.</p>",
+            "etat": "ABROGE",
+            "intOrdre": 3,
+            "dateDebut": 1577836800000,
+            "dateFin": 1704067200000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000074",
+            "cid": "LEGIARTC000000000074",
+            "num": "L1225-4",
+            "texte": "Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.",
+            "texteHtml": "<p>Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 4,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000075",
+            "cid": "LEGIARTC000000000075",
+            "num": "L1221-98",
+            "texte": "Disposition transitoire sur la période d'essai.",
+            "texteHtml": "<p>Disposition transitoire sur la période d'essai.</p>",
+            "etat": "ABROGE_DIFF",
+            "intOrdre": 5,
+            "dateDebut": 1577836800000,
+            "dateFin": 1704067200000
+          }
+        }
+      ]
+    }
+  ]
+}
