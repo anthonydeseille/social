@@ -37,7 +37,7 @@ function conserverConvention(idcc) {
   if (!idcc || [...liste.options].some(o => Number(o.value) === Number(idcc))) return;
   const option = document.createElement("option");
   option.value = idcc;
-  option.textContent = String(idcc).padStart(4, "0") + " - convention non intégrée (Code du travail seul)";
+  option.textContent = String(idcc).padStart(4, "0") + " - convention enregistrée sur cet appareil";
   liste.append(option);
 }
 
@@ -46,6 +46,7 @@ function texteDepuisHtml(html) {
   if (!html) return "";
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+  doc.querySelectorAll("td, th").forEach(cellule => cellule.after("\t"));
   doc.querySelectorAll("p, div, li, tr, h1, h2, h3, h4, h5, h6, table, ul, ol").forEach(bloc => bloc.after("\n\n"));
   return doc.body.textContent.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -221,6 +222,12 @@ formulaire.addEventListener("submit", async e => {
 });
 
 document.getElementById("effacer").addEventListener("click", effacerProfil);
+// Décocher « Se souvenir » efface tout de suite, sans attendre la prochaine question
+document.getElementById("memoriser").addEventListener("change", e => {
+  if (!e.target.checked) {
+    try { localStorage.removeItem(CLE_PROFIL); } catch { /* rien à effacer */ }
+  }
+});
 
 const profilSauvegarde = lireProfilSauvegarde();
 document.getElementById("memoriser").checked = Object.keys(profilSauvegarde).length > 0;
