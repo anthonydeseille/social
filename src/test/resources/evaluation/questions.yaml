@@ -125,14 +125,15 @@ questions:
     profil: {idcc: 1486, statut: CADRE, typeContrat: CDI, dateEntree: 2019-10-01, dateReference: 2026-11-01}
     reponse_attendue: >
       Indemnité conventionnelle Syntec, plus favorable que l'indemnité légale : pour un cadre de 2 ans
-      d'ancienneté ou plus, 1/3 de mois par année de présence, soit 7/3 ≈ 2,33 mois de rémunération.
-      L'indemnité légale serait de 1/4 de mois par année jusqu'à 10 ans, soit 1,75 mois. Le mois de
+      d'ancienneté ou plus, 1/3 de mois par année de présence. Avec 7 ans et 1 mois (7,08 années, le
+      mois au-delà des années pleines comptant au prorata) : 7,08 × 1/3 ≈ 2,36 mois de rémunération.
+      L'indemnité légale serait de 1/4 de mois par année jusqu'à 10 ans, soit 7,08 × 1/4 ≈ 1,77 mois. Le mois de
       rémunération Syntec est 1/12 de la rémunération des 12 derniers mois, primes contractuelles
       comprises. L'indemnité s'ajoute à l'indemnité compensatrice de préavis éventuelle.
     points_cles:
       - "1/3 de mois par année de présence (cadre, 2 ans ou plus)"
-      - "environ 2,33 mois de rémunération"
-      - "plus favorable que l'indemnité légale (1/4 de mois par année, soit 1,75 mois)"
+      - "environ 2,36 mois de rémunération (7 ans et 1 mois)"
+      - "plus favorable que l'indemnité légale (1/4 de mois par année, soit environ 1,77 mois)"
       - "base : 1/12 de la rémunération des 12 derniers mois"
     articles_attendus:
       - {num: "4.5", texte: SYNTEC, sourceId: KALIARTI000047513839}
@@ -141,6 +142,9 @@ questions:
     erreurs_a_eviter:
       - "appliquer seulement le barème légal"
       - "appliquer 1/3 seulement aux années au-delà de 10 ans pour un cadre"
+    remarques: >
+      Lecture du barème cadre à valider (docs/regles-indemnite-licenciement.md, question 1) : en lecture
+      par tranche (1/4 les 2 premières années, 1/3 au-delà), le résultat serait 2,19 mois.
 
   - id: indemnite-licenciement-etam-12ans
     theme: indemnité de licenciement
@@ -149,16 +153,20 @@ questions:
     profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2014-10-01, dateReference: 2026-11-01}
     reponse_attendue: >
       Pour un ETAM, la convention Syntec reprend le barème légal : 1/4 de mois par année jusqu'à 10 ans,
-      puis 1/3 de mois par année au-delà. Pour 12 ans : 10 × 1/4 + 2 × 1/3 ≈ 3,17 mois de rémunération.
+      puis 1/3 de mois par année au-delà. Avec 12 ans et 1 mois (12,08 années) : 10 × 1/4 + 2,08 × 1/3
+      ≈ 3,19 mois de rémunération, identique au minimum légal.
     points_cles:
       - "1/4 de mois par année jusqu'à 10 ans"
       - "1/3 de mois par année au-delà de 10 ans"
-      - "environ 3,17 mois pour 12 ans"
+      - "environ 3,19 mois (12 ans et 1 mois)"
     articles_attendus:
       - {num: "4.5", texte: SYNTEC, sourceId: KALIARTI000047513839}
       - {num: R1234-2, texte: CODE, sourceId: LEGIARTI000035644692}
     erreurs_a_eviter:
       - "appliquer le barème cadre (1/3 dès 2 ans)"
+    remarques: >
+      Lecture du barème ETAM à valider (docs/regles-indemnite-licenciement.md, question 1) : en lecture
+      « toutes les années » (1/3 pour toutes les années après 10 ans), le résultat serait 4,03 mois.
 
   - id: licenciement-6-mois
     theme: indemnité de licenciement
