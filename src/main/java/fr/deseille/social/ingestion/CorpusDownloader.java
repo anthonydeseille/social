@@ -28,6 +28,9 @@ public class CorpusDownloader {
 
     private static final Logger log = LoggerFactory.getLogger(CorpusDownloader.class);
 
+    /** Délai maximal d'attente des en-têtes de réponse (le corps est ensuite lu en streaming). */
+    private static final Duration DELAI_REPONSE = Duration.ofMinutes(2);
+
     private final IngestionProperties properties;
     private final HttpClient httpClient;
 
@@ -68,18 +71,23 @@ public class CorpusDownloader {
         try {
             Files.createDirectories(cible.getParent());
             log.info("Téléchargement source {} depuis {}", source.cle(), uri);
-            HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+            HttpRequest request = HttpRequest.newBuilder(uri).timeout(DELAI_REPONSE).GET().build();
             HttpResponse<InputStream> response =
                     httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            if (response.statusCode() != 200) {
-                throw new IllegalStateException(
-                        "Téléchargement de " + uri + " en échec : HTTP " + response.statusCode());
-            }
-            Path temp = Files.createTempFile(cible.getParent(), "dl-", ".tmp");
+            // Le corps est toujours fermé, y compris en erreur, pour libérer la connexion.
             try (InputStream body = response.body()) {
-                Files.copy(body, temp, StandardCopyOption.REPLACE_EXISTING);
+                if (response.statusCode() != 200) {
+                    throw new IllegalStateException(
+                            "Téléchargement de " + uri + " en échec : HTTP " + response.statusCode());
+                }
+                Path temp = Files.createTempFile(cible.getParent(), "dl-", ".tmp");
+                try {
+                    Files.copy(body, temp, StandardCopyOption.REPLACE_EXISTING);
+                    Files.move(temp, cible, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                } finally {
+                    Files.deleteIfExists(temp);
+                }
             }
-            Files.move(temp, cible, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             log.info("Source {} téléchargée ({} octets) : {}", source.cle(), Files.size(cible), cible);
             return cible;
         } catch (IOException e) {

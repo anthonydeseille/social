@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changesets/004-article.sql
   - include:
       file: db/changelog/changesets/005-journal-changement.sql
+  - include:
+      file: db/changelog/changesets/006-article-suivi.sql

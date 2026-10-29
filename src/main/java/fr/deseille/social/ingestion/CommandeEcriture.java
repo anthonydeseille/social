@@ -1,13 +1,13 @@
 package fr.deseille.social.ingestion;
 
 import fr.deseille.social.corpus.EtatJuridique;
-import fr.deseille.social.corpus.TypeChangement;
 import fr.deseille.social.corpus.TypeTexte;
 import java.time.LocalDate;
 
 /**
  * Commande d'écriture normalisée produite par {@link NoeudCorpusProcessor} et appliquée par
- * {@link CorpusWriter}. Pour les articles, la classification du changement est déjà décidée.
+ * {@link CorpusWriter}. La classification des changements d'article est faite par le writer,
+ * au moment de l'écriture, pour ne pas dépendre du découpage en chunks.
  */
 public sealed interface CommandeEcriture
         permits CommandeEcriture.Texte, CommandeEcriture.Section, CommandeEcriture.Article {
@@ -21,14 +21,9 @@ public sealed interface CommandeEcriture
             implements CommandeEcriture {
     }
 
-    /**
-     * @param changement type de changement détecté, ou {@code null} si l'article est inchangé
-     *                   (upsert sans écriture — seul le marquage « vu » est effectué)
-     */
     record Article(String sourceId, String cid, String sectionSourceId, String num,
                    EtatJuridique etat, LocalDate dateDebut, LocalDate dateFin, Integer intOrdre,
                    String contenuTexte, String contenuHtml, String nota, String contenuHash,
-                   String donneesBrutes, TypeChangement changement,
-                   EtatJuridique etatAvant, String hashAvant, String ref) implements CommandeEcriture {
+                   String metaHash, String donneesBrutes, String ref) implements CommandeEcriture {
     }
 }

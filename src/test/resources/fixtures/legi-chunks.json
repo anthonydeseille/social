@@ -1,0 +1,93 @@
+{
+  "type": "code",
+  "data": {
+    "id": "LEGITEXT000000000009",
+    "cid": "LEGITEXT000000000009",
+    "title": "Code de test des chunks",
+    "etat": "VIGUEUR"
+  },
+  "children": [
+    {
+      "type": "section",
+      "data": {
+        "id": "LEGISCTA000000000009",
+        "cid": "LEGISCTA000000000009",
+        "title": "Livre unique",
+        "etat": "VIGUEUR",
+        "intOrdre": 1
+      },
+      "children": [
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000091",
+            "cid": "LEGIARTI0000000000CA",
+            "num": "L9-1",
+            "texte": "Contenu L9-1.",
+            "texteHtml": "<p>Contenu L9-1.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 1,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000091",
+            "cid": "LEGIARTI0000000000CA",
+            "num": "L9-1",
+            "texte": "Contenu L9-1.",
+            "texteHtml": "<p>Contenu L9-1.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 1,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000093",
+            "cid": "LEGIARTI0000000000CB",
+            "num": "L9-3",
+            "texte": "Contenu L9-3.",
+            "texteHtml": "<p>Contenu L9-3.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 3,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000094",
+            "cid": "LEGIARTI0000000000CB",
+            "num": "L9-3",
+            "texte": "Contenu L9-3.",
+            "texteHtml": "<p>Contenu L9-3.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 4,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        },
+        {
+          "type": "article",
+          "data": {
+            "id": "LEGIARTI000000000092",
+            "cid": "LEGIARTI0000000000CA",
+            "num": "L9-1",
+            "texte": "Contenu L9-1.",
+            "texteHtml": "<p>Contenu L9-1.</p>",
+            "etat": "VIGUEUR",
+            "intOrdre": 2,
+            "dateDebut": 1577836800000,
+            "dateFin": 32472144000000
+          }
+        }
+      ]
+    }
+  ]
+}

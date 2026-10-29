@@ -20,6 +20,10 @@ import tools.jackson.databind.ObjectMapper;
  * est matérialisé en mémoire, jamais l'arbre entier (indispensable pour le fichier Code de
  * 56 Mo). Émet un {@link NoeudCorpus} par appel à {@link #read()}, dans l'ordre du document,
  * chaque nœud portant l'identifiant de son parent (résolu via une pile de sections).
+ * <p>
+ * Le streaming impose que {@code type} et {@code data} précèdent {@code children} dans chaque
+ * nœud ; un document qui ne respecte pas cet ordre, ou qui est tronqué, fait échouer la lecture
+ * plutôt que de produire des nœuds incomplets (et de fausses disparitions).
  */
 public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
 
@@ -58,6 +62,9 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
         while (true) {
             JsonToken t = parser.nextToken();
             if (t == null) {
+                if (!pile.isEmpty()) {
+                    throw new IllegalStateException("Source " + source.cle() + " tronquée : fin de fichier inattendue");
+                }
                 return null; // fin de fichier
             }
             if (t == JsonToken.START_OBJECT) {
@@ -77,6 +84,9 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
 
         while (true) {
             JsonToken t = parser.nextToken();
+            if (t == null) {
+                throw new IllegalStateException("Source " + source.cle() + " tronquée : nœud incomplet");
+            }
             if (t == JsonToken.END_OBJECT) {
                 break; // nœud sans tableau children (ex. article)
             }
@@ -85,7 +95,13 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
             switch (champ) {
                 case "type" -> type = parser.getText();
                 case "data" -> data = parser.readValueAsTree();
-                case "children" -> aDesEnfants = true; // valeur == START_ARRAY, laissé ouvert
+                case "children" -> {
+                    if (type == null || data == null) {
+                        throw new IllegalStateException("Source " + source.cle()
+                                + " : « type » et « data » doivent précéder « children » (type=" + type + ")");
+                    }
+                    aDesEnfants = true; // valeur == START_ARRAY, laissé ouvert
+                }
                 default -> {
                     if (valeur == JsonToken.START_OBJECT || valeur == JsonToken.START_ARRAY) {
                         parser.skipChildren();
@@ -97,6 +113,9 @@ public class UnistCorpusReader implements ItemStreamReader<NoeudCorpus> {
             }
         }
 
+        if (type == null || data == null) {
+            throw new IllegalStateException("Source " + source.cle() + " : nœud sans « type » ou « data » (type=" + type + ")");
+        }
         String parentSectionId = pile.isEmpty() ? null : pile.peek().sectionSourceIdPourEnfants();
         NoeudCorpus item = construire(type, data, parentSectionId);
 

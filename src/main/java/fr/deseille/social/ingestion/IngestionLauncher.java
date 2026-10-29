@@ -2,7 +2,7 @@ package fr.deseille.social.ingestion;
 
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,17 +17,17 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "droits.ingestion.run", havingValue = "true")
 public class IngestionLauncher implements ApplicationRunner {
 
-    private final JobLauncher jobLauncher;
+    private final JobOperator jobOperator;
     private final Job ingestionJob;
 
-    public IngestionLauncher(JobLauncher jobLauncher, Job ingestionJob) {
-        this.jobLauncher = jobLauncher;
+    public IngestionLauncher(JobOperator jobOperator, Job ingestionJob) {
+        this.jobOperator = jobOperator;
         this.ingestionJob = ingestionJob;
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        jobLauncher.run(ingestionJob, new JobParametersBuilder()
+        jobOperator.start(ingestionJob, new JobParametersBuilder()
                 .addLong("horodatage", System.currentTimeMillis())
                 .toJobParameters());
     }

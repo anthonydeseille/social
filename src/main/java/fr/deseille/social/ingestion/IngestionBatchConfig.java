@@ -22,8 +22,6 @@ import tools.jackson.databind.ObjectMapper;
 @EnableConfigurationProperties(IngestionProperties.class)
 public class IngestionBatchConfig {
 
-    private static final int TAILLE_CHUNK = 500;
-
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final CorpusDownloader downloader;
@@ -71,7 +69,7 @@ public class IngestionBatchConfig {
         SourceCorpus source = source(cle);
         UnistCorpusReader reader = new UnistCorpusReader(downloader, objectMapper, source);
         return new StepBuilder("ingestion-" + cle, jobRepository)
-                .<NoeudCorpus, CommandeEcriture>chunk(TAILLE_CHUNK, transactionManager)
+                .<NoeudCorpus, CommandeEcriture>chunk(properties.tailleChunk(), transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)

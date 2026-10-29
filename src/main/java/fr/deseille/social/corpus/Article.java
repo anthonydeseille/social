@@ -75,6 +75,14 @@ public class Article {
     @Column(name = "contenu_hash", nullable = false)
     private String contenuHash;
 
+    /** Empreinte des métadonnées (section, ordre, dates, cid), hors contenu et état. */
+    @Column(name = "meta_hash")
+    private String metaHash;
+
+    /** Date à laquelle l'article a disparu du dump source ; null tant qu'il y est présent. */
+    @Column(name = "disparu_le")
+    private Instant disparuLe;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "donnees_brutes", columnDefinition = "jsonb")
     private String donneesBrutes;
@@ -203,6 +211,22 @@ public class Article {
 
     public void setContenuHash(String contenuHash) {
         this.contenuHash = contenuHash;
+    }
+
+    public String getMetaHash() {
+        return metaHash;
+    }
+
+    public void setMetaHash(String metaHash) {
+        this.metaHash = metaHash;
+    }
+
+    public Instant getDisparuLe() {
+        return disparuLe;
+    }
+
+    public void setDisparuLe(Instant disparuLe) {
+        this.disparuLe = disparuLe;
     }
 
     public String getDonneesBrutes() {

@@ -1,5 +1,6 @@
 package fr.deseille.social.ingestion;
 
+import static fr.deseille.social.ingestion.FixturesIngestion.copier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import fr.deseille.social.TestcontainersConfiguration;
@@ -15,16 +16,14 @@ import fr.deseille.social.corpus.TexteRepository;
 import fr.deseille.social.corpus.TypeChangement;
 import fr.deseille.social.corpus.TypeTexte;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.JobExecution;
-import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.JobOperatorTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,8 +35,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Teste le job d'ingestion de bout en bout sur des fixtures réduites (Code + convention),
- * servies en {@code file:} depuis un répertoire temporaire : comptages, hiérarchie, dates,
- * idempotence d'un second run, puis journal des changements sur une variante de la convention.
+ * en enchaînant des runs sur des variantes de la convention : création, idempotence, journal
+ * des changements, disparition consignée une seule fois, réapparition, et échec en cours de
+ * step sans fausse disparition.
  */
 @SpringBootTest
 @SpringBatchTest
@@ -47,7 +47,7 @@ class IngestionJobIT {
     private static Path repertoire;
 
     @Autowired
-    private JobLauncherTestUtils jobLauncherTestUtils;
+    private JobOperatorTestUtils jobOperatorTestUtils;
     @Autowired
     private TexteRepository texteRepository;
     @Autowired
@@ -64,27 +64,13 @@ class IngestionJobIT {
         repertoire = Files.createTempDirectory("ingestion-it");
         copier("/fixtures/legi-mini.json", repertoire.resolve("legi.json"));
         copier("/fixtures/kali-mini.json", repertoire.resolve("kali.json"));
-
-        registry.add("droits.ingestion.base-url", () -> repertoire.toUri().toString());
-        registry.add("droits.ingestion.cache-dir", () -> repertoire.resolve("cache").toString());
-        ajouterSource(registry, 0, "code", "CODE", "legi.json");
-        ajouterSource(registry, 1, "syntec", "CONVENTION_COLLECTIVE", "kali.json");
-    }
-
-    private static void ajouterSource(DynamicPropertyRegistry registry, int i, String cle,
-                                      String type, String fichier) {
-        registry.add("droits.ingestion.sources[" + i + "].cle", () -> cle);
-        registry.add("droits.ingestion.sources[" + i + "].type", () -> type);
-        registry.add("droits.ingestion.sources[" + i + "].repo", () -> "");
-        registry.add("droits.ingestion.sources[" + i + "].ref", () -> "");
-        registry.add("droits.ingestion.sources[" + i + "].fichier", () -> fichier);
+        FixturesIngestion.declarerSources(registry, repertoire, "legi.json", "kali.json");
     }
 
     @Test
     void ingestion_complete_idempotente_et_journal() throws Exception {
-        // --- Premier run : création complète ---
-        JobExecution run1 = jobLauncherTestUtils.launchJob();
-        assertThat(run1.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        // --- Run 1 : création complète ---
+        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
 
         assertThat(texteRepository.count()).isEqualTo(2);
         assertThat(sectionRepository.count()).isEqualTo(3);
@@ -94,12 +80,14 @@ class IngestionJobIT {
                 .allMatch(j -> j.getTypeChangement() == TypeChangement.CREATION);
 
         // Dates : Code (epoch millis) parsé, convention sans date
-        Article codeArt = articleRepository.findBySourceId("LEGIARTI000000000001").orElseThrow();
+        Article codeArt = article("LEGIARTI000000000001");
         assertThat(codeArt.getDateDebut()).isEqualTo(LocalDate.of(2020, 1, 1));
         assertThat(codeArt.getEtat()).isEqualTo(EtatJuridique.VIGUEUR);
         assertThat(codeArt.getContenuTexte()).isEqualTo("Contenu de l'article un.");
+        assertThat(codeArt.getMetaHash()).isNotNull();
+        assertThat(codeArt.getDisparuLe()).isNull();
 
-        Article convArt = articleRepository.findBySourceId("KALIARTI000000000001").orElseThrow();
+        Article convArt = article("KALIARTI000000000001");
         assertThat(convArt.getDateDebut()).isNull();
         assertThat(convArt.getContenuHtml()).contains("article A");
         assertThat(convArt.getContenuTexte()).isNull();
@@ -109,46 +97,71 @@ class IngestionJobIT {
         assertThat(convention.getIdcc()).isEqualTo(9999);
 
         // Hiérarchie (navigation paresseuse → dans une transaction)
-        TransactionTemplate tx = new TransactionTemplate(transactionManager);
-        tx.executeWithoutResult(status -> {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             Section imbriquee = sectionRepository.findBySourceId("LEGISCTA000000000002").orElseThrow();
             assertThat(imbriquee.getParent()).isNotNull();
             assertThat(imbriquee.getParent().getSourceId()).isEqualTo("LEGISCTA000000000001");
-            Article art2 = articleRepository.findBySourceId("LEGIARTI000000000002").orElseThrow();
-            assertThat(art2.getSection().getSourceId()).isEqualTo("LEGISCTA000000000002");
+            assertThat(article("LEGIARTI000000000002").getSection().getSourceId())
+                    .isEqualTo("LEGISCTA000000000002");
         });
 
-        // --- Deuxième run identique : idempotent, aucun ajout ---
-        assertThat(jobLauncherTestUtils.launchJob().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        // --- Run 2 identique : idempotent, aucun ajout ---
+        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
         assertThat(articleRepository.count()).isEqualTo(5);
         assertThat(journalRepository.count()).isEqualTo(5);
 
-        // --- Troisième run : variante de la convention → journal des changements ---
-        copier("/fixtures/kali-mini-v2.json", repertoire.resolve("kali.json"));
-        assertThat(jobLauncherTestUtils.launchJob().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        // --- Run 3 : v2 de la convention → modification, changement d'état, nouvelle version ---
+        assertThat(lancerAvecConvention("kali-mini-v2.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(articleRepository.count()).isEqualTo(6);
+        assertThat(journalRepository.count()).isEqualTo(8);
+        assertThat(journalRepository.findAll())
+                .anyMatch(entree("KALIARTI000000000001", TypeChangement.MODIFICATION))
+                .anyMatch(entree("KALIARTI000000000002", TypeChangement.CHANGEMENT_ETAT))
+                .anyMatch(entree("KALIARTI000000000003", TypeChangement.NOUVELLE_VERSION));
+        assertThat(article("KALIARTI000000000001").getContenuHtml()).contains("MODIFIE");
+        assertThat(article("KALIARTI000000000002").getEtat()).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
 
-        assertThat(articleRepository.count()).isEqualTo(6); // nouvelle version ajoutée
-        assertThat(journalRepository.count()).isEqualTo(8); // +3 entrées
+        // --- Run 4 : v3 → article 2 disparu, article 1 déplacé (ordre seul) ---
+        assertThat(lancerAvecConvention("kali-mini-v3.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(journalRepository.count()).isEqualTo(10);
+        assertThat(journalRepository.findAll())
+                .anyMatch(entree("KALIARTI000000000002", TypeChangement.DISPARITION))
+                .anyMatch(entree("KALIARTI000000000001", TypeChangement.CHANGEMENT_METADONNEES));
+        assertThat(article("KALIARTI000000000002").getDisparuLe()).isNotNull();
+        assertThat(article("KALIARTI000000000001").getIntOrdre()).isEqualTo(5);
+        assertThat(articleRepository.count()).as("jamais de suppression").isEqualTo(6);
 
-        List<JournalChangement> journal = journalRepository.findAll();
-        assertThat(journal).anyMatch(j -> j.getArticleSourceId().equals("KALIARTI000000000001")
-                && j.getTypeChangement() == TypeChangement.MODIFICATION);
-        assertThat(journal).anyMatch(j -> j.getArticleSourceId().equals("KALIARTI000000000002")
-                && j.getTypeChangement() == TypeChangement.CHANGEMENT_ETAT);
-        assertThat(journal).anyMatch(j -> j.getArticleSourceId().equals("KALIARTI000000000003")
-                && j.getTypeChangement() == TypeChangement.NOUVELLE_VERSION);
+        // --- Run 5 : v3 à nouveau → la disparition n'est pas re-journalisée ---
+        assertThat(lancer().getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(journalRepository.count()).isEqualTo(10);
 
-        // Modification appliquée en place sur la même version
-        assertThat(articleRepository.findBySourceId("KALIARTI000000000001").orElseThrow()
-                .getContenuHtml()).contains("MODIFIE");
-        assertThat(articleRepository.findBySourceId("KALIARTI000000000002").orElseThrow()
-                .getEtat()).isEqualTo(EtatJuridique.VIGUEUR_ETEN);
+        // --- Run 6 : retour à la v2 → réapparition de l'article 2 ---
+        assertThat(lancerAvecConvention("kali-mini-v2.json").getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(journalRepository.count()).isEqualTo(12);
+        assertThat(journalRepository.findAll())
+                .anyMatch(entree("KALIARTI000000000002", TypeChangement.REAPPARITION));
+        assertThat(article("KALIARTI000000000002").getDisparuLe()).isNull();
+
+        // --- Run 7 : convention tronquée → step en échec, aucune fausse disparition ---
+        assertThat(lancerAvecConvention("kali-tronque.json").getStatus()).isEqualTo(BatchStatus.FAILED);
+        assertThat(journalRepository.count()).isEqualTo(12);
+        assertThat(articleRepository.findAll()).allMatch(a -> a.getDisparuLe() == null);
     }
 
-    private static void copier(String ressource, Path cible) throws IOException {
-        try (InputStream in = IngestionJobIT.class.getResourceAsStream(ressource)) {
-            assertThat(in).as("fixture %s", ressource).isNotNull();
-            Files.copy(in, cible, StandardCopyOption.REPLACE_EXISTING);
-        }
+    private JobExecution lancer() throws Exception {
+        return jobOperatorTestUtils.startJob();
+    }
+
+    private JobExecution lancerAvecConvention(String fixture) throws Exception {
+        copier("/fixtures/" + fixture, repertoire.resolve("kali.json"));
+        return lancer();
+    }
+
+    private Article article(String sourceId) {
+        return articleRepository.findBySourceId(sourceId).orElseThrow();
+    }
+
+    private static java.util.function.Predicate<JournalChangement> entree(String sourceId, TypeChangement type) {
+        return j -> j.getArticleSourceId().equals(sourceId) && j.getTypeChangement() == type;
     }
 }

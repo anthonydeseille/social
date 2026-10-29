@@ -17,6 +17,12 @@ public enum TypeChangement {
     /** État juridique modifié pour un même identifiant de version. */
     CHANGEMENT_ETAT,
 
-    /** Article présent en base mais absent du dump courant. */
-    DISPARITION
+    /** Métadonnées modifiées (section, ordre, dates, cid) sans changement de contenu ni d'état. */
+    CHANGEMENT_METADONNEES,
+
+    /** Article présent en base mais absent du dump courant (consigné une seule fois). */
+    DISPARITION,
+
+    /** Article précédemment disparu, de nouveau présent dans le dump. */
+    REAPPARITION
 }
