@@ -5,7 +5,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 
 ## Fait
 
-- Ingestion du Code du travail et de la convention Syntec (sources épinglées, journal des changements)
+- Ingestion du Code du travail et de 7 conventions collectives, un step par source (sources épinglées, journal des changements)
 - CI GitHub Actions, action Claude (revue automatique, mentions `@claude`)
 - Profil salarié et API de consultation
 - Recherche plein texte en français
@@ -38,7 +38,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 
 ## Pour des utilisateurs réels
 
-1. **Autres conventions collectives** (métallurgie, commerce alimentaire, hôtels-cafés-restaurants, bâtiment…).
+1. **Autres conventions collectives** : 6 ajoutées ✅ (métallurgie, commerce alimentaire, transports routiers, hôtels-cafés-restaurants, services de l'automobile, propreté ; environ 3,5 millions de salariés de plus). Leurs barèmes d'indemnité restent à intégrer, après validation juridique. Suivantes possibles : bâtiment (1596, 1597), handicap (0413), commerces de gros (0573).
 2. **Retrouver l'IDCC** à partir de l'entreprise (SIRET) ou du nom de la convention.
 3. **Interface web** : profil gardé dans le navigateur, question, réponse avec citations cliquables.
 4. **Mise à jour planifiée du corpus** et affichage des changements.

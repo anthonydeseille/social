@@ -27,3 +27,39 @@ droits:
         repo: SocialGouv/kali-data
         ref: 84b1d6713c20184f2fec889c69a056864f8c5246
         fichier: data/KALICONT000005635173.json
+      # IDCC 3248 Métallurgie
+      - cle: metallurgie
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000046993250.json
+      # IDCC 2216 Commerce de détail et de gros à prédominance alimentaire
+      - cle: commerce-alimentaire
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000005635085.json
+      # IDCC 0016 Transports routiers et activités auxiliaires du transport
+      - cle: transports-routiers
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000005635624.json
+      # IDCC 1979 Hôtels, cafés, restaurants
+      - cle: hotels-cafes-restaurants
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000005635534.json
+      # IDCC 1090 Services de l'automobile
+      - cle: services-automobile
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000005635191.json
+      # IDCC 3043 Entreprises de propreté et services associés
+      - cle: proprete
+        type: CONVENTION_COLLECTIVE
+        repo: SocialGouv/kali-data
+        ref: 84b1d6713c20184f2fec889c69a056864f8c5246
+        fichier: data/KALICONT000027172335.json
