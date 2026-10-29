@@ -2,9 +2,12 @@ package fr.deseille.social.evaluation;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.core.ObjectMappers;
+import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StructuredMessage;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.anthropic.models.messages.TextBlock;
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Passage;
@@ -78,6 +81,20 @@ final class JugeClaude implements Juge {
                 .map(texte -> texte.text())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Verdict absent (fin : " + message.stopReason().orElse(null) + ")"));
+    }
+
+    /** Verdict d'une réponse reçue comme message ordinaire (résultat d'un lot). */
+    static Verdict verdictDepuis(Message message) {
+        String json = message.content().stream().flatMap(bloc -> bloc.text().stream())
+                .map(TextBlock::text).collect(Collectors.joining());
+        if (json.isBlank()) {
+            throw new IllegalStateException("Verdict absent (fin : " + message.stopReason().orElse(null) + ")");
+        }
+        try {
+            return ObjectMappers.jsonMapper().readValue(json, Verdict.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("Verdict illisible : " + e.getMessage(), e);
+        }
     }
 
     StructuredMessageCreateParams<Verdict> parametres(Question question, ReponseQuestion reponse) {

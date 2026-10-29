@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import fr.deseille.social.TestcontainersConfiguration;
 import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.models.messages.MessageCreateParams;
 import fr.deseille.social.corpus.Article;
 import fr.deseille.social.corpus.ArticleRepository;
 import fr.deseille.social.evaluation.JeuEvaluation.ArticleAttendu;
@@ -22,11 +24,14 @@ import fr.deseille.social.recherche.RechercheService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +57,8 @@ import org.springframework.context.annotation.Import;
  * erreurs à éviter, sauf {@code -Devaluation.juge=false}.
  * Options : {@code -Devaluation.simulee=true} (faux assistant, sans juge, gratuit, pour vérifier le circuit),
  * {@code -Devaluation.juge.modele=…} (modèle du juge, celui de l'application par défaut),
+ * {@code -Devaluation.lots=true} (API Batch : moitié prix, asynchrone, quelques minutes à quelques
+ * heures ; {@code -Devaluation.lots.heures=2} pour l'attente maximale),
  * {@code -Devaluation.toutes=true} (y compris les questions non validées),
  * {@code -Devaluation.questions=id1,id2} (sélection), {@code -Devaluation.fichier=chemin}
  * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}).
@@ -106,6 +113,11 @@ class EvaluationIT {
         Files.createDirectories(rapport.getParent());
         System.out.println("Rapport d'évaluation (mis à jour après chaque question) : " + rapport.toAbsolutePath());
 
+        if (Boolean.getBoolean("evaluation.lots") && !simulee) {
+            evaluerParLots(questions, service, juge, tarif, tarifJuge, rapport);
+            return;
+        }
+
         List<Resultat> resultats = new ArrayList<>();
         for (Question q : questions) {
             var avant = assistantClaude.consommation();
@@ -132,6 +144,107 @@ class EvaluationIT {
             Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif, simulee, tarifJuge,
                     juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie(), questions.size()),
                     StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Évaluation par l'API Batch (moitié prix, asynchrone) : trois lots successifs, car chaque étape
+     * dépend de la précédente — reformulations, puis recherche locale et rédactions, puis juge. Mêmes
+     * étapes et mêmes contrôles que {@link QuestionService#repondre}, appels regroupés.
+     */
+    private void evaluerParLots(List<Question> questions, QuestionService service, JugeClaude juge, Tarif tarif,
+                                Tarif tarifJuge, Path rapport) throws Exception {
+        LotClaude lot = new LotClaude(() -> AnthropicOkHttpClient.builder().fromEnv()
+                .timeout(claudeProperties.delai()).maxRetries(claudeProperties.tentatives()).build(),
+                Duration.ofHours(Long.getLong("evaluation.lots.heures", 2)));
+        Map<String, ContexteProfil> contextes = new LinkedHashMap<>();
+        Map<String, long[]> jetons = new HashMap<>();
+        for (Question q : questions) {
+            contextes.put(q.id(), profilService.contexte(q.profil()));
+            jetons.put(q.id(), new long[2]);
+        }
+
+        // 1. Reformulations
+        Map<String, MessageCreateParams> reformulations = new LinkedHashMap<>();
+        for (Question q : questions) {
+            reformulations.put(q.id(), assistantClaude.parametresReformulation(q.question(), contextes.get(q.id())).rawParams());
+        }
+        Map<String, LotClaude.Resultat> r1 = lot.executer("reformulations", reformulations);
+        Map<String, List<String>> requetes = new HashMap<>();
+        for (Question q : questions) {
+            LotClaude.Resultat r = r1.get(q.id());
+            requetes.put(q.id(), r == null || r.message() == null ? List.of(q.question())
+                    : AssistantClaude.requetesDepuis(r.message(), q.question()));
+            compter(jetons.get(q.id()), r);
+        }
+
+        // 2. Recherche locale, puis rédactions
+        Map<String, List<ArticleDetail>> articles = new HashMap<>();
+        Map<String, MessageCreateParams> redactions = new LinkedHashMap<>();
+        Map<String, ReponseQuestion> reponses = new HashMap<>();
+        Map<String, String> erreurs = new HashMap<>();
+        for (Question q : questions) {
+            ContexteProfil contexte = contextes.get(q.id());
+            List<ArticleDetail> trouves = service.articles(requetes.get(q.id()), q.profil().idcc(),
+                    contexte.profil().dateReference());
+            articles.put(q.id(), trouves);
+            if (trouves.isEmpty()) {
+                reponses.put(q.id(), service.sansArticle(q.question(), contexte, requetes.get(q.id())));
+            } else {
+                redactions.put(q.id(), assistantClaude.parametresRedaction(q.question(), contexte, trouves));
+            }
+        }
+        Map<String, LotClaude.Resultat> r2 = lot.executer("redactions", redactions);
+        for (String id : redactions.keySet()) {
+            Question q = questions.stream().filter(x -> x.id().equals(id)).findFirst().orElseThrow();
+            LotClaude.Resultat r = r2.get(id);
+            compter(jetons.get(id), r);
+            if (r == null || r.message() == null) {
+                erreurs.put(id, r == null ? "résultat absent du lot" : r.erreur());
+            } else {
+                reponses.put(id, service.assembler(q.question(), contextes.get(id), requetes.get(id), articles.get(id),
+                        AssistantClaude.versReponse(r.message(), articles.get(id))));
+            }
+        }
+
+        // 3. Juge
+        Map<String, LotClaude.Resultat> r3 = Map.of();
+        if (juge != null) {
+            Map<String, MessageCreateParams> jugements = new LinkedHashMap<>();
+            for (Question q : questions) {
+                ReponseQuestion reponse = reponses.get(q.id());
+                if (reponse != null && !reponse.refus() && !reponse.passages().isEmpty()) {
+                    jugements.put(q.id(), juge.parametres(q, reponse).rawParams());
+                }
+            }
+            r3 = lot.executer("juge", jugements);
+        }
+
+        long[] jetonsJuge = new long[2];
+        List<Resultat> resultats = new ArrayList<>();
+        for (Question q : questions) {
+            long[] j = jetons.get(q.id());
+            Resultat resultat = new Resultat(q, reponses.get(q.id()), erreurs.get(q.id()), j[0], j[1], -1);
+            LotClaude.Resultat jugement = r3.get(q.id());
+            if (jugement != null) {
+                compter(jetonsJuge, jugement);
+                try {
+                    resultat = jugement.message() == null ? resultat.avecVerdict(null, jugement.erreur())
+                            : resultat.avecVerdict(JugeClaude.verdictDepuis(jugement.message()), null);
+                } catch (RuntimeException e) {
+                    resultat = resultat.avecVerdict(null, decrire(e));
+                }
+            }
+            resultats.add(resultat);
+        }
+        Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif.lots(), false, tarifJuge.lots(),
+                jetonsJuge[0], jetonsJuge[1], questions.size()), StandardCharsets.UTF_8);
+    }
+
+    private static void compter(long[] jetons, LotClaude.Resultat resultat) {
+        if (resultat != null && resultat.message() != null) {
+            jetons[0] += resultat.message().usage().inputTokens();
+            jetons[1] += resultat.message().usage().outputTokens();
         }
     }
 

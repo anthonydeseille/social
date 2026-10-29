@@ -134,12 +134,12 @@ final class RapportEvaluation {
             String qualite = r.verdict() == null ? "-" : String.format(Locale.FRANCE, "%.0f %%", 100 * r.verdict().scoreQualite());
             String erreurs = r.verdict() == null ? "-" : String.valueOf(r.verdict().erreursCommises().size());
             int attendus = r.question().articlesAttendus().size();
-            md.append(String.format(Locale.FRANCE, "| %s | %s | %s | %s | %s | %s | %.1f s |%n",
+            md.append(String.format(Locale.FRANCE, "| %s | %s | %s | %s | %s | %s | %s |%n",
                     r.question().id(),
                     attendus == 0 ? "n/a" : r.trouves().size() + "/" + attendus,
                     attendus == 0 ? "n/a" : r.cites().size() + "/" + attendus,
                     qualite, erreurs, Tarif.dollars(tarif.cout(r.jetonsEntree(), r.jetonsSortie()), "%.3f $"),
-                    r.dureeMs() / 1000.0));
+                    r.dureeMs() < 0 ? "lot" : String.format(Locale.FRANCE, "%.1f s", r.dureeMs() / 1000.0)));
         }
 
         for (Resultat r : resultats) {

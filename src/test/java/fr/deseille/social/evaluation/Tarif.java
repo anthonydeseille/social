@@ -32,6 +32,11 @@ record Tarif(String modele, double entree, double sortie) {
         return pour(modele);
     }
 
+    /** Tarif de l'API Batch : moitié prix. */
+    Tarif lots() {
+        return new Tarif(modele + " (lots, moitié prix)", entree / 2, sortie / 2);
+    }
+
     boolean connu() {
         return !Double.isNaN(entree) && !Double.isNaN(sortie);
     }
