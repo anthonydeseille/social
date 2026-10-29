@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -40,6 +41,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 @AutoConfigureMockMvc
 // Les tests désactivent l'export des métriques par défaut : réactivé pour vérifier /actuator/prometheus
 @AutoConfigureMetrics
+@ActiveProfiles("observabilite")
 @Import({TestcontainersConfiguration.class, QuestionsIT.FauxAssistant.class})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class QuestionsIT {

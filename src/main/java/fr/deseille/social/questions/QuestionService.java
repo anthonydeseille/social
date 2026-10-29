@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Répond à la question d'un salarié : contexte du profil, reformulation en requêtes, recherche dans
@@ -44,7 +45,26 @@ public class QuestionService {
         this.metriques = metriques;
     }
 
+    /**
+     * Toute question est comptée dans {@code droits.questions}, y compris quand elle échoue :
+     * invalide (requête refusée), indisponible (modèle), erreur (imprévue).
+     */
     public ReponseQuestion repondre(String question, ProfilSalarie profil) {
+        try {
+            return traiter(question, profil);
+        } catch (AssistantIndisponibleException e) {
+            metriques.question("indisponible");
+            throw e;
+        } catch (ResponseStatusException e) {
+            metriques.question(e.getStatusCode().is4xxClientError() ? "invalide" : "erreur");
+            throw e;
+        } catch (RuntimeException e) {
+            metriques.question("erreur");
+            throw e;
+        }
+    }
+
+    private ReponseQuestion traiter(String question, ProfilSalarie profil) {
         ContexteProfil contexte = profilService.contexte(profil);
         // Le modèle raisonne à la date de référence : la recherche et l'applicabilité aussi
         LocalDate date = contexte.profil().dateReference();
@@ -61,13 +81,7 @@ public class QuestionService {
             return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
         }
 
-        Assistant.Reponse reponse;
-        try {
-            reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
-        } catch (AssistantIndisponibleException e) {
-            metriques.question("indisponible");
-            throw e;
-        }
+        Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }

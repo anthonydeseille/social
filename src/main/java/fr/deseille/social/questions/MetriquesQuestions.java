@@ -11,9 +11,10 @@ import org.springframework.stereotype.Component;
  * Aucune donnée personnelle : ni question, ni profil, seulement des comptes, des durées et des
  * jetons, étiquetés par étape ou par issue.
  * <ul>
- *   <li>{@code droits.questions} (issue) : repondue, aucun_article, refus, tronquee, indisponible ;</li>
+ *   <li>{@code droits.questions} (issue) : repondue, aucun_article, refus, tronquee, indisponible,
+ *       invalide, erreur ;</li>
  *   <li>{@code droits.questions.etape} (etape) : durée de reformulation, recherche, rédaction ;</li>
- *   <li>{@code droits.claude.appels} (etape, issue) : succes, refus, erreur ;</li>
+ *   <li>{@code droits.claude.appels} (etape, issue) : succes, refus, tronquee, erreur ;</li>
  *   <li>{@code droits.claude.jetons} (etape, sens) : jetons en entrée et en sortie ;</li>
  *   <li>{@code droits.citations} (verification) : verifiee, non_verifiee ;</li>
  *   <li>{@code droits.questions.quota_atteint} : questions refusées par le quota journalier.</li>

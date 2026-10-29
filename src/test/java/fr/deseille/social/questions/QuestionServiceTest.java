@@ -91,6 +91,35 @@ class QuestionServiceTest {
     }
 
     @Test
+    void erreur_imprevue_ou_requete_invalide_comptees_puis_propagees() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenThrow(new IllegalStateException("base indisponible"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(registre.counter("droits.questions", "issue", "erreur").count()).isEqualTo(1.0);
+
+        when(profilService.contexte(PROFIL)).thenThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, "dates incohérentes"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(registre.counter("droits.questions", "issue", "invalide").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void citations_reparties_entre_verifiees_et_non_verifiees() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(new Passage("…", List.of(
+                new fr.deseille.social.questions.Assistant.Citation("A", "NA", "texte"),
+                new fr.deseille.social.questions.Assistant.Citation("A", "NA", "extrait inventé")))), false, false));
+
+        service.repondre("question", PROFIL);
+
+        assertThat(registre.counter("droits.citations", "verification", "verifiee").count()).isEqualTo(1.0);
+        assertThat(registre.counter("droits.citations", "verification", "non_verifiee").count()).isEqualTo(1.0);
+    }
+
+    @Test
     void modele_indisponible_compte_puis_propage() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));

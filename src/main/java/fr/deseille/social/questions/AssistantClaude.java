@@ -157,7 +157,7 @@ public class AssistantClaude implements Assistant {
         }
         journaliser("redaction", message.usage());
         Reponse reponse = versReponse(message, articles);
-        metriques.appelClaude("redaction", reponse.refus() ? "refus" : "succes");
+        metriques.appelClaude("redaction", reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "succes");
         return reponse;
     }
 

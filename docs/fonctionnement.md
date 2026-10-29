@@ -63,19 +63,21 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 
 ## Observabilité
 
-Chaque question alimente des métriques (Micrometer), consultables sur `/actuator/metrics` et au
-format Prometheus sur `/actuator/prometheus`, **sans donnée personnelle** (ni question, ni profil) :
+Chaque question alimente des métriques (Micrometer), **sans donnée personnelle** (ni question, ni
+profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/metrics` et `/actuator/prometheus`
+s'ouvrent avec le profil `observabilite` :
 
 | Métrique | Étiquettes | Ce qu'elle suit |
 |---|---|---|
-| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible | issue de chaque question |
+| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question (toutes comptées) |
 | `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
-| `droits.claude.appels` | etape, issue : succes, refus, erreur | appels à Claude |
+| `droits.claude.appels` | etape, issue : succes, refus, tronquee, erreur | appels à Claude |
 | `droits.claude.jetons` | etape, sens : entree, sortie | jetons consommés (donc le coût) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
 | `droits.questions.quota_atteint` | | questions refusées par le quota |
 
-Ces points d'accès sont à protéger, ou à exposer sur un port interne, avant toute mise en ligne.
+Ils révèlent le volume, le coût et le quota : ne pas activer ce profil sur un serveur public sans
+protection (port interne, authentification).
 
 ## L'évaluation
 
