@@ -67,6 +67,8 @@ class EvaluationIT {
     private AssistantClaude assistantClaude;
     @Autowired
     private ClaudeProperties claudeProperties;
+    @Autowired
+    private fr.deseille.social.corpus.ArticleRepository articleRepository;
 
     @Test
     void evaluer() throws Exception {
@@ -77,6 +79,7 @@ class EvaluationIT {
         var ingestion = jobOperator.start(ingestionJob,
                 new JobParametersBuilder().addLong("horodatage", System.nanoTime()).toJobParameters());
         assertThat(ingestion.getStatus()).as("ingestion des vraies sources").isEqualTo(BatchStatus.COMPLETED);
+        verifierArticlesAttendus(questions);
 
         Assistant assistant = simulee ? new AssistantSimule() : assistantClaude;
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant);
@@ -122,6 +125,22 @@ class EvaluationIT {
 
     private static String decrire(Throwable e) {
         return e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " : " + e.getMessage());
+    }
+
+    /**
+     * Tous les articles attendus doivent exister dans le corpus ingéré : sinon (révision épinglée
+     * changée, identifiant erroné), arrêt avant le premier appel payant, avec la liste des absents.
+     */
+    private void verifierArticlesAttendus(List<Question> questions) {
+        java.util.Set<String> presents = articleRepository.findBySourceIdIn(questions.stream()
+                        .flatMap(q -> q.articlesAttendus().stream()).map(JeuEvaluation.ArticleAttendu::sourceId).toList())
+                .stream().map(fr.deseille.social.corpus.Article::getSourceId).collect(java.util.stream.Collectors.toSet());
+        List<String> absents = questions.stream()
+                .flatMap(q -> q.articlesAttendus().stream()
+                        .filter(a -> !presents.contains(a.sourceId()))
+                        .map(a -> q.id() + " : " + a.num() + " (" + a.sourceId() + ")"))
+                .toList();
+        assertThat(absents).as("articles attendus absents du corpus ingéré").isEmpty();
     }
 
     private static JeuEvaluation jeu() throws Exception {

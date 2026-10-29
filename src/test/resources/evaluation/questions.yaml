@@ -350,23 +350,32 @@ questions:
     question: "Je travaille à temps partiel (24 h par semaine) dans une entreprise Syntec. Mon employeur me demande des heures en plus : combien peut-il m'en demander et comment sont-elles payées ?"
     profil: {idcc: 1486, statut: NON_CADRE, typeContrat: CDI, tempsPartiel: true, dateEntree: 2024-01-08, dateReference: 2026-11-01}
     reponse_attendue: >
-      Ce sont des heures complémentaires, toutes majorées : à défaut d'accord plus précis, 10 % pour
-      celles dans la limite du dixième des heures du contrat (2,4 h ici) et 25 % entre le dixième et le
-      tiers. L'accord Syntec sur le temps partiel porte le volume possible à 33 % du temps de base, mais
-      cet alinéa est exclu de l'extension : il ne s'impose qu'aux employeurs adhérents d'une organisation
-      signataire.
+      Ce sont des heures complémentaires. Sans accord d'entreprise ou de branche étendu le permettant,
+      l'employeur peut en demander au plus le dixième des heures du contrat, soit 2,4 h par semaine
+      ici, chacune majorée de 10 %. Un accord d'entreprise ou un accord de branche étendu peut porter
+      cette limite jusqu'au tiers (8 h) ; les heures entre le dixième et le tiers sont alors majorées
+      de 25 %, sauf taux conventionnel (au moins 10 %). L'accord Syntec sur le temps partiel prévoit
+      33 %, mais cet alinéa est exclu de l'extension. Les heures complémentaires ne peuvent jamais
+      porter la durée du travail à 35 h.
     points_cles:
-      - "toutes les heures complémentaires sont majorées"
-      - "10 % jusqu'au dixième des heures contractuelles, 25 % entre le dixième et le tiers"
-      - "limite Syntec de 33 % exclue de l'extension"
+      - "sans accord, au plus le dixième des heures du contrat, soit 2,4 h par semaine"
+      - "majoration de 10 % dans cette limite"
+      - "jusqu'au tiers seulement si un accord d'entreprise ou de branche étendu le prévoit, avec 25 % au-delà du dixième sauf taux conventionnel"
+      - "clause Syntec de 33 % exclue de l'extension"
+      - "pas de durée portée à 35 h"
     articles_attendus:
-      - {num: L3123-8, texte: CODE, sourceId: LEGIARTI000033020061}
+      - {num: L3123-28, texte: CODE, sourceId: LEGIARTI000033019950}
       - {num: L3123-29, texte: CODE, sourceId: LEGIARTI000033019947}
+      - {num: L3123-20, texte: CODE, sourceId: LEGIARTI000033019991}
       - {num: "Chapitre IX", texte: SYNTEC, sourceId: KALIARTI000005851652}
     erreurs_a_eviter:
+      - "dire que l'employeur peut demander jusqu'au tiers des heures (8 h) sans accord"
       - "parler d'heures supplémentaires et de majorations de 25 % / 50 %"
       - "présenter la limite de 33 % comme applicable à tous les employeurs Syntec"
-    remarques: "L'article Syntec du temps partiel n'a pas de numéro dans le dump (accord de 1999, chapitre IX)."
+    remarques: >
+      L'article Syntec du temps partiel n'a pas de numéro dans le dump (accord de 1999, chapitre IX).
+      À valider : L3123-20 exige un accord de branche étendu ; la clause Syntec de 33 %, exclue de
+      l'extension, peut-elle s'appliquer aux employeurs adhérents d'une organisation signataire ?
 
   - id: heures-supplementaires
     theme: temps de travail
