@@ -5,10 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import fr.deseille.social.TestcontainersConfiguration;
 import fr.deseille.social.corpus.TexteRepository;
-import fr.deseille.social.corpus.TypeTexte;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
@@ -53,10 +53,11 @@ class IngestionPlusieursConventionsIT {
                 new JobParametersBuilder().addLong("horodatage", System.nanoTime()).toJobParameters());
 
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        assertThat(execution.getStepExecutions()).extracting(StepExecution::getStepName)
+        assertThat(execution.getStepExecutions().stream().sorted(Comparator.comparing(StepExecution::getId)))
+                .extracting(StepExecution::getStepName)
                 .containsExactly("ingestion-code", "ingestion-syntec", "ingestion-autre-convention");
-        assertThat(texteRepository.findByType(TypeTexte.CONVENTION_COLLECTIVE)).hasSize(2);
-        assertThat(texteRepository.findByIdcc(7777)).singleElement()
-                .satisfies(t -> assertThat(t.getSourceId()).isEqualTo("KALICONT000000000007"));
+        assertThat(texteRepository.findBySourceId("KALICONT000000000001")).isPresent();
+        assertThat(texteRepository.findBySourceId("KALICONT000000000007"))
+                .hasValueSatisfying(t -> assertThat(t.getIdcc()).isEqualTo(7777));
     }
 }

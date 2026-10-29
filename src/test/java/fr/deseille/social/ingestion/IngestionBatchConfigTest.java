@@ -30,6 +30,13 @@ class IngestionBatchConfigTest {
     }
 
     @Test
+    void deux_sources_sur_le_meme_fichier_refusees() {
+        SourceCorpus autre = new SourceCorpus("autre", TypeTexte.CONVENTION_COLLECTIVE, "", "", "syntec.json");
+        assertThatThrownBy(() -> config(List.of(source("syntec"), autre)).ingestionJob())
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("même fichier : syntec.json");
+    }
+
+    @Test
     void cle_de_source_en_double_refusee() {
         assertThatThrownBy(() -> config(List.of(source("code"), source("syntec"), source("code"))).ingestionJob())
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("double : code");

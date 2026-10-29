@@ -1,5 +1,8 @@
 package fr.deseille.social.ingestion;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.builder.SimpleJobBuilder;
@@ -8,9 +11,6 @@ import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,9 +62,14 @@ public class IngestionBatchConfig {
             throw new IllegalStateException("Aucune source d'ingestion configurée (droits.ingestion.sources)");
         }
         Set<String> cles = new HashSet<>();
+        Set<String> fichiers = new HashSet<>();
         for (SourceCorpus source : sources) {
             if (!cles.add(source.cle())) {
                 throw new IllegalStateException("Clé de source en double : " + source.cle());
+            }
+            // La seconde source écraserait la première par upsert, sans erreur
+            if (!fichiers.add(source.repo() + "/" + source.fichier())) {
+                throw new IllegalStateException("Deux sources lisent le même fichier : " + source.fichier());
             }
         }
         SimpleJobBuilder job = new JobBuilder("ingestionJob", jobRepository)
