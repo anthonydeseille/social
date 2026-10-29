@@ -15,6 +15,17 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     List<Article> findBySourceIdIn(Collection<String> sourceIds);
 
+    /** Articles rattachés directement à la racine d'un texte, dans l'ordre du sommaire. */
+    List<Article> findByTexteIdAndSectionIsNullOrderByIntOrdreAsc(Long texteId);
+
+    List<Article> findBySectionIdOrderByIntOrdreAsc(Long sectionId);
+
+    /** Versions d'un article d'un texte portant ce numéro (ex. {@code L1221-1}). */
+    List<Article> findByTexteIdAndNum(Long texteId, String num);
+
+    /** Toutes les versions d'un même article. */
+    List<Article> findByCid(String cid);
+
     /** États des articles déjà en base parmi les identifiants de version donnés (préchargement par chunk). */
     @Query("""
             select new fr.deseille.social.corpus.EtatArticle(

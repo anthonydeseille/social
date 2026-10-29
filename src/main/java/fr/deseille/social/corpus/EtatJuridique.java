@@ -24,5 +24,16 @@ public enum EtatJuridique {
     SUBSTITUE,
     PERIME,
     DENONCE,
-    REMPLACE
+    REMPLACE;
+
+    /**
+     * Indique si une disposition dans cet état s'applique aujourd'hui : en vigueur (étendue ou
+     * non), ou abrogée à une date future et donc encore applicable jusque-là.
+     */
+    public boolean estApplicable() {
+        return switch (this) {
+            case VIGUEUR, VIGUEUR_ETEN, VIGUEUR_NON_ETEN, ABROGE_DIFF -> true;
+            default -> false;
+        };
+    }
 }
