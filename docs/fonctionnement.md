@@ -17,7 +17,7 @@ flowchart TD
     P1 --> C2
 
     C2["🤖 2. Reformulation (Claude)<br/>1 à 4 requêtes de mots-clés juridiques<br/>sortie structurée · ≈ 1 centime"]
-    C2 -.->|"Claude indisponible :<br/>question brute"| R3
+    C2 -.->|"Claude indisponible ou refus :<br/>question brute"| R3
     C2 --> R3
 
     R3["3. Recherche (PostgreSQL)<br/>plein texte français, sans accents<br/>Code + convention · articles applicables<br/>fusion → 8 meilleurs articles<br/>moins de 100 ms"]
@@ -50,7 +50,7 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 |---|---|---|
 | 0. Garde-fous d'entrée | Validation de la question (≤ 1000 caractères) et du profil, quota journalier global (200 par défaut). Ni la question ni le profil ne sont stockés ou journalisés (données sensibles : grossesse, santé). | gratuit |
 | 1. Contexte du profil | Ancienneté à la date de référence (aujourd'hui par défaut), textes applicables à cette date (Code du travail, convention collective si intégrée), avertissements (convention non renseignée ou non intégrée). | gratuit |
-| 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. | ≈ 1 centime |
+| 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. | ≈ 1 centime |
 | 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence ; fusion des résultats et sélection des 8 meilleurs. | gratuit |
 | 4. Rédaction | Claude reçoit les 8 articles comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; signalement d'une réponse interrompue. | gratuit |
