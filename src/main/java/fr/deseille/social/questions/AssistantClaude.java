@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
@@ -47,10 +47,11 @@ import org.springframework.web.util.HtmlUtils;
  * service fait chercher sur la question brute (reformulation) ou renvoie un 503 (rédaction).
  */
 @Component
-@EnableConfigurationProperties(ClaudeProperties.class)
+@ConditionalOnProperty(name = "droits.assistant.fournisseur", havingValue = "claude", matchIfMissing = true)
 public class AssistantClaude implements Assistant {
 
     private static final Logger log = LoggerFactory.getLogger(AssistantClaude.class);
+    private static final String FOURNISSEUR = "claude";
 
     private static final long MAX_TOKENS = 16_000L;
     private static final int REQUETES_MAX = 4;
@@ -91,10 +92,7 @@ public class AssistantClaude implements Assistant {
     private final AtomicLong jetonsEntree = new AtomicLong();
     private final AtomicLong jetonsSortie = new AtomicLong();
 
-    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
-    public record Consommation(long appels, long jetonsEntree, long jetonsSortie) {
-    }
-
+    @Override
     public Consommation consommation() {
         return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
     }
@@ -106,6 +104,11 @@ public class AssistantClaude implements Assistant {
                 .timeout(properties.delai())
                 .maxRetries(properties.tentatives())
                 .build(), metriques);
+    }
+
+    @Override
+    public String modele() {
+        return properties.modele();
     }
 
     /** Pour les tests : client fourni (simulé). */
@@ -126,13 +129,13 @@ public class AssistantClaude implements Assistant {
         try {
             message = client().messages().create(params);
         } catch (AnthropicException e) {
-            metriques.appelClaude("reformulation", "erreur");
+            metriques.appelModele(FOURNISSEUR, "reformulation", "erreur");
             log.warn("Reformulation impossible ({}) : recherche sur la question brute", e.getClass().getSimpleName());
             return List.of(question);
         }
         journaliser("reformulation", message.usage());
         boolean refusee = message.stopReason().filter(StopReason.REFUSAL::equals).isPresent();
-        metriques.appelClaude("reformulation", refusee ? "refus" : "succes");
+        metriques.appelModele(FOURNISSEUR, "reformulation", refusee ? "refus" : "succes");
         if (refusee) {
             log.warn("Reformulation refusée par le modèle : recherche sur la question brute");
             return List.of(question);
@@ -162,7 +165,8 @@ public class AssistantClaude implements Assistant {
         }
     }
 
-    private static List<String> nettoyer(List<String> brutes, String question) {
+    /** Requêtes non vides, sans doublon, au plus quatre ; la question brute s'il n'en reste aucune. */
+    static List<String> nettoyer(List<String> brutes, String question) {
         List<String> requetes = (brutes == null ? List.<String>of() : brutes).stream()
                 .filter(r -> r != null && !r.isBlank())
                 .map(String::strip)
@@ -178,13 +182,13 @@ public class AssistantClaude implements Assistant {
         try {
             message = client().messages().create(parametresRedaction(question, contexte, articles));
         } catch (AnthropicException e) {
-            metriques.appelClaude("redaction", "erreur");
+            metriques.appelModele(FOURNISSEUR, "redaction", "erreur");
             log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
             throw new AssistantIndisponibleException(e);
         }
         journaliser("redaction", message.usage());
         Reponse reponse = versReponse(message, articles);
-        metriques.appelClaude("redaction", reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "succes");
+        metriques.appelModele(FOURNISSEUR, "redaction", reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "succes");
         return reponse;
     }
 
@@ -273,7 +277,7 @@ public class AssistantClaude implements Assistant {
                 .replaceAll("\\s+", " ").strip();
     }
 
-    private static String filAriane(ArticleDetail a) {
+    static String filAriane(ArticleDetail a) {
         List<String> titres = a.filAriane().stream().map(SectionResume::titre).toList();
         return titres.isEmpty() ? a.texte().titre() : String.join(" > ", titres);
     }
@@ -282,7 +286,7 @@ public class AssistantClaude implements Assistant {
         appels.incrementAndGet();
         jetonsEntree.addAndGet(usage.inputTokens());
         jetonsSortie.addAndGet(usage.outputTokens());
-        metriques.jetons(etape, usage.inputTokens(), usage.outputTokens());
+        metriques.jetons(FOURNISSEUR, etape, usage.inputTokens(), usage.outputTokens());
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 

@@ -6,7 +6,8 @@ import java.util.List;
 
 /**
  * Contrat des deux étapes confiées à un modèle de langage, indépendant du fournisseur :
- * l'implémentation est {@code AssistantClaude}, les tests en utilisent de fausses.
+ * {@code AssistantClaude} ou {@code AssistantOllama}, selon {@code droits.assistant.fournisseur} ;
+ * les tests en utilisent de fausses.
  */
 public interface Assistant {
 
@@ -22,6 +23,19 @@ public interface Assistant {
      * @throws AssistantIndisponibleException si le service du modèle ne répond pas
      */
     Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles);
+
+    /** Modèle utilisé, pour les rapports d'évaluation. */
+    default String modele() {
+        return "inconnu";
+    }
+
+    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
+    default Consommation consommation() {
+        return new Consommation(0, 0, 0);
+    }
+
+    record Consommation(long appels, long jetonsEntree, long jetonsSortie) {
+    }
 
     /**
      * @param passages  réponse découpée en passages, chacun avec ses citations (vides pour un

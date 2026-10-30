@@ -32,6 +32,11 @@ record Tarif(String modele, double entree, double sortie) {
         return pour(modele);
     }
 
+    /** Modèle local (Ollama) : pas de facturation, seulement le temps de calcul de la machine. */
+    static Tarif local(String modele) {
+        return new Tarif(modele + " (local, gratuit)", 0, 0);
+    }
+
     /** Tarif de l'API Batch : moitié prix. */
     Tarif lots() {
         return new Tarif(modele + " (lots, moitié prix)", entree / 2, sortie / 2);

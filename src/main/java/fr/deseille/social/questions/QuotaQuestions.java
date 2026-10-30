@@ -21,7 +21,7 @@ public class QuotaQuestions {
     private LocalDate jour;
     private int consommees;
 
-    public QuotaQuestions(ClaudeProperties properties, Clock clock, MetriquesQuestions metriques) {
+    public QuotaQuestions(QuestionsProperties properties, Clock clock, MetriquesQuestions metriques) {
         this.quotaJournalier = properties.quotaJournalier();
         this.clock = clock;
         this.metriques = metriques;

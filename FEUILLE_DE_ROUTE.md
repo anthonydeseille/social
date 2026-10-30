@@ -33,6 +33,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 7. **Traces OpenTelemetry** par question (reformulation, recherche, rédaction), sans donnée personnelle.
 8. **Garde-fou données personnelles** : retirer nom, e-mail, numéro de sécurité sociale avant envoi au modèle.
 9. **Coûts** : cache de prompt, modèle par étape (à décider sur le score d'évaluation), alertes de dépense.
+   - Modèle local par Ollama ✅ (`droits.assistant.fournisseur=ollama`, Spring AI) : gratuit, profil gardé sur la machine ; testé sans serveur Ollama, première évaluation comparative à faire.
 10. **Corpus vivant** : à chaque ingestion qui modifie des articles, réévaluer les questions qui les citent.
 11. **Automatisation** : évaluation nocturne avec issue en cas de baisse, correction automatique de la CI par l'action Claude, évaluation comparative à chaque nouveau modèle.
 12. **Boucle de retour** : « utile / pas utile » en production, mauvaises réponses transformées en questions d'évaluation (anonymisées, validées).
