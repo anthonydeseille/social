@@ -1,0 +1,13 @@
+# Déploiement de l'application : kubectl apply -k deploy/k8s (via deploy/local.sh).
+# Les Secrets (mot de passe Postgres, clé Anthropic) sont créés par le script, jamais versionnés.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: droits
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: droits-salaries
+resources:
+  - namespace.yaml
+  - configuration.yaml
+  - postgres.yaml
+  - social.yaml

@@ -40,3 +40,20 @@ jobs:
             target/surefire-reports/
             target/failsafe-reports/
           retention-days: 7
+
+  manifestes:
+    name: Manifestes Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KUBECONFORM: v0.7.0
+    steps:
+      - uses: actions/checkout@v5
+
+      # Validation des manifestes de deploy/k8s contre les schémas de l'API Kubernetes (sans cluster)
+      - name: kubeconform
+        run: |
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz kubeconform
+          { kubectl kustomize deploy/k8s; echo '---'; cat deploy/k8s/ingestion.yaml; } \
+            | ./kubeconform -strict -summary

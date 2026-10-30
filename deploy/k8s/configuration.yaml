@@ -1,0 +1,12 @@
+# Configuration non sensible de l'application, lue en variables d'environnement par Spring Boot.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: social
+data:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/droits
+  SPRING_DATASOURCE_USERNAME: droits
+  # Modèle local par défaut : gratuit, rien ne sort de la machine. « claude » exige le Secret anthropic.
+  DROITS_ASSISTANT_FOURNISSEUR: ollama
+  # Ollama tourne sur le Mac, hors du cluster : k3d résout host.k3d.internal vers l'hôte
+  SPRING_AI_OLLAMA_BASEURL: http://host.k3d.internal:11434
