@@ -1,5 +1,6 @@
 // Page minimale : profil gardé dans le navigateur, question, réponse avec citations cliquables.
-// Tout texte venant de l'API est inséré avec textContent (jamais innerHTML).
+// Tout texte venant de l'API est inséré avec textContent (jamais innerHTML) ; la réponse, en
+// Markdown, est mise en forme par markdown.js selon le même principe.
 "use strict";
 
 const CLE_PROFIL = "droits.profil";
@@ -114,21 +115,34 @@ function afficherReponse(donnees) {
     avertissements.hidden = false;
   }
 
+  // Réponse en Markdown : passages mis bout à bout, chaque citation remplacée par un marqueur placé
+  // avant les blancs de fin du passage (pour rester dans son paragraphe), puis analyse de l'ensemble
   const reponse = document.getElementById("reponse");
   reponse.replaceChildren();
+  const citations = [];
+  let texte = "";
   for (const passage of donnees.passages || []) {
-    reponse.append(document.createTextNode(passage.texte));
     const vus = new Set();
+    let marqueurs = "";
     for (const citation of passage.citations || []) {
       if (vus.has(citation.articleSourceId)) continue;
       vus.add(citation.articleSourceId);
-      const lien = element("a", citation.num || "article", "citation");
-      lien.href = "#";
-      lien.title = citation.texteCite || "";
-      lien.addEventListener("click", e => { e.preventDefault(); ouvrirArticle(citation.articleSourceId); });
-      reponse.append(lien);
+      marqueurs += Markdown.marqueur(citations.length);
+      citations.push(citation);
     }
+    const contenu = passage.texte || "";
+    const blancs = /\s*$/.exec(contenu)[0];
+    texte += contenu.slice(0, contenu.length - blancs.length) + marqueurs + blancs;
   }
+  Markdown.construire(document, Markdown.analyser(texte), reponse, index => {
+    const citation = citations[index];
+    if (!citation) return null;
+    const lien = element("a", citation.num || "article", "citation");
+    lien.href = "#";
+    lien.title = citation.texteCite || "";
+    lien.addEventListener("click", e => { e.preventDefault(); ouvrirArticle(citation.articleSourceId); });
+    return lien;
+  });
 
   const sources = document.getElementById("sources");
   sources.replaceChildren();

@@ -48,7 +48,10 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 La page web (`/`, fichiers statiques sans framework) envoie la question et le profil à
 `POST /api/questions` (sans date de référence : la situation est évaluée à la date du jour), puis
 affiche la réponse avec ses citations : un clic sur une citation ouvre le texte de l'article
-(`GET /api/articles/{id}`). Le profil n'est gardé sur l'appareil que si la personne coche « Se
+(`GET /api/articles/{id}`). La réponse, écrite en Markdown par le modèle, est mise en forme par la
+page (`markdown.js` : titres, gras, listes, tableaux), sans bibliothèque et sans jamais interpréter de
+HTML venu du modèle ; les passages sont assemblés avant la mise en forme, les citations restant à
+leur place. Le profil n'est gardé sur l'appareil que si la personne coche « Se
 souvenir de mes informations », et un bouton l'efface.
 
 ## Les étapes

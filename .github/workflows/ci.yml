@@ -27,6 +27,10 @@ jobs:
           java-version: '25'
           cache: maven
 
+      # Affichage Markdown de la page web (JavaScript sans dépendance, Node fourni par le runner)
+      - name: Tests JavaScript
+        run: node src/test/js/markdown.test.js
+
       # verify = tests unitaires (surefire) + tests d'intégration *IT (failsafe, Testcontainers)
       - name: Build et tests
         run: ./mvnw -B -ntp verify

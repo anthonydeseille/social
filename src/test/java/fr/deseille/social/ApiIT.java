@@ -161,6 +161,8 @@ class ApiIT {
                 .contains("Mes droits au travail", "id=\"formulaire\"", "app.js", "pas un conseil juridique");
         assertThat(mvc.get().uri("/app.js")).hasStatusOk().bodyText().contains("/api/questions");
         assertThat(mvc.get().uri("/style.css")).hasStatusOk();
+        assertThat(mvc.get().uri("/markdown.js")).hasStatusOk().bodyText().contains("createElement")
+                .doesNotContain("innerHTML =");
     }
 
     // --- Profil ---
