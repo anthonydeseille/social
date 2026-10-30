@@ -170,6 +170,7 @@ class AssistantOllamaTest {
 
     @Test
     void extrait_absent_citation_gardee_et_signalee_non_verifiee() {
+        // Hors schéma (« extrait » y est obligatoire) : tolérance si le modèle ne le respecte pas
         when(modele.call(any(Prompt.class))).thenReturn(reponse("""
                 {"passages": [{"texte": "Oui.", "citations": [{"document": 1}]}]}""", "stop"));
 

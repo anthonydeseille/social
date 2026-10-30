@@ -13,17 +13,17 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobOperator;
-import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -50,6 +50,8 @@ class QuestionsIT {
 
     @Autowired
     private MockMvcTester mvc;
+    @Autowired
+    private ApplicationContext contexte;
 
     /** Reformule toujours en « période essai » et cite le premier article reçu. */
     @TestConfiguration
@@ -104,9 +106,6 @@ class QuestionsIT {
                 new JobParametersBuilder().addLong("horodatage", System.nanoTime()).toJobParameters());
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
     }
-
-    @Autowired
-    private ApplicationContext contexte;
 
     /** Fournisseur par défaut : Claude, et Spring AI ne crée aucun client Ollama. */
     @Test
