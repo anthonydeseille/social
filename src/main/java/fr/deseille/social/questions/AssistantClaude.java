@@ -3,6 +3,7 @@ package fr.deseille.social.questions;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.core.JsonValue;
+import com.anthropic.core.ObjectMappers;
 import com.anthropic.errors.AnthropicException;
 import com.anthropic.models.messages.CitationsConfigParam;
 import com.anthropic.models.messages.ContentBlockParam;
@@ -14,6 +15,7 @@ import com.anthropic.models.messages.PlainTextSource;
 import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.StructuredMessage;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.anthropic.models.messages.TextBlock;
 import com.anthropic.models.messages.TextCitation;
 import com.anthropic.models.messages.Usage;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,7 +116,7 @@ public class AssistantClaude implements Assistant {
     }
 
     /** Requêtes de recherche produites par la reformulation (sortie structurée). */
-    record Requetes(List<String> requetes) {
+    public record Requetes(List<String> requetes) {
     }
 
     @Override
@@ -134,9 +137,33 @@ public class AssistantClaude implements Assistant {
             log.warn("Reformulation refusée par le modèle : recherche sur la question brute");
             return List.of(question);
         }
-        List<String> requetes = message.content().stream()
+        return nettoyer(message.content().stream()
                 .flatMap(bloc -> bloc.text().stream())
                 .flatMap(texte -> texte.text().requetes().stream())
+                .toList(), question);
+    }
+
+    /**
+     * Requêtes d'une réponse de reformulation reçue comme message ordinaire (résultat d'un lot,
+     * où le SDK ne désérialise pas la sortie structurée) ; la question brute si le modèle a refusé
+     * ou si la sortie est illisible.
+     */
+    public static List<String> requetesDepuis(Message message, String question) {
+        if (message.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
+            return List.of(question);
+        }
+        String json = message.content().stream().flatMap(bloc -> bloc.text().stream())
+                .map(TextBlock::text).collect(Collectors.joining());
+        try {
+            return nettoyer(ObjectMappers.jsonMapper().readValue(json, Requetes.class).requetes(), question);
+        } catch (Exception e) {
+            log.warn("Reformulation illisible : recherche sur la question brute");
+            return List.of(question);
+        }
+    }
+
+    private static List<String> nettoyer(List<String> brutes, String question) {
+        List<String> requetes = (brutes == null ? List.<String>of() : brutes).stream()
                 .filter(r -> r != null && !r.isBlank())
                 .map(String::strip)
                 .distinct()
@@ -161,8 +188,8 @@ public class AssistantClaude implements Assistant {
         return reponse;
     }
 
-    /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. */
-    StructuredMessageCreateParams<Requetes> parametresReformulation(String question, ContexteProfil contexte) {
+    /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. Publique pour les lots. */
+    public StructuredMessageCreateParams<Requetes> parametresReformulation(String question, ContexteProfil contexte) {
         return MessageCreateParams.builder()
                 .model(properties.modele())
                 .maxTokens(MAX_TOKENS)
@@ -174,8 +201,8 @@ public class AssistantClaude implements Assistant {
                 .build();
     }
 
-    /** Requête de rédaction : un document par article, dans l'ordre, puis le profil et la question. */
-    MessageCreateParams parametresRedaction(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+    /** Requête de rédaction : un document par article, dans l'ordre, puis le profil et la question. Publique pour les lots. */
+    public MessageCreateParams parametresRedaction(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
         List<ContentBlockParam> blocs = new ArrayList<>();
         for (ArticleDetail a : articles) {
             blocs.add(ContentBlockParam.ofDocument(DocumentBlockParam.builder()
@@ -202,7 +229,7 @@ public class AssistantClaude implements Assistant {
      * Passages de texte de la réponse et leurs citations, rapportées aux articles par l'index du
      * document ; les blocs de réflexion sont ignorés.
      */
-    static Reponse versReponse(Message message, List<ArticleDetail> articles) {
+    public static Reponse versReponse(Message message, List<ArticleDetail> articles) {
         if (message.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
             log.warn("Rédaction refusée par le modèle");
             return new Reponse(List.of(), true, false);
