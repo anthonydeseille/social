@@ -210,6 +210,34 @@ class AssistantOllamaTest {
                 .containsExactly("période essai", "durée renouvellement essai");
     }
 
+    /** Requêtes réellement produites par Qwen 2.5 7B et Mistral 7B lors du premier essai. */
+    @Test
+    void reformulation_requetes_des_petits_modeles_ramenees_a_des_mots_cles() {
+        assertThat(AssistantOllama.simplifier(List.of(
+                "durée essai cadre cdi idcc",
+                "convention collective idcc 1486 cdi cadre essai durée",
+                "convention collective idcc 1486 maternite licenciement non cadre cdi",
+                "licenciement enceinte non cadre cdi convention collective idcc 1486",
+                "Période d'essai")))
+                .containsExactly("durée essai cadre", "cadre essai durée", "maternite licenciement cadre",
+                        "licenciement enceinte cadre", "période essai");
+    }
+
+    @Test
+    void reformulation_exemples_dans_les_consignes_et_requetes_simplifiees() {
+        when(modele.call(any(Prompt.class))).thenReturn(reponse("""
+                {"requetes": ["convention collective idcc 1486 cdi cadre essai durée", "durée essai cadre cdi idcc", "1486"]}""",
+                "stop"));
+
+        assertThat(assistant.reformuler("Combien dure ma période d'essai ?", CONTEXTE))
+                .containsExactly("cadre essai durée", "durée essai cadre");
+        ArgumentCaptor<Prompt> prompt = ArgumentCaptor.forClass(Prompt.class);
+        verify(modele).call(prompt.capture());
+        assertThat(prompt.getValue().getSystemMessage().getText())
+                .startsWith(AssistantClaude.CONSIGNES_REFORMULATION)
+                .endsWith(AssistantOllama.EXEMPLES_REFORMULATION);
+    }
+
     @Test
     void reformulation_illisible_ou_en_panne_recherche_sur_la_question_brute() {
         when(modele.call(any(Prompt.class)))

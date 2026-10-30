@@ -82,6 +82,7 @@ ce qui change :
 | Refus, repli | refus signalé, repli côté serveur | pas de refus ; pas de repli |
 | Rédaction illisible (hors du JSON demandé) | sans objet | 503 |
 | Rédaction coupée par la limite de jetons (`num-predict`) | passages reçus, signalés tronqués | JSON complet : passages servis, signalés tronqués ; JSON inachevé : illisible, donc **réponse vide** signalée tronquée (rien de ce qui a été généré n'est montré) |
+| Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres, sans éléments du profil (IDCC, « convention collective », type de contrat) ni mots vides : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
