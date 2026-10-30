@@ -196,7 +196,8 @@ class QuestionsIT {
         var prometheus = mvc.get().uri("/actuator/prometheus");
         assertThat(prometheus).hasStatusOk().bodyText()
                 .contains("droits_questions_total", "droits_questions_etape_seconds", "droits_citations_total")
-                .doesNotContain("période", "7777");
+                // L'IDCC cherché comme valeur d'étiquette : en clair, il peut apparaître dans une durée
+                .doesNotContain("période", "\"7777\"");
     }
 
     @Test
