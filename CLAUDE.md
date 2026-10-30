@@ -11,6 +11,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - Ingestion réelle (Postgres démarré via `compose.yaml`) :
   `./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.ingestion.run=true --spring.main.web-application-type=none"`
 - Java 25 obligatoire (`JAVA_HOME`).
+- Cluster local k3d : `deploy/local.sh cree|ingere|image|etat|detruit` (voir `docs/deploiement-local.md`).
 
 ## Conventions
 

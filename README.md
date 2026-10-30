@@ -12,6 +12,7 @@ applicables**, chaque affirmation citant le texte exact qui la fonde.
 - [Le trajet d'une question](docs/fonctionnement.md) : schéma et explications
 - [Feuille de route](FEUILLE_DE_ROUTE.md)
 - [Conventions de développement](CLAUDE.md)
+- [Déploiement local dans Kubernetes (k3d)](docs/deploiement-local.md)
 
 ## Démarrer
 

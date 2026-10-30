@@ -46,6 +46,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
    - Première version minimale ✅ (`src/main/resources/static`) ; à enrichir (calculateur d'indemnité, retours « utile / pas utile »).
 4. **Mise à jour planifiée du corpus** et affichage des changements.
 5. **Mise en ligne** : hébergement, limitation par client, absence de journalisation des profils, mentions « information générale, pas un conseil juridique ».
+   - Déploiement local dans Kubernetes ✅ (k3d, `deploy/`, `docs/deploiement-local.md`) : image, Postgres, ingestion en Job, manifestes validés par le CI. À suivre : diagnostic par k8sgpt et plugins k9s.
 
 ## En suspens
 

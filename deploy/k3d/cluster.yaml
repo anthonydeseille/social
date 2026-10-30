@@ -1,0 +1,20 @@
+# Cluster local k3d : un seul nœud (économie de mémoire), Traefik désactivé (l'appli est publiée
+# par un Service LoadBalancer, sans délai de proxy qui couperait les réponses lentes d'Ollama).
+# Créé par deploy/local.sh cree.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: droits
+servers: 1
+agents: 0
+ports:
+  # http://localhost:8080 sur le Mac → Service « social » (port 8080)
+  - port: 8080:8080
+    nodeFilters:
+      - loadbalancer
+options:
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
