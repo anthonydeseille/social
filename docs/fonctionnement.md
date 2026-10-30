@@ -76,7 +76,8 @@ ce qui change :
 |---|---|---|
 | Coût | ≈ 5 à 8 centimes par question (reformulation et rédaction) | gratuit (calcul de la machine) |
 | Données | question et profil envoyés à Anthropic | restent sur la machine qui héberge le modèle |
-| Durée | quelques secondes à une minute | une à plusieurs minutes sur un processeur sans carte graphique (délai de lecture : 10 min) |
+| Durée | quelques secondes à une minute | plusieurs minutes sur un processeur sans carte graphique ; plafond de 10 min (délai de lecture de l'appli, et proxy de k3d en local) : une seule question à la fois |
+| Articles transmis à la rédaction | 8 | 4 (`Assistant.articlesMax`) : la lecture des articles domine la durée ; avec 8 articles, un 7B sur processeur dépassait 10 min |
 | Citations | natives (l'API rattache chaque extrait au document) | demandées en JSON imposé par un schéma : numéro du document et extrait recopié ; un numéro inexistant est écarté |
 | Contrôle des citations (étape 5) | protège d'une régression | indispensable : un petit modèle peut paraphraser au lieu de recopier |
 | Refus, repli | refus signalé, repli côté serveur | pas de refus ; pas de repli |
@@ -86,8 +87,14 @@ ce qui change :
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
-dans Spring AI). Le contexte est porté à 16 384 jetons (`num-ctx`), car celui d'Ollama par défaut ne
-contient pas huit articles.
+dans Spring AI). Le contexte est porté à 12 288 jetons (`num-ctx`) et la réponse limitée à 2 048
+(`num-predict`) : le contexte par défaut d'Ollama (2 048) ne contient pas quatre articles, et Ollama
+tronque sans prévenir un texte trop long.
+
+Premier essai réel (Mac Intel sans carte graphique, 16 Go) : Qwen 2.5 7B et Mistral 7B recopiaient le
+profil dans des requêtes trop longues (« convention collective idcc 1486 cdi cadre essai durée »), qui
+ne trouvaient aucun article ; d'où les exemples et la simplification des requêtes. Les deux modèles
+chargés ensemble (12,8 Go) faisaient basculer le Mac en mémoire d'échange : n'en garder qu'un.
 
 ## Ce qu'il faut retenir
 

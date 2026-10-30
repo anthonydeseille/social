@@ -130,6 +130,15 @@ public class AssistantOllama implements Assistant {
         this.metriques = metriques;
     }
 
+    /**
+     * Quatre articles au lieu de huit : sur un processeur sans carte graphique, la lecture des
+     * articles domine la durée de rédaction (au-delà de 10 minutes avec huit articles et un 7B).
+     */
+    @Override
+    public int articlesMax() {
+        return 4;
+    }
+
     @Override
     public String modele() {
         return modele.getOptions().getModel();

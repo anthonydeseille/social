@@ -210,6 +210,20 @@ class AssistantOllamaTest {
                 .containsExactly("période essai", "durée renouvellement essai");
     }
 
+    @Test
+    void quatre_articles_au_plus_pour_un_petit_modele() {
+        assertThat(assistant.articlesMax()).isEqualTo(4);
+        assertThat(new Assistant() {
+            public List<String> reformuler(String question, ContexteProfil contexte) {
+                return List.of();
+            }
+
+            public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+                return null;
+            }
+        }.articlesMax()).isEqualTo(8);
+    }
+
     /** Requêtes réellement produites par Qwen 2.5 7B et Mistral 7B lors du premier essai. */
     @Test
     void reformulation_requetes_des_petits_modeles_ramenees_a_des_mots_cles() {

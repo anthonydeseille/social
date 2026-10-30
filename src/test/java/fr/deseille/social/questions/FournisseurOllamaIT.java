@@ -30,7 +30,7 @@ class FournisseurOllamaIT {
         assertThat(contexte.getBeanNamesForType(AssistantClaude.class)).isEmpty();
         assertThat(assistant.modele()).isEqualTo("qwen2.5:7b");
         assertThat(contexte.getBean(OllamaChatModel.class).getOptions().getNumCtx())
-                .isEqualTo(16384);
+                .isEqualTo(12288);
         // Propriétés communes toujours lues : quota, et Claude pour le juge de l'évaluation
         assertThat(contexte.getBean(QuestionsProperties.class).quotaJournalier()).isEqualTo(200);
         assertThat(contexte.getBean(ClaudeProperties.class).modele()).isEqualTo("claude-opus-5-5");

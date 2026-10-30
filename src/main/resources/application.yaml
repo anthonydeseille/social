@@ -24,9 +24,10 @@ spring:
       base-url: http://localhost:11434
       chat:
         model: qwen2.5:7b
-        # Contexte assez long pour huit articles, le profil et la réponse (2048 jetons par défaut)
-        num-ctx: 16384
-        num-predict: 4096
+        # Contexte assez long pour quatre articles, le profil et la réponse (2048 jetons par défaut
+        # dans Ollama, qui tronque sans prévenir) ; moins de mémoire qu'à 16 384
+        num-ctx: 12288
+        num-predict: 2048
         temperature: 0.2
     retry:
       # Un modèle local lent ne gagne rien à être relancé dix fois (défaut de Spring AI)

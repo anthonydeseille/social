@@ -24,6 +24,14 @@ public interface Assistant {
      */
     Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles);
 
+    /**
+     * Articles transmis à la rédaction au plus : 8 par défaut, assez pour couvrir Code et convention
+     * sans diluer ; moins pour un petit modèle, dont la lecture est lente.
+     */
+    default int articlesMax() {
+        return 8;
+    }
+
     /** Modèle utilisé, pour les rapports d'évaluation. */
     default String modele() {
         return "inconnu";
