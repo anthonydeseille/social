@@ -52,7 +52,22 @@ button:disabled { opacity: .6; cursor: wait; }
 button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #resultat { display: flex; flex-direction: column; gap: 16px; }
 #resultat[hidden], [hidden] { display: none !important; }
-.reponse { background: var(--surface); border: 1px solid var(--trait); border-radius: 8px; padding: 18px 20px; white-space: pre-line; }
+.reponse { background: var(--surface); border: 1px solid var(--trait); border-radius: 8px; padding: 18px 20px; }
+.reponse > :first-child { margin-top: 0; }
+.reponse > :last-child { margin-bottom: 0; }
+.reponse p, .reponse ul, .reponse ol, .reponse blockquote { margin: 0 0 .8em; }
+.reponse h3 { font-size: 1.1rem; margin: 1.2em 0 .5em; }
+.reponse h4 { font-size: 1rem; margin: 1em 0 .4em; }
+.reponse ul, .reponse ol { padding-left: 1.4em; }
+.reponse li { margin: .25em 0; }
+.reponse li > ul, .reponse li > ol { margin: .25em 0 0; }
+.reponse blockquote { padding-left: 12px; border-left: 3px solid var(--trait); color: var(--gris); }
+.reponse hr { border: 0; border-top: 1px solid var(--trait); margin: 1.2em 0; }
+.reponse code { font-family: var(--code); font-size: .9em; background: var(--fond); padding: 0 4px; border-radius: 3px; }
+.reponse .tableau { overflow-x: auto; margin: 0 0 .8em; }
+.reponse table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+.reponse th, .reponse td { border: 1px solid var(--trait); padding: 6px 8px; text-align: left; vertical-align: top; }
+.reponse th { background: var(--fond); }
 .reponse:empty { display: none; }
 .citation { display: inline-block; margin: 0 2px; padding: 0 6px; border-radius: 4px; font: 500 .8rem/1.6 var(--code); color: var(--accent); background: var(--fond); border: 1px solid var(--trait); text-decoration: none; cursor: pointer; vertical-align: 1px; }
 .avertissements { background: var(--alerte-doux); border-left: 3px solid var(--alerte); border-radius: 6px; padding: 10px 14px; }
