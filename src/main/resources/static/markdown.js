@@ -134,9 +134,10 @@
         blocs.push({ type: "separateur" });
         continue;
       }
-      if (estRangee(ligne) && i + 1 < lignes.length && ALIGNEMENT_TABLEAU.test(lignes[i + 1])) {
+      if (estRangee(ligne) && i + 1 < lignes.length && ALIGNEMENT_TABLEAU.test(sansMarqueursFin(lignes[i + 1]).ligne)) {
         finirParagraphe();
-        const entete = cellules(ligne);
+        // Citation éventuelle de la ligne d'alignement : rattachée à l'en-tête
+        const entete = cellules(ligne + sansMarqueursFin(lignes[i + 1]).marqueurs);
         const rangees = [];
         i += 2;
         while (i < lignes.length && estRangee(lignes[i])) {

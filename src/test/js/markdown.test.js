@@ -66,6 +66,14 @@ const tests = {
       + "<tr><td>Syntec</td><td>3 mois<a>c1</a></td></tr></tbody></table></div>");
   },
 
+  citation_apres_la_ligne_d_alignement_tableau_reconnu() {
+    // Citation déplacée en fin de dernière cellule de l'en-tête
+    const texte = "| Texte | Durée |\n|---|---|" + Markdown.marqueur(0) + "\n| Code | 4 mois |";
+    assert.strictEqual(rendu(texte),
+      "<div><table><thead><tr><th>Texte</th><th>Durée</th></tr></thead><tbody><tr><td>Code</td><td>4 mois</td></tr></tbody></table></div>"
+      .replace("<th>Durée</th>", "<th>Durée<a>c0</a></th>"));
+  },
+
   citation_apres_un_separateur_gardee() {
     assert.strictEqual(rendu("Avant\n\n---" + Markdown.marqueur(0) + "\n\nAprès"),
       "<p>Avant</p><p><a>c0</a></p><hr><p>Après</p>");
