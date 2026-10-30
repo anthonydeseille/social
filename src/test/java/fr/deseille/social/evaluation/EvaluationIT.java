@@ -16,6 +16,7 @@ import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
 import fr.deseille.social.questions.AssistantClaude;
+import fr.deseille.social.questions.AssistantOllama;
 import fr.deseille.social.questions.ClaudeProperties;
 import fr.deseille.social.questions.MetriquesQuestions;
 import fr.deseille.social.questions.QuestionService;
@@ -62,6 +63,9 @@ import org.springframework.context.annotation.Import;
  * {@code -Devaluation.toutes=true} (y compris les questions non validées),
  * {@code -Devaluation.questions=id1,id2} (sélection), {@code -Devaluation.fichier=chemin}
  * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}).
+ * Fournisseur : celui de la configuration ; {@code -Ddroits.assistant.fournisseur=ollama} évalue le
+ * modèle local (Ollama démarré, modèle téléchargé), le juge restant Claude, pour comparer les deux
+ * sur le même jeu. Le mode lots ne concerne que Claude.
  * Rapport : {@code target/evaluation/rapport-<horodatage>.md}.
  */
 @SpringBootTest(properties = "spring.main.web-application-type=none")
@@ -80,7 +84,7 @@ class EvaluationIT {
     @Autowired
     private ConsultationService consultationService;
     @Autowired
-    private AssistantClaude assistantClaude;
+    private Assistant assistantConfigure;
     @Autowired
     private ClaudeProperties claudeProperties;
     @Autowired
@@ -99,13 +103,14 @@ class EvaluationIT {
         assertThat(ingestion.getStatus()).as("ingestion des vraies sources").isEqualTo(BatchStatus.COMPLETED);
         verifierArticlesAttendus(questions);
 
-        Assistant assistant = simulee ? new AssistantSimule() : assistantClaude;
+        Assistant assistant = simulee ? new AssistantSimule() : assistantConfigure;
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant,
                 metriques);
         JugeClaude juge = simulee || !Boolean.parseBoolean(System.getProperty("evaluation.juge", "true")) ? null
                 : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 
-        Tarif tarif = Tarif.pour(claudeProperties.modele(), "evaluation");
+        Tarif tarif = assistant instanceof AssistantOllama ? Tarif.local(assistant.modele())
+                : Tarif.pour(claudeProperties.modele(), "evaluation");
         Tarif tarifJuge = juge == null ? tarif
                 : Tarif.pour(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), "evaluation.juge");
         Path rapport = Path.of("target", "evaluation",
@@ -114,13 +119,15 @@ class EvaluationIT {
         System.out.println("Rapport d'évaluation (mis à jour après chaque question) : " + rapport.toAbsolutePath());
 
         if (Boolean.getBoolean("evaluation.lots") && !simulee) {
-            evaluerParLots(questions, service, juge, tarif, tarifJuge, rapport);
+            assertThat(assistant).as("le mode lots passe par l'API Batch d'Anthropic : fournisseur claude seulement")
+                    .isInstanceOf(AssistantClaude.class);
+            evaluerParLots(questions, service, (AssistantClaude) assistant, juge, tarif, tarifJuge, rapport);
             return;
         }
 
         List<Resultat> resultats = new ArrayList<>();
         for (Question q : questions) {
-            var avant = assistantClaude.consommation();
+            var avant = assistant.consommation();
             long debut = System.currentTimeMillis();
             ReponseQuestion reponse = null;
             String erreur = null;
@@ -129,7 +136,7 @@ class EvaluationIT {
             } catch (RuntimeException e) {
                 erreur = decrire(e);
             }
-            var apres = assistantClaude.consommation();
+            var apres = assistant.consommation();
             Resultat resultat = new Resultat(q, reponse, erreur, apres.jetonsEntree() - avant.jetonsEntree(),
                     apres.jetonsSortie() - avant.jetonsSortie(), System.currentTimeMillis() - debut);
             if (juge != null && reponse != null && !reponse.refus() && !reponse.passages().isEmpty()) {
@@ -152,8 +159,8 @@ class EvaluationIT {
      * dépend de la précédente — reformulations, puis recherche locale et rédactions, puis juge. Mêmes
      * étapes et mêmes contrôles que {@link QuestionService#repondre}, appels regroupés.
      */
-    private void evaluerParLots(List<Question> questions, QuestionService service, JugeClaude juge, Tarif tarif,
-                                Tarif tarifJuge, Path rapport) throws Exception {
+    private void evaluerParLots(List<Question> questions, QuestionService service, AssistantClaude assistantClaude,
+                                JugeClaude juge, Tarif tarif, Tarif tarifJuge, Path rapport) throws Exception {
         LotClaude lot = new LotClaude(() -> AnthropicOkHttpClient.builder().fromEnv()
                 .timeout(claudeProperties.delai()).maxRetries(claudeProperties.tentatives()).build(),
                 Duration.ofHours(Long.getLong("evaluation.lots.heures", 2)));

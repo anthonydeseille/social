@@ -46,7 +46,7 @@ class LotClaudeTest {
             new ProfilSalarie(null, null, null, null, null, null, false, null, LocalDate.of(2026, 11, 1)),
             null, List.of(CODE), false, List.of());
     private static final AssistantClaude ASSISTANT = new AssistantClaude(
-            new ClaudeProperties("claude-opus-5-5", 200, Duration.ofMinutes(3), 2), new MetriquesQuestions(new SimpleMeterRegistry()));
+            new ClaudeProperties("claude-opus-5-5", Duration.ofMinutes(3), 2), new MetriquesQuestions(new SimpleMeterRegistry()));
 
     private static JsonNode json(Object valeur) throws Exception {
         return ObjectMappers.jsonMapper().readTree(ObjectMappers.jsonMapper().writeValueAsString(valeur));

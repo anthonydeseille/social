@@ -41,7 +41,7 @@ class QuotaQuestionsTest {
     void refuse_au_dela_du_quota_puis_repart_le_lendemain() {
         Horloge horloge = new Horloge();
         SimpleMeterRegistry registre = new SimpleMeterRegistry();
-        QuotaQuestions quota = new QuotaQuestions(new ClaudeProperties("m", 2, Duration.ofMinutes(1), 0), horloge, new MetriquesQuestions(registre));
+        QuotaQuestions quota = new QuotaQuestions(new QuestionsProperties(2), horloge, new MetriquesQuestions(registre));
 
         quota.consommer();
         quota.consommer();

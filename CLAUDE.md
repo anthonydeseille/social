@@ -36,6 +36,8 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - Spring Batch 6 : sans `spring-boot-starter-batch-jdbc`, le dépôt de jobs est en mémoire.
 - Données SocialGouv : états DILA à ajouter dans `EtatJuridique` (un état inconnu fait échouer l'ingestion, volontairement) ; sections de regroupement sans identifiant dans les conventions (id synthétique) ; texte des conventions en HTML seulement.
 - Postgres : « les » n'est pas un mot vide de la configuration française.
+- victools épinglé en 4.x dans le pom (exigé par le SDK Anthropic) : ne pas utiliser `BeanOutputConverter` ni les outils de Spring AI, construits sur la 5.x.
+- Spring AI 2.0 ne fusionne pas les options : des `OllamaChatOptions` passées à l'appel remplacent la configuration (modèle « mistral » par défaut) ; partir de `getOptions().mutate()`.
 
 ## Tests
 
@@ -43,5 +45,5 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `src/test/resources/evaluation/questions.yaml` : jeu de questions de salariés avec réponses de référence validées par une juriste (champ `valide`).
 - `EvaluationIT` pose ces questions sur les vraies sources ; désactivé par défaut car il appelle Claude (payant, `ANTHROPIC_API_KEY`) :
   `./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true`
-  (`-Devaluation.simulee=true` : faux assistant, gratuit ; `-Devaluation.lots=true` : API Batch, moitié prix, asynchrone). Rapport dans `target/evaluation/`, avec la note d'un juge automatique (`JugeClaude`).
+  (`-Devaluation.simulee=true` : faux assistant, gratuit ; `-Devaluation.lots=true` : API Batch, moitié prix, asynchrone ; `-Ddroits.assistant.fournisseur=ollama` : modèle local, juge Claude). Rapport dans `target/evaluation/`, avec la note d'un juge automatique (`JugeClaude`).
 - Feuille de route : `FEUILLE_DE_ROUTE.md`.

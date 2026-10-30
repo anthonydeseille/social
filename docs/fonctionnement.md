@@ -1,7 +1,8 @@
 # Le trajet d'une question
 
 Ce que fait l'application quand un salarié pose une question : deux appels à Claude seulement, tout
-le reste est du code et de la base de données (gratuit et prévisible).
+le reste est du code et de la base de données (gratuit et prévisible). Claude peut être remplacé par
+un modèle local (voir [Fournisseur local : Ollama](#fournisseur-local--ollama)).
 
 ```mermaid
 flowchart TD
@@ -61,6 +62,28 @@ souvenir de mes informations », et un bouton l'efface.
 | 4. Rédaction | Claude reçoit les 8 articles comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; signalement d'une réponse interrompue. | gratuit |
 
+## Fournisseur local : Ollama
+
+Avec `droits.assistant.fournisseur=ollama`, les étapes 2 et 4 sont confiées à un modèle servi par
+Ollama (Spring AI ; `qwen2.5:7b` par défaut, `spring.ai.ollama.chat.model` et
+`spring.ai.ollama.base-url` pour en changer). Le trajet, les garde-fous et la réponse sont les mêmes ;
+ce qui change :
+
+| | Claude | Ollama |
+|---|---|---|
+| Coût | ≈ 5 à 8 centimes par question | gratuit (calcul de la machine) |
+| Données | question et profil envoyés à Anthropic | restent sur la machine qui héberge le modèle |
+| Durée | quelques secondes à une minute | une à plusieurs minutes sur un processeur sans carte graphique (délai de lecture : 10 min) |
+| Citations | natives (l'API rattache chaque extrait au document) | demandées en JSON imposé par un schéma : numéro du document et extrait recopié ; un numéro inexistant est écarté |
+| Contrôle des citations (étape 5) | protège d'une régression | indispensable : un petit modèle peut paraphraser au lieu de recopier |
+| Refus, repli | refus signalé, repli côté serveur | pas de refus ; pas de repli |
+| Rédaction illisible (hors du JSON demandé) | sans objet | 503, sauf si coupée par la limite de jetons (`num-predict`) : réponse vide signalée tronquée |
+| Reformulation en panne ou illisible | question brute | question brute |
+
+Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
+dans Spring AI). Le contexte est porté à 16 384 jetons (`num-ctx`), car celui d'Ollama par défaut ne
+contient pas huit articles.
+
 ## Ce qu'il faut retenir
 
 - **Claude ne cherche pas lui-même et ne répond pas de mémoire** : il ne voit que les articles choisis à l'étape 3, et chaque affirmation pointe vers le passage précis de l'article qui la fonde.
@@ -77,8 +100,8 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 |---|---|---|
 | `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question qui atteint le service (le quota et la validation du corps de requête refusent avant) |
 | `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
-| `droits.claude.appels` | etape, issue : succes, refus, tronquee, erreur | appels à Claude |
-| `droits.claude.jetons` | etape, sens : entree, sortie | jetons consommés (donc le coût) |
+| `droits.assistant.appels` | fournisseur : claude, ollama ; etape ; issue : succes, refus, tronquee, illisible (Ollama), erreur | appels au modèle |
+| `droits.assistant.jetons` | fournisseur, etape, sens : entree, sortie | jetons consommés (le coût, pour Claude) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
 | `droits.questions.quota_atteint` | | questions refusées par le quota |
 
@@ -107,7 +130,9 @@ flowchart LR
 | Citations vérifiées | Les extraits cités existent-ils dans les articles ? |
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
-Lancement : voir `CLAUDE.md` (section Tests). En mode lots (`-Devaluation.lots=true`), les appels
+Lancement : voir `CLAUDE.md` (section Tests). Avec `-Ddroits.assistant.fournisseur=ollama`, le
+même jeu est posé au modèle local, le juge restant Claude : les deux rapports se comparent
+directement (coût affiché nul pour le modèle local, durée par question). En mode lots (`-Devaluation.lots=true`), les appels
 passent par l'API Batch d'Anthropic, à moitié prix : trois lots successifs (reformulations, puis
 rédactions après la recherche locale, puis juge), traités en quelques minutes à quelques heures.
 

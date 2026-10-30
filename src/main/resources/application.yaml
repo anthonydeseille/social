@@ -11,6 +11,30 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  ai:
+    model:
+      # Spring AI ne configure Ollama que s'il est le fournisseur choisi
+      chat: ${droits.assistant.fournisseur:claude}
+      embedding: none
+    chat:
+      client:
+        enabled: false
+    ollama:
+      # Adresse du serveur Ollama : la machine locale, ou une autre machine du réseau
+      base-url: http://localhost:11434
+      chat:
+        model: qwen2.5:7b
+        # Contexte assez long pour huit articles, le profil et la réponse (2048 jetons par défaut)
+        num-ctx: 16384
+        num-predict: 4096
+        temperature: 0.2
+    retry:
+      # Un modèle local lent ne gagne rien à être relancé dix fois (défaut de Spring AI)
+      max-attempts: 2
+  http:
+    clients:
+      # Sur un processeur sans carte graphique, une rédaction peut prendre plusieurs minutes
+      read-timeout: 10m
 
 # Seul /actuator/health est exposé par défaut. Les métriques (sans donnée personnelle, mais qui
 # révèlent volume, coût et quota) s'ouvrent avec le profil « observabilite » : à ne pas activer sur
@@ -22,6 +46,10 @@ management:
         include: health
 
 droits:
+  assistant:
+    # claude : API Anthropic (payante, citations natives) ; ollama : modèle local (gratuit, le
+    # profil ne quitte pas la machine, réponses plus lentes et moins sûres)
+    fournisseur: claude
   ingestion:
     base-url: https://raw.githubusercontent.com
     cache-dir: ${java.io.tmpdir}/droits-corpus

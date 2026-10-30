@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 class AssistantClaudeTest {
 
     private static final ClaudeProperties PROPRIETES =
-            new ClaudeProperties("claude-opus-5-5", 200, Duration.ofMinutes(3), 2);
+            new ClaudeProperties("claude-opus-5-5", Duration.ofMinutes(3), 2);
 
     private static final TexteResume CODE =
             new TexteResume("LEGITEXT000006072050", TypeTexte.CODE, null, "Code du travail", EtatJuridique.VIGUEUR);
@@ -205,9 +205,9 @@ class AssistantClaudeTest {
         new AssistantClaude(PROPRIETES, () -> client, new MetriquesQuestions(registre))
                 .rediger("question", CONTEXTE, List.of(L1221_19));
 
-        assertThat(registre.counter("droits.claude.jetons", "etape", "redaction", "sens", "entree").count()).isEqualTo(4200.0);
-        assertThat(registre.counter("droits.claude.jetons", "etape", "redaction", "sens", "sortie").count()).isEqualTo(1800.0);
-        assertThat(registre.counter("droits.claude.appels", "etape", "redaction", "issue", "succes").count()).isEqualTo(1.0);
+        assertThat(registre.counter("droits.assistant.jetons", "fournisseur", "claude", "etape", "redaction", "sens", "entree").count()).isEqualTo(4200.0);
+        assertThat(registre.counter("droits.assistant.jetons", "fournisseur", "claude", "etape", "redaction", "sens", "sortie").count()).isEqualTo(1800.0);
+        assertThat(registre.counter("droits.assistant.appels", "fournisseur", "claude", "etape", "redaction", "issue", "succes").count()).isEqualTo(1.0);
     }
 
     @Test

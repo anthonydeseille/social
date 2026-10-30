@@ -26,3 +26,12 @@ Prérequis : Java 25, Docker.
 
 Les réponses aux questions (`POST /api/questions`) appellent Claude : clé dans `ANTHROPIC_API_KEY`
 (facturée à l'usage).
+
+Ou un modèle local avec [Ollama](https://ollama.com) (gratuit, la question et le profil ne quittent
+pas la machine ; plus lent et moins sûr, à comparer par l'évaluation) :
+
+```bash
+ollama pull qwen2.5:7b
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.assistant.fournisseur=ollama"
+# autre machine ou autre modèle : --spring.ai.ollama.base-url=http://hote:11434 --spring.ai.ollama.chat.model=mistral
+```

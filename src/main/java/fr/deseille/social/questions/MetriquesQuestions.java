@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component;
  *   <li>{@code droits.questions} (issue) : repondue, aucun_article, refus, tronquee, indisponible,
  *       invalide, erreur ;</li>
  *   <li>{@code droits.questions.etape} (etape) : durée de reformulation, recherche, rédaction ;</li>
- *   <li>{@code droits.claude.appels} (etape, issue) : succes, refus, tronquee, erreur ;</li>
- *   <li>{@code droits.claude.jetons} (etape, sens) : jetons en entrée et en sortie ;</li>
+ *   <li>{@code droits.assistant.appels} (fournisseur, etape, issue) : succes, refus, tronquee,
+ *       illisible, erreur ;</li>
+ *   <li>{@code droits.assistant.jetons} (fournisseur, etape, sens) : jetons en entrée et en sortie ;</li>
  *   <li>{@code droits.citations} (verification) : verifiee, non_verifiee ;</li>
  *   <li>{@code droits.questions.quota_atteint} : questions refusées par le quota journalier.</li>
  * </ul>
@@ -42,16 +43,17 @@ public class MetriquesQuestions {
                 .tag("issue", issue).register(registre).increment();
     }
 
-    public void appelClaude(String etape, String issue) {
-        Counter.builder("droits.claude.appels").description("Appels à Claude, par étape et par issue")
-                .tag("etape", etape).tag("issue", issue).register(registre).increment();
+    /** @param fournisseur claude ou ollama */
+    public void appelModele(String fournisseur, String etape, String issue) {
+        Counter.builder("droits.assistant.appels").description("Appels au modèle de langage, par étape et par issue")
+                .tag("fournisseur", fournisseur).tag("etape", etape).tag("issue", issue).register(registre).increment();
     }
 
-    public void jetons(String etape, long entree, long sortie) {
-        Counter.builder("droits.claude.jetons").description("Jetons consommés").tag("etape", etape)
-                .tag("sens", "entree").register(registre).increment(entree);
-        Counter.builder("droits.claude.jetons").description("Jetons consommés").tag("etape", etape)
-                .tag("sens", "sortie").register(registre).increment(sortie);
+    public void jetons(String fournisseur, String etape, long entree, long sortie) {
+        Counter.builder("droits.assistant.jetons").description("Jetons consommés").tag("fournisseur", fournisseur)
+                .tag("etape", etape).tag("sens", "entree").register(registre).increment(entree);
+        Counter.builder("droits.assistant.jetons").description("Jetons consommés").tag("fournisseur", fournisseur)
+                .tag("etape", etape).tag("sens", "sortie").register(registre).increment(sortie);
     }
 
     public void citations(int total, int nonVerifiees) {
