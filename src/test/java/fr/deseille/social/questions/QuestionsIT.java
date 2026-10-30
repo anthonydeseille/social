@@ -17,7 +17,9 @@ import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -101,6 +103,17 @@ class QuestionsIT {
         var execution = jobOperator.start(ingestionJob,
                 new JobParametersBuilder().addLong("horodatage", System.nanoTime()).toJobParameters());
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
+
+    @Autowired
+    private ApplicationContext contexte;
+
+    /** Fournisseur par défaut : Claude, et Spring AI ne crée aucun client Ollama. */
+    @Test
+    void fournisseur_par_defaut_claude_sans_client_ollama() {
+        assertThat(contexte.getBeanNamesForType(AssistantClaude.class)).hasSize(1);
+        assertThat(contexte.getBeanNamesForType(OllamaChatModel.class)).isEmpty();
+        assertThat(contexte.getBeanNamesForType(AssistantOllama.class)).isEmpty();
     }
 
     @Test

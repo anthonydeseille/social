@@ -156,6 +156,31 @@ class AssistantOllamaTest {
     }
 
     @Test
+    void json_complet_mais_limite_de_jetons_atteinte_passages_servis_et_signales_tronques() {
+        when(modele.call(any(Prompt.class))).thenReturn(reponse("""
+                {"passages": [{"texte": "Le Code la permet.", "citations": []}]}""", "length"));
+
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+
+        assertThat(reponse.tronquee()).isTrue();
+        assertThat(reponse.passages()).containsExactly(new Passage("Le Code la permet. ", List.of()));
+        assertThat(registre.counter("droits.assistant.appels", "fournisseur", "ollama", "etape", "redaction",
+                "issue", "tronquee").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void extrait_absent_citation_gardee_et_signalee_non_verifiee() {
+        when(modele.call(any(Prompt.class))).thenReturn(reponse("""
+                {"passages": [{"texte": "Oui.", "citations": [{"document": 1}]}]}""", "stop"));
+
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+
+        assertThat(reponse.passages()).containsExactly(new Passage("Oui. ",
+                List.of(new Citation("LEGIARTI000019071113", "L1221-19", null))));
+        assertThat(VerificationCitations.nonVerifiees(reponse.passages(), List.of(L1221_19))).hasSize(1);
+    }
+
+    @Test
     void reponse_illisible_sans_troncature_service_indisponible() {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("Votre période d'essai est de 4 mois.", "stop"));
 

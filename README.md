@@ -35,3 +35,6 @@ ollama pull qwen2.5:7b
 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.assistant.fournisseur=ollama"
 # autre machine ou autre modèle : --spring.ai.ollama.base-url=http://hote:11434 --spring.ai.ollama.chat.model=mistral
 ```
+
+Quota journalier de questions : `droits.questions.quota-journalier` (200 par défaut). L'ancienne clé
+`droits.claude.quota-journalier` n'est plus lue.

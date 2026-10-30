@@ -33,7 +33,9 @@ spring:
       max-attempts: 2
   http:
     clients:
-      # Sur un processeur sans carte graphique, une rédaction peut prendre plusieurs minutes
+      # Sur un processeur sans carte graphique, une rédaction peut prendre plusieurs minutes.
+      # Propriété globale aux clients HTTP construits par Boot : seul Ollama en utilise un (Claude
+      # passe par OkHttp, l'ingestion par le HttpClient du JDK, chacun avec son propre délai).
       read-timeout: 10m
 
 # Seul /actuator/health est exposé par défaut. Les métriques (sans donnée personnelle, mais qui
