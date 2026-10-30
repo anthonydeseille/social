@@ -32,8 +32,9 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 6. **Prompts versionnés** : consignes dans des fichiers, version inscrite dans chaque réponse et chaque rapport.
 7. **Traces OpenTelemetry** par question (reformulation, recherche, rédaction), sans donnée personnelle.
 8. **Garde-fou données personnelles** : retirer nom, e-mail, numéro de sécurité sociale avant envoi au modèle.
+   - Authentification sans clé permanente : fédération d'identité d'Anthropic (Workload Identity Federation), jeton de courte durée échangé contre l'identité de la charge de travail. D'abord pour l'évaluation dans la CI (jeton OIDC de GitHub Actions, règle limitée à la branche `main`), puis pour la mise en ligne (émetteur public du Kubernetes hébergé). Inapplicable au cluster k3d local, dont l'émetteur n'est pas joignable par Anthropic.
 9. **Coûts** : cache de prompt, modèle par étape (à décider sur le score d'évaluation), alertes de dépense.
-   - Modèle local par Ollama ✅ (`droits.assistant.fournisseur=ollama`, Spring AI) : gratuit, profil gardé sur la machine ; testé sans serveur Ollama, première évaluation comparative à faire.
+   - Modèle local par Ollama ✅ (`droits.assistant.fournisseur=ollama`, Spring AI) : gratuit, profil gardé sur la machine ; essayé dans le cluster k3d avec Qwen 2.5 7B et Mistral 7B (reformulation corrigée, rédaction lente : plusieurs minutes sur processeur) ; évaluation comparative à faire, idéalement sur une machine avec carte graphique.
 10. **Corpus vivant** : à chaque ingestion qui modifie des articles, réévaluer les questions qui les citent.
 11. **Automatisation** : évaluation nocturne avec issue en cas de baisse, correction automatique de la CI par l'action Claude, évaluation comparative à chaque nouveau modèle.
 12. **Boucle de retour** : « utile / pas utile » en production, mauvaises réponses transformées en questions d'évaluation (anonymisées, validées).

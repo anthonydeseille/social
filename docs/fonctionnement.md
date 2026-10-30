@@ -21,11 +21,11 @@ flowchart TD
     C2 -.->|"Claude indisponible ou refus :<br/>question brute"| R3
     C2 --> R3
 
-    R3["3. Recherche (PostgreSQL)<br/>plein texte français, sans accents<br/>Code + convention · articles applicables<br/>fusion → 8 meilleurs articles<br/>moins de 100 ms"]
+    R3["3. Recherche (PostgreSQL)<br/>plein texte français, sans accents<br/>Code + convention · articles applicables<br/>fusion → 8 meilleurs articles<br/>(4 avec Ollama)<br/>moins de 100 ms"]
     R3 -->|"aucun article"| VIDE["Réponse vide + avertissement<br/>(pas d'appel n° 2)"]
     R3 --> C4
 
-    C4["🤖 4. Rédaction (Claude)<br/>8 articles = 8 documents, citations activées<br/>+ profil + question + consignes<br/>≈ 4 à 7 centimes"]
+    C4["🤖 4. Rédaction (Claude)<br/>8 articles (4 avec Ollama) transmis comme documents, citations activées<br/>+ profil + question + consignes<br/>≈ 4 à 7 centimes"]
     C4 -->|"panne"| E503["503 Service indisponible"]
     C4 -.->|"refus des filtres :<br/>rejoué sur un autre modèle"| C4
     C4 --> V5
@@ -60,9 +60,9 @@ souvenir de mes informations », et un bouton l'efface.
 |---|---|---|
 | 0. Garde-fous d'entrée | Validation de la question (≤ 1000 caractères) et du profil, quota journalier global (200 par défaut, `droits.questions.quota-journalier` ; anciennement `droits.claude.quota-journalier`). Ni la question ni le profil ne sont stockés ou journalisés (données sensibles : grossesse, santé). | gratuit |
 | 1. Contexte du profil | Ancienneté à la date de référence (aujourd'hui par défaut), textes applicables à cette date (Code du travail, convention collective si intégrée), avertissements (convention non renseignée ou non intégrée). | gratuit |
-| 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. | ≈ 1 centime |
-| 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence ; fusion des résultats et sélection des 8 meilleurs. | gratuit |
-| 4. Rédaction | Claude reçoit les 8 articles comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
+| 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. Avec un modèle local, exemples et simplification des requêtes en plus (voir [Fournisseur local : Ollama](#fournisseur-local--ollama)). | ≈ 1 centime |
+| 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence ; fusion des résultats et sélection des 8 meilleurs (4 pour un modèle local). | gratuit |
+| 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; signalement d'une réponse interrompue. | gratuit |
 
 ## Fournisseur local : Ollama
@@ -76,17 +76,25 @@ ce qui change :
 |---|---|---|
 | Coût | ≈ 5 à 8 centimes par question (reformulation et rédaction) | gratuit (calcul de la machine) |
 | Données | question et profil envoyés à Anthropic | restent sur la machine qui héberge le modèle |
-| Durée | quelques secondes à une minute | une à plusieurs minutes sur un processeur sans carte graphique (délai de lecture : 10 min) |
+| Durée | quelques secondes à une minute | plusieurs minutes sur un processeur sans carte graphique ; plafond de 10 min (délai de lecture de l'appli, et proxy de k3d en local) : une seule question à la fois |
+| Articles transmis à la rédaction | 8 | 4 (`Assistant.articlesMax`) : la lecture des articles domine la durée ; avec 8 articles, un 7B sur processeur dépassait 10 min |
 | Citations | natives (l'API rattache chaque extrait au document) | demandées en JSON imposé par un schéma : numéro du document et extrait recopié ; un numéro inexistant est écarté |
 | Contrôle des citations (étape 5) | protège d'une régression | indispensable : un petit modèle peut paraphraser au lieu de recopier |
 | Refus, repli | refus signalé, repli côté serveur | pas de refus ; pas de repli |
 | Rédaction illisible (hors du JSON demandé) | sans objet | 503 |
 | Rédaction coupée par la limite de jetons (`num-predict`) | passages reçus, signalés tronqués | JSON complet : passages servis, signalés tronqués ; JSON inachevé : illisible, donc **réponse vide** signalée tronquée (rien de ce qui a été généré n'est montré) |
+| Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres ni mots vides, sans IDCC, « convention collective » ni type de contrat recopiés du profil (gardés si la question les emploie : « fin de CDD ») : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
-dans Spring AI). Le contexte est porté à 16 384 jetons (`num-ctx`), car celui d'Ollama par défaut ne
-contient pas huit articles.
+dans Spring AI). Le contexte est porté à 12 288 jetons (`num-ctx`) et la réponse limitée à 3 072
+(`num-predict`) : le contexte par défaut d'Ollama (2 048) ne contient pas quatre articles, et Ollama
+tronque sans prévenir un texte trop long.
+
+Premier essai réel (Mac Intel sans carte graphique, 16 Go) : Qwen 2.5 7B et Mistral 7B recopiaient le
+profil dans des requêtes trop longues (« convention collective idcc 1486 cdi cadre essai durée »), qui
+ne trouvaient aucun article ; d'où les exemples et la simplification des requêtes. Les deux modèles
+chargés ensemble (12,8 Go) faisaient basculer le Mac en mémoire d'échange : n'en garder qu'un.
 
 ## Ce qu'il faut retenir
 

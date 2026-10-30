@@ -50,6 +50,8 @@ class QuestionServiceTest {
 
     @BeforeEach
     void preparer() {
+        // Méthode par défaut de l'interface, que le simulacre ne délègue pas
+        when(assistant.articlesMax()).thenReturn(8);
         when(profilService.contexte(PROFIL)).thenReturn(CONTEXTE);
         when(consultationService.article(anyString(), eq(DATE))).thenAnswer(i -> article(i.getArgument(0)));
     }
@@ -132,13 +134,16 @@ class QuestionServiceTest {
     }
 
     @Test
-    void au_plus_huit_articles_transmis() {
+    void au_plus_autant_d_articles_que_l_assistant_en_accepte_les_plus_pertinents() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE))
                 .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("A" + i, 10 - i)).toList());
         when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
 
-        assertThat(service.repondre("question", PROFIL).sources()).hasSize(QuestionService.ARTICLES_MAX);
+        assertThat(service.repondre("question", PROFIL).sources()).hasSize(8);
+        when(assistant.articlesMax()).thenReturn(4);
+        assertThat(service.repondre("question", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .containsExactly("A0", "A1", "A2", "A3");
     }
 
     @Test

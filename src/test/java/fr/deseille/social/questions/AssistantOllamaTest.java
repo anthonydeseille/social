@@ -211,6 +211,59 @@ class AssistantOllamaTest {
     }
 
     @Test
+    void quatre_articles_au_plus_pour_un_petit_modele() {
+        assertThat(assistant.articlesMax()).isEqualTo(4);
+        assertThat(new Assistant() {
+            public List<String> reformuler(String question, ContexteProfil contexte) {
+                return List.of();
+            }
+
+            public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+                return null;
+            }
+        }.articlesMax()).isEqualTo(8);
+    }
+
+    /** Requêtes réellement produites par Qwen 2.5 7B et Mistral 7B lors du premier essai. */
+    @Test
+    void reformulation_requetes_des_petits_modeles_ramenees_a_des_mots_cles() {
+        assertThat(AssistantOllama.simplifier(List.of(
+                "durée essai cadre cdi idcc",
+                "convention collective idcc 1486 cdi cadre essai durée",
+                "convention collective idcc 1486 maternite licenciement non cadre cdi",
+                "licenciement enceinte non cadre cdi convention collective idcc 1486",
+                "Période d'essai"), "Combien de temps dure ma période d'essai ?"))
+                .containsExactly("durée essai cadre", "cadre essai durée", "maternite licenciement cadre",
+                        "licenciement enceinte cadre", "période essai");
+    }
+
+    @Test
+    void mot_du_profil_garde_quand_la_question_l_emploie() {
+        assertThat(AssistantOllama.simplifier(List.of("prime précarité cdd", "idcc 1486 cdd fin"),
+                "Mon CDD se termine, ai-je droit à une prime ?"))
+                .containsExactly("prime précarité cdd", "cdd fin");
+        assertThat(AssistantOllama.simplifier(List.of("convention forfait jours"), "Ma convention de forfait est-elle valable ?"))
+                .containsExactly("convention forfait jours");
+        assertThat(AssistantOllama.simplifier(List.of("convention forfait jours"), "Mes jours de repos au forfait ?"))
+                .containsExactly("forfait jours");
+    }
+
+    @Test
+    void reformulation_exemples_dans_les_consignes_et_requetes_simplifiees() {
+        when(modele.call(any(Prompt.class))).thenReturn(reponse("""
+                {"requetes": ["convention collective idcc 1486 cdi cadre essai durée", "durée essai cadre cdi idcc", "1486"]}""",
+                "stop"));
+
+        assertThat(assistant.reformuler("Combien dure ma période d'essai ?", CONTEXTE))
+                .containsExactly("cadre essai durée", "durée essai cadre");
+        ArgumentCaptor<Prompt> prompt = ArgumentCaptor.forClass(Prompt.class);
+        verify(modele).call(prompt.capture());
+        assertThat(prompt.getValue().getSystemMessage().getText())
+                .startsWith(AssistantClaude.CONSIGNES_REFORMULATION)
+                .endsWith(AssistantOllama.EXEMPLES_REFORMULATION);
+    }
+
+    @Test
     void reformulation_illisible_ou_en_panne_recherche_sur_la_question_brute() {
         when(modele.call(any(Prompt.class)))
                 .thenReturn(reponse("période essai", "stop"))

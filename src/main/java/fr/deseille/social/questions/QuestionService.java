@@ -25,8 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class QuestionService {
 
-    /** Articles transmis pour la rédaction : assez pour couvrir Code et convention, sans diluer. */
-    static final int ARTICLES_MAX = 8;
     private static final int RESULTATS_PAR_REQUETE = 10;
 
     private final ProfilService profilService;
@@ -123,7 +121,7 @@ public class QuestionService {
 
     /**
      * Fusionne les résultats des requêtes : chaque article garde sa meilleure pertinence, puis les
-     * {@link #ARTICLES_MAX} meilleurs sont retenus.
+     * meilleurs sont retenus, autant que l'assistant en accepte ({@link Assistant#articlesMax()}).
      */
     private List<Resultat> selectionner(List<String> requetes, Integer idcc, LocalDate date) {
         Map<String, Resultat> meilleurs = new LinkedHashMap<>();
@@ -134,7 +132,7 @@ public class QuestionService {
         }
         return meilleurs.values().stream()
                 .sorted(Comparator.comparingDouble(Resultat::pertinence).reversed())
-                .limit(ARTICLES_MAX)
+                .limit(assistant.articlesMax())
                 .toList();
     }
 

@@ -4,10 +4,14 @@ import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.AssistantClaude.Requetes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -54,6 +58,34 @@ public class AssistantOllama implements Assistant {
             indique dans « citations » le numéro du document et un extrait recopié mot pour mot, sans \
             rien changer (une phrase ou un membre de phrase de l'article). Un passage de liaison n'a \
             pas de citation. N'invente jamais d'extrait.""";
+
+    /**
+     * Exemples pour les petits modèles, qui recopient sinon le profil dans les requêtes (« idcc 1486
+     * cdi cadre… ») et les allongent. Thèmes choisis hors du jeu d'évaluation, pour ne pas le fausser.
+     */
+    static final String EXEMPLES_REFORMULATION = """
+            N'ajoute jamais aux requêtes le numéro de convention, le type de contrat ni d'autres \
+            éléments du profil : ils servent déjà à choisir les textes. Exemples :
+            - « Je suis cadre en CDI chez un employeur Syntec, puis-je demander du télétravail ? » → \
+            {"requetes": ["télétravail", "télétravail accord", "télétravail refus employeur"]}
+            - « Salariée en CDI depuis 5 ans, comment se passe une rupture conventionnelle ? » → \
+            {"requetes": ["rupture conventionnelle", "rupture conventionnelle indemnité", "homologation rupture"]}
+            - « Je travaille la nuit dans un hôtel, ai-je droit à une contrepartie ? » → \
+            {"requetes": ["travail nuit contrepartie", "repos compensateur nuit"]}""";
+
+    /** Mots vides, toujours retirés des requêtes : la recherche les exigerait. */
+    private static final Set<String> MOTS_VIDES = Set.of(
+            "idcc", "le", "la", "les", "l", "de", "du", "des", "d", "un", "une", "et", "ou", "en", "à", "au",
+            "aux", "pour", "par", "sur", "mon", "ma", "mes", "je", "suis", "est", "que", "qui");
+
+    /**
+     * Mots que les petits modèles recopient du profil : retirés, sauf quand la question elle-même les
+     * emploie (« prime de fin de CDD », « convention de forfait »).
+     */
+    private static final Set<String> MOTS_DU_PROFIL = Set.of("convention", "collective", "cdi", "cdd", "non");
+
+    /** Mots par requête au plus : la recherche exige tous les mots d'une requête. */
+    private static final int MOTS_MAX = 3;
 
     /** Schéma de {@link Requetes}. */
     static final Map<String, Object> SCHEMA_REQUETES = Map.of(
@@ -103,6 +135,15 @@ public class AssistantOllama implements Assistant {
         this.metriques = metriques;
     }
 
+    /**
+     * Quatre articles au lieu de huit : sur un processeur sans carte graphique, la lecture des
+     * articles domine la durée de rédaction (au-delà de 10 minutes avec huit articles et un 7B).
+     */
+    @Override
+    public int articlesMax() {
+        return 4;
+    }
+
     @Override
     public String modele() {
         return modele.getOptions().getModel();
@@ -117,7 +158,7 @@ public class AssistantOllama implements Assistant {
     public List<String> reformuler(String question, ContexteProfil contexte) {
         ChatResponse reponse;
         try {
-            reponse = modele.call(new Prompt(List.of(new SystemMessage(AssistantClaude.CONSIGNES_REFORMULATION),
+            reponse = modele.call(new Prompt(List.of(new SystemMessage(AssistantClaude.CONSIGNES_REFORMULATION + "\n\n" + EXEMPLES_REFORMULATION),
                     new UserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)),
                     options(SCHEMA_REQUETES)));
         } catch (RuntimeException e) {
@@ -127,7 +168,8 @@ public class AssistantOllama implements Assistant {
         }
         journaliser("reformulation", reponse);
         try {
-            List<String> requetes = AssistantClaude.nettoyer(JSON.readValue(texte(reponse), Requetes.class).requetes(), question);
+            List<String> requetes = AssistantClaude.nettoyer(
+                    simplifier(JSON.readValue(texte(reponse), Requetes.class).requetes(), question), question);
             metriques.appelModele(FOURNISSEUR, "reformulation", "succes");
             return requetes;
         } catch (RuntimeException e) {
@@ -165,6 +207,32 @@ public class AssistantOllama implements Assistant {
         }
         metriques.appelModele(FOURNISSEUR, "redaction", tronquee ? "tronquee" : "succes");
         return new Reponse(passages(redaction, articles), false, tronquee);
+    }
+
+    /**
+     * Requêtes ramenées à des mots-clés : sans chiffres ni mots vides, sans les mots recopiés du
+     * profil (IDCC, « convention collective », type de contrat) quand la question ne les emploie pas,
+     * trois mots au plus. Garde-fou propre aux petits modèles, dont les requêtes trop longues ne
+     * trouvent aucun article ; celles de Claude ne passent pas par là.
+     */
+    static List<String> simplifier(List<String> requetes, String question) {
+        if (requetes == null) {
+            return List.of();
+        }
+        Set<String> motsDeLaQuestion = Set.copyOf(Arrays.asList(
+                (question == null ? "" : question).toLowerCase(Locale.FRENCH).split("[^\\p{L}]+")));
+        List<String> simplifiees = new ArrayList<>();
+        for (String requete : requetes) {
+            if (requete == null) {
+                continue;
+            }
+            simplifiees.add(Arrays.stream(requete.toLowerCase(Locale.FRENCH).split("[^\\p{L}]+"))
+                    .filter(mot -> !mot.isEmpty() && !MOTS_VIDES.contains(mot))
+                    .filter(mot -> !MOTS_DU_PROFIL.contains(mot) || motsDeLaQuestion.contains(mot))
+                    .limit(MOTS_MAX)
+                    .collect(Collectors.joining(" ")));
+        }
+        return simplifiees;
     }
 
     /**
