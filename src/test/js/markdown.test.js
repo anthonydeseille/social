@@ -58,6 +58,19 @@ const tests = {
       + "<tr><td>Syntec</td><td>3 mois</td></tr></tbody></table></div>");
   },
 
+  citation_en_fin_de_rangee_reste_dans_le_tableau() {
+    const texte = "| Texte | Durée |\n|---|---|\n| Code | 4 mois |" + Markdown.marqueur(0)
+      + "\n| Syntec | 3 mois |" + Markdown.marqueur(1);
+    assert.strictEqual(rendu(texte),
+      "<div><table><thead><tr><th>Texte</th><th>Durée</th></tr></thead><tbody><tr><td>Code</td><td>4 mois<a>c0</a></td></tr>"
+      + "<tr><td>Syntec</td><td>3 mois<a>c1</a></td></tr></tbody></table></div>");
+  },
+
+  citation_apres_un_separateur_gardee() {
+    assert.strictEqual(rendu("Avant\n\n---" + Markdown.marqueur(0) + "\n\nAprès"),
+      "<p>Avant</p><p><a>c0</a></p><hr><p>Après</p>");
+  },
+
   retrait_et_separateur() {
     assert.strictEqual(rendu("> Information générale.\n\n---\n\nFin"),
       "<blockquote><p>Information générale.</p></blockquote><hr><p>Fin</p>");
@@ -71,6 +84,11 @@ const tests = {
   marque_de_gras_orpheline_retiree_asterisque_isole_garde() {
     assert.strictEqual(rendu("Début **sans fin\n\nSuite"), "<p>Début sans fin</p><p>Suite</p>");
     assert.strictEqual(rendu("Soit 3 * 2 jours"), "<p>Soit 3 * 2 jours</p>");
+    assert.strictEqual(rendu("a ** b"), "<p>a ** b</p>");
+  },
+
+  souligne_jamais_interprete() {
+    assert.strictEqual(rendu("Champ __date_entree__ et TYPE_CONTRAT"), "<p>Champ __date_entree__ et TYPE_CONTRAT</p>");
   },
 
   html_du_modele_jamais_interprete() {

@@ -39,21 +39,28 @@
           continue;
         }
       }
-      if ((c === "*" || c === "_") && texte[i + 1] === c) {
-        const marque = c + c;
-        const fin = texte.indexOf(marque, i + 2);
+      // Gras et italique avec « * » seulement : « _ » apparaît dans des identifiants
+      if (c === "*" && texte[i + 1] === "*") {
+        const fin = texte.indexOf("**", i + 2);
         if (fin > i + 2) {
           vider();
           noeuds.push({ type: "gras", enfants: enLigne(texte.slice(i + 2, fin)) });
           i = fin + 2;
           continue;
         }
-        // Marque de gras orpheline (ouverte dans un autre bloc) : retirée plutôt qu'affichée
+        // Marque orpheline collée à un mot (gras ouvert dans un autre bloc) : retirée plutôt
+        // qu'affichée ; isolée entre deux blancs, c'est du texte
+        const avant = i === 0 ? " " : texte[i - 1];
+        const apres = i + 2 >= texte.length ? " " : texte[i + 2];
+        if (!(/\s/.test(avant) && /\s/.test(apres))) {
+          i += 2;
+          continue;
+        }
+        tampon += "**";
         i += 2;
         continue;
       }
-      // Italique avec * seulement : « _ » apparaît dans des identifiants, « * » isolé et suivi
-      // d'une espace reste du texte (multiplication)
+      // « * » isolé et suivi d'une espace reste du texte (multiplication)
       if (c === "*" && texte[i + 1] && texte[i + 1] !== " ") {
         const fin = texte.indexOf("*", i + 1);
         if (fin > i + 1 && texte[fin - 1] !== " ") {
@@ -78,8 +85,24 @@
   const LIGNE_TABLEAU = /^\s*\|.*\|\s*$/;
   const ALIGNEMENT_TABLEAU = /^\s*\|?(\s*:?-{2,}:?\s*\|)+\s*(:?-{2,}:?\s*)?\|?\s*$/;
 
-  function cellules(ligne) {
-    return ligne.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => enLigne(c.trim()));
+  // Citations en fin de ligne, mises de côté pour reconnaître la structure (rangée de tableau,
+  // séparateur) puis replacées dans le dernier élément du bloc
+  const MARQUEURS_FIN = /((?:\uE000\d+\uE001)+)\s*$/;
+
+  function sansMarqueursFin(ligne) {
+    const m = MARQUEURS_FIN.exec(ligne);
+    return m ? { ligne: ligne.slice(0, m.index), marqueurs: m[1] } : { ligne: ligne, marqueurs: "" };
+  }
+
+  function cellules(ligneBrute) {
+    const l = sansMarqueursFin(ligneBrute);
+    const textes = l.ligne.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+    textes[textes.length - 1] += l.marqueurs;
+    return textes.map(enLigne);
+  }
+
+  function estRangee(ligne) {
+    return LIGNE_TABLEAU.test(sansMarqueursFin(ligne).ligne);
   }
 
   function analyser(texte) {
@@ -103,17 +126,20 @@
         blocs.push({ type: "titre", niveau: m[1].length, enfants: enLigne(m[2]) });
         continue;
       }
-      if (SEPARATEUR.test(ligne)) {
+      const separateur = sansMarqueursFin(ligne);
+      if (SEPARATEUR.test(separateur.ligne)) {
         finirParagraphe();
+        // Citation d'un séparateur : gardée, dans un paragraphe à part
+        if (separateur.marqueurs) blocs.push({ type: "paragraphe", enfants: enLigne(separateur.marqueurs) });
         blocs.push({ type: "separateur" });
         continue;
       }
-      if (LIGNE_TABLEAU.test(ligne) && i + 1 < lignes.length && ALIGNEMENT_TABLEAU.test(lignes[i + 1])) {
+      if (estRangee(ligne) && i + 1 < lignes.length && ALIGNEMENT_TABLEAU.test(lignes[i + 1])) {
         finirParagraphe();
         const entete = cellules(ligne);
         const rangees = [];
         i += 2;
-        while (i < lignes.length && LIGNE_TABLEAU.test(lignes[i])) {
+        while (i < lignes.length && estRangee(lignes[i])) {
           rangees.push(cellules(lignes[i]));
           i++;
         }
