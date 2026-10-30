@@ -15,6 +15,7 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
 import com.anthropic.services.blocking.MessageService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.consultation.VuesConsultation.SectionResume;
@@ -59,7 +60,7 @@ class AssistantClaudeTest {
                     ProfilSalarie.TypeContrat.CDI, false, Set.of(ProfilSalarie.Situation.GROSSESSE), LocalDate.of(2026, 11, 1)),
             new Anciennete(0, 1, 1), List.of(CODE, SYNTEC), true, List.of());
 
-    private final AssistantClaude assistant = new AssistantClaude(PROPRIETES);
+    private final AssistantClaude assistant = new AssistantClaude(PROPRIETES, new MetriquesQuestions(new SimpleMeterRegistry()));
 
     @Test
     void requete_de_redaction_un_document_cite_par_article_puis_la_question() throws Exception {
@@ -180,7 +181,7 @@ class AssistantClaudeTest {
         when(client.messages()).thenReturn(messages);
         when(messages.create(any(StructuredMessageCreateParams.class))).thenThrow(new AnthropicIoException("délai dépassé"));
         when(messages.create(any(MessageCreateParams.class))).thenThrow(new AnthropicIoException("délai dépassé"));
-        AssistantClaude enPanne = new AssistantClaude(PROPRIETES, () -> client);
+        AssistantClaude enPanne = new AssistantClaude(PROPRIETES, () -> client, new MetriquesQuestions(new SimpleMeterRegistry()));
 
         assertThat(enPanne.reformuler("Ma période d'essai ?", CONTEXTE)).containsExactly("Ma période d'essai ?");
         assertThatThrownBy(() -> enPanne.rediger("Ma période d'essai ?", CONTEXTE, List.of(L1221_19)))
@@ -188,10 +189,32 @@ class AssistantClaudeTest {
     }
 
     @Test
+    void redaction_compte_les_jetons_et_les_appels() throws Exception {
+        Message message = ObjectMappers.jsonMapper().readValue("""
+                {"id": "msg_4", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+                 "stop_reason": "end_turn", "stop_sequence": null,
+                 "usage": {"input_tokens": 4200, "output_tokens": 1800},
+                 "content": [{"type": "text", "text": "Réponse.", "citations": null}]}
+                """, Message.class);
+        AnthropicClient client = mock(AnthropicClient.class);
+        MessageService messages = mock(MessageService.class);
+        when(client.messages()).thenReturn(messages);
+        when(messages.create(any(MessageCreateParams.class))).thenReturn(message);
+        SimpleMeterRegistry registre = new SimpleMeterRegistry();
+
+        new AssistantClaude(PROPRIETES, () -> client, new MetriquesQuestions(registre))
+                .rediger("question", CONTEXTE, List.of(L1221_19));
+
+        assertThat(registre.counter("droits.claude.jetons", "etape", "redaction", "sens", "entree").count()).isEqualTo(4200.0);
+        assertThat(registre.counter("droits.claude.jetons", "etape", "redaction", "sens", "sortie").count()).isEqualTo(1800.0);
+        assertThat(registre.counter("droits.claude.appels", "etape", "redaction", "issue", "succes").count()).isEqualTo(1.0);
+    }
+
+    @Test
     void cle_absente_traitee_comme_une_indisponibilite() {
         AssistantClaude sansCle = new AssistantClaude(PROPRIETES, () -> {
             throw new AnthropicException("aucune clé d'API");
-        });
+        }, new MetriquesQuestions(new SimpleMeterRegistry()));
 
         assertThat(sansCle.reformuler("question", CONTEXTE)).containsExactly("question");
         assertThatThrownBy(() -> sansCle.rediger("question", CONTEXTE, List.of(L1221_19)))

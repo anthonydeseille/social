@@ -18,6 +18,7 @@ import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -37,6 +39,9 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+// Les tests désactivent l'export des métriques par défaut : réactivé pour vérifier /actuator/prometheus
+@AutoConfigureMetrics
+@ActiveProfiles("observabilite")
 @Import({TestcontainersConfiguration.class, QuestionsIT.FauxAssistant.class})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class QuestionsIT {
@@ -167,6 +172,19 @@ class QuestionsIT {
         assertThat(reponse).hasStatus(HttpStatus.SERVICE_UNAVAILABLE).hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
         assertThat(reponse).bodyJson().extractingPath("$.detail").asString().contains("indisponible")
                 .doesNotContain("panne simulée");
+    }
+
+    @Test
+    void metriques_exposees_sans_donnee_personnelle() {
+        assertThat(mvc.post().uri("/api/questions").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"question\": \"Ma période d'essai ?\", \"profil\": {\"idcc\": 7777}}")).hasStatusOk();
+
+        assertThat(mvc.get().uri("/actuator/metrics/droits.questions")).hasStatusOk().bodyJson()
+                .extractingPath("$.availableTags[*].tag").asArray().contains("issue");
+        var prometheus = mvc.get().uri("/actuator/prometheus");
+        assertThat(prometheus).hasStatusOk().bodyText()
+                .contains("droits_questions_total", "droits_questions_etape_seconds", "droits_citations_total")
+                .doesNotContain("période", "7777");
     }
 
     @Test

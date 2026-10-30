@@ -27,6 +27,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 2. **Évaluation via l'API Batch** : moitié prix, l'évaluation n'étant pas urgente.
 3. **Vérification déterministe des citations** ✅ : chaque extrait cité doit exister dans l'article (aux espaces près), signalé sinon. Reste à faire : un indicateur d'évaluation pour les chiffres absents des articles cités (pas dans l'appli : les montants calculés n'y figurent jamais).
 4. **Métriques et tableau de bord** (Micrometer, Actuator) : jetons, coût, latence par étape, refus, troncatures, « aucun article », quota.
+   - Métriques ✅ (`/actuator/metrics`, `/actuator/prometheus`, voir `docs/fonctionnement.md`) ; reste le tableau de bord (Prometheus et Grafana, par exemple) et la protection des points d'accès.
 5. **Évaluation dans la CI** : sur étiquette `eval` quand une PR touche consignes, recherche ou modèle ; blocage si le score baisse ; historique des scores.
 6. **Prompts versionnés** : consignes dans des fichiers, version inscrite dans chaque réponse et chaque rapport.
 7. **Traces OpenTelemetry** par question (reformulation, recherche, rédaction), sans donnée personnelle.

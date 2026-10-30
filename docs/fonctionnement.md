@@ -61,6 +61,24 @@ Légende : orange = appel payant à Claude, vert = code et base de données (gra
 - **La qualité dépend d'abord de la recherche** : si le bon article n'est pas parmi les 8, Claude ne peut pas le citer. C'est pourquoi l'évaluation mesure séparément la recherche et les citations.
 - **Les incidents sont visibles** : refus, panne, réponse interrompue, citation introuvable ou absence d'article donnent un statut ou un avertissement explicite, jamais une réponse présentée comme complète.
 
+## Observabilité
+
+Chaque question alimente des métriques (Micrometer), **sans donnée personnelle** (ni question, ni
+profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/actuator/metrics` et
+`/actuator/prometheus` s'ouvrent avec le profil `observabilite` :
+
+| Métrique | Étiquettes | Ce qu'elle suit |
+|---|---|---|
+| `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question qui atteint le service (le quota et la validation du corps de requête refusent avant) |
+| `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
+| `droits.claude.appels` | etape, issue : succes, refus, tronquee, erreur | appels à Claude |
+| `droits.claude.jetons` | etape, sens : entree, sortie | jetons consommés (donc le coût) |
+| `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
+| `droits.questions.quota_atteint` | | questions refusées par le quota |
+
+Ils révèlent le volume, le coût et le quota : ne pas activer ce profil sur un serveur public sans
+protection (port interne, authentification).
+
 ## L'évaluation
 
 Le même trajet sert à mesurer la fiabilité des réponses, sur un jeu de questions dont la réponse a été

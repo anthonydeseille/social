@@ -12,6 +12,15 @@ spring:
     problemdetails:
       enabled: true
 
+# Seul /actuator/health est exposé par défaut. Les métriques (sans donnée personnelle, mais qui
+# révèlent volume, coût et quota) s'ouvrent avec le profil « observabilite » : à ne pas activer sur
+# un serveur public sans protection (port interne, authentification).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 droits:
   ingestion:
     base-url: https://raw.githubusercontent.com
@@ -63,3 +72,14 @@ droits:
         repo: SocialGouv/kali-data
         ref: 84b1d6713c20184f2fec889c69a056864f8c5246
         fichier: data/KALICONT000027172335.json
+
+---
+spring:
+  config:
+    activate:
+      on-profile: observabilite
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

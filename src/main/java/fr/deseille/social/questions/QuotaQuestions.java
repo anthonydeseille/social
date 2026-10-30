@@ -17,12 +17,14 @@ public class QuotaQuestions {
 
     private final int quotaJournalier;
     private final Clock clock;
+    private final MetriquesQuestions metriques;
     private LocalDate jour;
     private int consommees;
 
-    public QuotaQuestions(ClaudeProperties properties, Clock clock) {
+    public QuotaQuestions(ClaudeProperties properties, Clock clock, MetriquesQuestions metriques) {
         this.quotaJournalier = properties.quotaJournalier();
         this.clock = clock;
+        this.metriques = metriques;
     }
 
     /** Compte une question, ou la refuse (429) si le quota du jour est atteint. */
@@ -33,6 +35,7 @@ public class QuotaQuestions {
             consommees = 0;
         }
         if (consommees >= quotaJournalier) {
+            metriques.quotaAtteint();
             throw new ErrorResponseException(HttpStatus.TOO_MANY_REQUESTS, ProblemDetail.forStatusAndDetail(
                     HttpStatus.TOO_MANY_REQUESTS, "Nombre maximal de questions atteint pour aujourd'hui."), null);
         }

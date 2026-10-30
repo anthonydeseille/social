@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.mockito.ArgumentCaptor;
 
 class QuestionServiceTest {
@@ -43,8 +44,9 @@ class QuestionServiceTest {
     private final RechercheService rechercheService = mock(RechercheService.class);
     private final ConsultationService consultationService = mock(ConsultationService.class);
     private final Assistant assistant = mock(Assistant.class);
-    private final QuestionService service =
-            new QuestionService(profilService, rechercheService, consultationService, assistant);
+    private final SimpleMeterRegistry registre = new SimpleMeterRegistry();
+    private final QuestionService service = new QuestionService(profilService, rechercheService, consultationService,
+            assistant, new MetriquesQuestions(registre));
 
     @BeforeEach
     void preparer() {
@@ -81,6 +83,52 @@ class QuestionServiceTest {
         assertThat(reponse.sources()).extracting(QuestionService.Source::articleSourceId).containsExactly("A", "B", "C");
         assertThat(reponse.passages()).extracting(Passage::texte).containsExactly("réponse");
         assertThat(reponse.avertissements()).containsExactly("avertissement du profil");
+
+        assertThat(registre.counter("droits.questions", "issue", "repondue").count()).isEqualTo(1.0);
+        assertThat(registre.find("droits.questions.etape").timers()).extracting(t -> t.getId().getTag("etape"))
+                .containsExactlyInAnyOrder("reformulation", "recherche", "redaction");
+        assertThat(registre.counter("droits.citations", "verification", "verifiee").count()).isZero();
+    }
+
+    @Test
+    void erreur_imprevue_ou_requete_invalide_comptees_puis_propagees() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenThrow(new IllegalStateException("base indisponible"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(registre.counter("droits.questions", "issue", "erreur").count()).isEqualTo(1.0);
+
+        when(profilService.contexte(PROFIL)).thenThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, "dates incohérentes"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(registre.counter("droits.questions", "issue", "invalide").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void citations_reparties_entre_verifiees_et_non_verifiees() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(new Passage("…", List.of(
+                new fr.deseille.social.questions.Assistant.Citation("A", "NA", "texte"),
+                new fr.deseille.social.questions.Assistant.Citation("A", "NA", "extrait inventé")))), false, false));
+
+        service.repondre("question", PROFIL);
+
+        assertThat(registre.counter("droits.citations", "verification", "verifiee").count()).isEqualTo(1.0);
+        assertThat(registre.counter("droits.citations", "verification", "non_verifiee").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void modele_indisponible_compte_puis_propage() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any()))
+                .thenThrow(new AssistantIndisponibleException(new IllegalStateException("panne")));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
+                .isInstanceOf(AssistantIndisponibleException.class);
+        assertThat(registre.counter("droits.questions", "issue", "indisponible").count()).isEqualTo(1.0);
     }
 
     @Test
@@ -101,6 +149,7 @@ class QuestionServiceTest {
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
         verify(assistant, never()).rediger(anyString(), any(), any());
+        assertThat(registre.counter("droits.questions", "issue", "aucun_article").count()).isEqualTo(1.0);
         assertThat(reponse.passages()).isEmpty();
         assertThat(reponse.avertissements()).last().asString().contains("Aucun article pertinent");
     }
@@ -113,6 +162,7 @@ class QuestionServiceTest {
                 .thenReturn(new Reponse(List.of(new Passage("début", List.of())), false, true));
 
         assertThat(service.repondre("question", PROFIL).avertissements()).last().asString().contains("incomplète");
+        assertThat(registre.counter("droits.questions", "issue", "tronquee").count()).isEqualTo(1.0);
     }
 
     @Test
@@ -124,6 +174,7 @@ class QuestionServiceTest {
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
         assertThat(reponse.refus()).isTrue();
+        assertThat(registre.counter("droits.questions", "issue", "refus").count()).isEqualTo(1.0);
         assertThat(reponse.avertissements()).last().asString().contains("n'a pas pu être traitée");
     }
 }

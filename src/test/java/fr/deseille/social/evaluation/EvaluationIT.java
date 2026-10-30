@@ -15,6 +15,7 @@ import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
 import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.ClaudeProperties;
+import fr.deseille.social.questions.MetriquesQuestions;
 import fr.deseille.social.questions.QuestionService;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.recherche.RechercheService;
@@ -76,6 +77,8 @@ class EvaluationIT {
     @Autowired
     private ClaudeProperties claudeProperties;
     @Autowired
+    private MetriquesQuestions metriques;
+    @Autowired
     private ArticleRepository articleRepository;
 
     @Test
@@ -90,7 +93,8 @@ class EvaluationIT {
         verifierArticlesAttendus(questions);
 
         Assistant assistant = simulee ? new AssistantSimule() : assistantClaude;
-        QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant);
+        QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant,
+                metriques);
         JugeClaude juge = simulee || !Boolean.parseBoolean(System.getProperty("evaluation.juge", "true")) ? null
                 : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 

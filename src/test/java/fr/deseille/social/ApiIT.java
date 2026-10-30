@@ -148,6 +148,12 @@ class ApiIT {
                 .containsExactly("CREATION");
     }
 
+    @Test
+    void metriques_non_exposees_sans_le_profil_observabilite() {
+        assertThat(mvc.get().uri("/actuator/metrics")).hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(mvc.get().uri("/actuator/health")).hasStatusOk();
+    }
+
     // --- Profil ---
 
     @Test

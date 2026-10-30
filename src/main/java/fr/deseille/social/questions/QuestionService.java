@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Répond à la question d'un salarié : contexte du profil, reformulation en requêtes, recherche dans
@@ -32,31 +33,55 @@ public class QuestionService {
     private final RechercheService rechercheService;
     private final ConsultationService consultationService;
     private final Assistant assistant;
+    private final MetriquesQuestions metriques;
 
     public QuestionService(ProfilService profilService, RechercheService rechercheService,
-                           ConsultationService consultationService, Assistant assistant) {
+                           ConsultationService consultationService, Assistant assistant,
+                           MetriquesQuestions metriques) {
         this.profilService = profilService;
         this.rechercheService = rechercheService;
         this.consultationService = consultationService;
         this.assistant = assistant;
+        this.metriques = metriques;
     }
 
+    /**
+     * Toute question est comptée dans {@code droits.questions}, y compris quand elle échoue :
+     * invalide (requête refusée), indisponible (modèle), erreur (imprévue).
+     */
     public ReponseQuestion repondre(String question, ProfilSalarie profil) {
+        try {
+            return traiter(question, profil);
+        } catch (AssistantIndisponibleException e) {
+            metriques.question("indisponible");
+            throw e;
+        } catch (ResponseStatusException e) {
+            metriques.question(e.getStatusCode().is4xxClientError() ? "invalide" : "erreur");
+            throw e;
+        } catch (RuntimeException e) {
+            metriques.question("erreur");
+            throw e;
+        }
+    }
+
+    private ReponseQuestion traiter(String question, ProfilSalarie profil) {
         ContexteProfil contexte = profilService.contexte(profil);
         // Le modèle raisonne à la date de référence : la recherche et l'applicabilité aussi
         LocalDate date = contexte.profil().dateReference();
-        List<String> requetes = assistant.reformuler(question, contexte);
+        List<String> requetes = metriques.chronometrer("reformulation", () -> assistant.reformuler(question, contexte));
 
-        List<ArticleDetail> articles = selectionner(requetes, profil.idcc(), date).stream()
+        List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> selectionner(requetes, profil.idcc(), date)
+                .stream()
                 .map(r -> consultationService.article(r.articleSourceId(), date))
-                .toList();
+                .toList());
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         if (articles.isEmpty()) {
+            metriques.question("aucun_article");
             avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
             return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
         }
 
-        Assistant.Reponse reponse = assistant.rediger(question, contexte, articles);
+        Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }
@@ -67,6 +92,9 @@ public class QuestionService {
         if (reponse.tronquee()) {
             avertissements.add("Réponse incomplète : elle a été interrompue avant sa fin. Reformulez une question plus précise.");
         }
+        metriques.question(reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "repondue");
+        metriques.citations((int) reponse.passages().stream().mapToLong(p -> p.citations().size()).sum(),
+                nonVerifiees.size());
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
                 articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees);
     }
