@@ -21,7 +21,7 @@ Prérequis : Java 25, Docker.
 ./mvnw verify                      # tests unitaires et d'intégration
 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.ingestion.run=true --spring.main.web-application-type=none"
                                    # ingestion des sources (Code du travail, 7 conventions)
-./mvnw spring-boot:run             # API sur http://localhost:8080/api
+./mvnw spring-boot:run             # page web sur http://localhost:8080/, API sur /api
 ```
 
 Les réponses aux questions (`POST /api/questions`) appellent Claude : clé dans `ANTHROPIC_API_KEY`
