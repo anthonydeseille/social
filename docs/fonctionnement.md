@@ -25,7 +25,7 @@ flowchart TD
     R3 -->|"aucun article"| VIDE["Réponse vide + avertissement<br/>(pas d'appel n° 2)"]
     R3 --> C4
 
-    C4["🤖 4. Rédaction (Claude)<br/>8 articles = 8 documents, citations activées<br/>+ profil + question + consignes<br/>≈ 4 à 7 centimes"]
+    C4["🤖 4. Rédaction (Claude)<br/>8 articles (4 avec Ollama) = 8 documents, citations activées<br/>+ profil + question + consignes<br/>≈ 4 à 7 centimes"]
     C4 -->|"panne"| E503["503 Service indisponible"]
     C4 -.->|"refus des filtres :<br/>rejoué sur un autre modèle"| C4
     C4 --> V5
@@ -62,7 +62,7 @@ souvenir de mes informations », et un bouton l'efface.
 | 1. Contexte du profil | Ancienneté à la date de référence (aujourd'hui par défaut), textes applicables à cette date (Code du travail, convention collective si intégrée), avertissements (convention non renseignée ou non intégrée). | gratuit |
 | 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. | ≈ 1 centime |
 | 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence ; fusion des résultats et sélection des 8 meilleurs. | gratuit |
-| 4. Rédaction | Claude reçoit les 8 articles comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
+| 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; signalement d'une réponse interrompue. | gratuit |
 
 ## Fournisseur local : Ollama
@@ -83,11 +83,11 @@ ce qui change :
 | Refus, repli | refus signalé, repli côté serveur | pas de refus ; pas de repli |
 | Rédaction illisible (hors du JSON demandé) | sans objet | 503 |
 | Rédaction coupée par la limite de jetons (`num-predict`) | passages reçus, signalés tronqués | JSON complet : passages servis, signalés tronqués ; JSON inachevé : illisible, donc **réponse vide** signalée tronquée (rien de ce qui a été généré n'est montré) |
-| Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres, sans éléments du profil (IDCC, « convention collective », type de contrat) ni mots vides : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
+| Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres ni mots vides, sans IDCC, « convention collective » ni type de contrat recopiés du profil (gardés si la question les emploie : « fin de CDD ») : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
-dans Spring AI). Le contexte est porté à 12 288 jetons (`num-ctx`) et la réponse limitée à 2 048
+dans Spring AI). Le contexte est porté à 12 288 jetons (`num-ctx`) et la réponse limitée à 3 072
 (`num-predict`) : le contexte par défaut d'Ollama (2 048) ne contient pas quatre articles, et Ollama
 tronque sans prévenir un texte trop long.
 

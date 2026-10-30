@@ -27,7 +27,7 @@ spring:
         # Contexte assez long pour quatre articles, le profil et la réponse (2048 jetons par défaut
         # dans Ollama, qui tronque sans prévenir) ; moins de mémoire qu'à 16 384
         num-ctx: 12288
-        num-predict: 2048
+        num-predict: 3072
         temperature: 0.2
     retry:
       # Un modèle local lent ne gagne rien à être relancé dix fois (défaut de Spring AI)

@@ -232,9 +232,20 @@ class AssistantOllamaTest {
                 "convention collective idcc 1486 cdi cadre essai durée",
                 "convention collective idcc 1486 maternite licenciement non cadre cdi",
                 "licenciement enceinte non cadre cdi convention collective idcc 1486",
-                "Période d'essai")))
+                "Période d'essai"), "Combien de temps dure ma période d'essai ?"))
                 .containsExactly("durée essai cadre", "cadre essai durée", "maternite licenciement cadre",
                         "licenciement enceinte cadre", "période essai");
+    }
+
+    @Test
+    void mot_du_profil_garde_quand_la_question_l_emploie() {
+        assertThat(AssistantOllama.simplifier(List.of("prime précarité cdd", "idcc 1486 cdd fin"),
+                "Mon CDD se termine, ai-je droit à une prime ?"))
+                .containsExactly("prime précarité cdd", "cdd fin");
+        assertThat(AssistantOllama.simplifier(List.of("convention forfait jours"), "Ma convention de forfait est-elle valable ?"))
+                .containsExactly("convention forfait jours");
+        assertThat(AssistantOllama.simplifier(List.of("convention forfait jours"), "Mes jours de repos au forfait ?"))
+                .containsExactly("forfait jours");
     }
 
     @Test

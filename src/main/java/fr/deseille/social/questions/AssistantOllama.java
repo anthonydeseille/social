@@ -73,11 +73,16 @@ public class AssistantOllama implements Assistant {
             - « Je travaille la nuit dans un hôtel, ai-je droit à une contrepartie ? » → \
             {"requetes": ["travail nuit contrepartie", "repos compensateur nuit"]}""";
 
-    /** Mots retirés des requêtes : éléments du profil et mots vides que la recherche exigerait. */
-    private static final Set<String> MOTS_IGNORES = Set.of(
-            "idcc", "convention", "collective", "cdi", "cdd", "non",
-            "le", "la", "les", "l", "de", "du", "des", "d", "un", "une", "et", "ou", "en", "à", "au", "aux",
-            "pour", "par", "sur", "mon", "ma", "mes", "je", "suis", "est", "que", "qui");
+    /** Mots vides, toujours retirés des requêtes : la recherche les exigerait. */
+    private static final Set<String> MOTS_VIDES = Set.of(
+            "idcc", "le", "la", "les", "l", "de", "du", "des", "d", "un", "une", "et", "ou", "en", "à", "au",
+            "aux", "pour", "par", "sur", "mon", "ma", "mes", "je", "suis", "est", "que", "qui");
+
+    /**
+     * Mots que les petits modèles recopient du profil : retirés, sauf quand la question elle-même les
+     * emploie (« prime de fin de CDD », « convention de forfait »).
+     */
+    private static final Set<String> MOTS_DU_PROFIL = Set.of("convention", "collective", "cdi", "cdd", "non");
 
     /** Mots par requête au plus : la recherche exige tous les mots d'une requête. */
     private static final int MOTS_MAX = 3;
@@ -163,7 +168,8 @@ public class AssistantOllama implements Assistant {
         }
         journaliser("reformulation", reponse);
         try {
-            List<String> requetes = AssistantClaude.nettoyer(simplifier(JSON.readValue(texte(reponse), Requetes.class).requetes()), question);
+            List<String> requetes = AssistantClaude.nettoyer(
+                    simplifier(JSON.readValue(texte(reponse), Requetes.class).requetes(), question), question);
             metriques.appelModele(FOURNISSEUR, "reformulation", "succes");
             return requetes;
         } catch (RuntimeException e) {
@@ -204,21 +210,25 @@ public class AssistantOllama implements Assistant {
     }
 
     /**
-     * Requêtes ramenées à des mots-clés : sans chiffres, sans éléments du profil ni mots vides, trois
-     * mots au plus. Garde-fou propre aux petits modèles, dont les requêtes trop longues ne trouvent
-     * aucun article ; celles de Claude ne passent pas par là.
+     * Requêtes ramenées à des mots-clés : sans chiffres ni mots vides, sans les mots recopiés du
+     * profil (IDCC, « convention collective », type de contrat) quand la question ne les emploie pas,
+     * trois mots au plus. Garde-fou propre aux petits modèles, dont les requêtes trop longues ne
+     * trouvent aucun article ; celles de Claude ne passent pas par là.
      */
-    static List<String> simplifier(List<String> requetes) {
+    static List<String> simplifier(List<String> requetes, String question) {
         if (requetes == null) {
             return List.of();
         }
+        Set<String> motsDeLaQuestion = Set.copyOf(Arrays.asList(
+                (question == null ? "" : question).toLowerCase(Locale.FRENCH).split("[^\\p{L}]+")));
         List<String> simplifiees = new ArrayList<>();
         for (String requete : requetes) {
             if (requete == null) {
                 continue;
             }
             simplifiees.add(Arrays.stream(requete.toLowerCase(Locale.FRENCH).split("[^\\p{L}]+"))
-                    .filter(mot -> !mot.isEmpty() && !MOTS_IGNORES.contains(mot))
+                    .filter(mot -> !mot.isEmpty() && !MOTS_VIDES.contains(mot))
+                    .filter(mot -> !MOTS_DU_PROFIL.contains(mot) || motsDeLaQuestion.contains(mot))
                     .limit(MOTS_MAX)
                     .collect(Collectors.joining(" ")));
         }
