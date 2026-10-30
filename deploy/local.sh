@@ -58,9 +58,31 @@ cree() {
 ingere() {
     kubectl -n "$NAMESPACE" delete job ingestion --ignore-not-found > /dev/null
     kubectl apply -f "$RACINE/deploy/k8s/ingestion.yaml"
-    # Journaux disponibles une fois le conteneur démarré (après l'attente de Postgres)
-    until kubectl -n "$NAMESPACE" logs -f job/ingestion 2> /dev/null; do sleep 2; done
-    kubectl -n "$NAMESPACE" wait --for=condition=Complete job/ingestion --timeout=60s
+    # Journaux disponibles une fois le conteneur démarré (après l'attente de Postgres) ; au plus
+    # 3 min d'attente, pour ne pas boucler sur un pod qui ne démarre pas (image absente…)
+    local essai
+    for essai in $(seq 1 90); do
+        kubectl -n "$NAMESPACE" logs -f job/ingestion 2> /dev/null && break
+        if [ "$essai" -eq 90 ]; then
+            echo "L'ingestion n'a pas démarré :" >&2
+            kubectl -n "$NAMESPACE" get pods -l app.kubernetes.io/name=ingestion >&2
+            exit 1
+        fi
+        sleep 2
+    done
+    # Fin des journaux : le contrôleur de Job peut mettre un moment à enregistrer le résultat
+    local statut
+    for essai in $(seq 1 150); do
+        statut="$(kubectl -n "$NAMESPACE" get job ingestion -o jsonpath='{.status.succeeded}/{.status.failed}')"
+        case "$statut" in
+            1/*) echo "Ingestion terminée"; return ;;
+            */[1-9]*) break ;;
+        esac
+        sleep 2
+    done
+    echo "Ingestion en échec ou sans résultat (journaux ci-dessus) :" >&2
+    kubectl -n "$NAMESPACE" get job ingestion >&2
+    exit 1
 }
 
 prerequis

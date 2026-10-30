@@ -70,6 +70,8 @@ appels payants).
 
 - Le CI valide les manifestes contre les schémas de l'API Kubernetes (`kubeconform`, job « Manifestes Kubernetes »), sans cluster.
 - Le profil n'est jamais journalisé : `kubectl -n droits logs deploy/social` ne montre que des comptes de jetons et des noms d'exceptions.
+- Lancer l'ingestion une fois l'appli démarrée : les deux appliquent les changesets Liquibase, et le verrou de Liquibase fait attendre le second.
+- Manifestes pensés pour un poste local : pas de `securityContext` (utilisateur non root, système de fichiers en lecture seule), à ajouter avant de les réutiliser pour la mise en ligne.
 - Mémoire : arrêter le cluster (`k3d cluster stop droits`) pendant un `./mvnw verify`, qui démarre ses propres conteneurs.
 
 ## Suite
