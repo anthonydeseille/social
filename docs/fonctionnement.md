@@ -142,6 +142,13 @@ flowchart LR
 | Citations vérifiées | Les extraits cités existent-ils dans les articles ? |
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
+**Évaluation de la recherche, gratuite, dans chaque PR** (job CI « Évaluation de la recherche ») : les
+requêtes de reformulation d'une évaluation complète sont figées (`src/test/resources/evaluation/requetes.yaml`)
+et rejouées sur les vraies sources, sans appel au modèle ; elle mesure l'indicateur « recherche » (articles
+attendus parmi les 8 retenus) et échoue s'il baisse par rapport à la référence versionnée
+(`recherche-reference.json`). Elle isole la recherche : un réglage du classement se mesure en deux minutes,
+sans le bruit des reformulations, qui varient d'un passage à l'autre.
+
 Résultats et conclusions de chaque évaluation, historisés : [`evaluations/`](evaluations/README.md)
 (tableau de l'historique, analyses datées, rapports bruts, `historique.csv`).
 

@@ -39,7 +39,7 @@ automatiquement, comparé à l'historique, tracé en production et corrigé à p
 
 ### Plan
 
-1. **Évaluation gratuite de la recherche, dans chaque PR** : requêtes de reformulation figées par question (fichier versionné, régénérées à la demande), puis part des articles attendus parmi les articles retenus, sans appel au modèle ; résumé JSON de chaque évaluation complète, versé dans `historique.csv`.
+1. ✅ **Évaluation gratuite de la recherche, dans chaque PR** (`RechercheEvaluationIT`, job CI) : requêtes de reformulation figées par question (fichier versionné, régénérées à la demande), puis part des articles attendus parmi les articles retenus, sans appel au modèle ; résumé JSON de chaque évaluation complète, versé dans `historique.csv`.
 2. **Consignes versionnées** : consignes (reformulation, rédaction, juge) dans des fichiers `prompts/`, version inscrite dans chaque réponse de l'API, chaque rapport, l'historique et les métriques.
 3. **Évaluation complète dans la CI** : sur étiquette `eval`, et d'office quand une PR touche consignes, recherche ou modèle ; authentification par fédération d'identité (jeton OIDC de GitHub Actions, règle limitée au dépôt, sans clé stockée) ; comparaison à la dernière ligne de l'historique, blocage en cas de baisse nette, résumé commenté dans la PR ; budget : à la demande et hebdomadaire plutôt que nocturne (1,13 à 1,36 $ par lancement jusqu'ici).
 4. **Observabilité en production** : traces OpenTelemetry par question (une étape par span : jetons, modèle, version des consignes, articles transmis ; aucune donnée du profil) ; Grafana et alertes dans le cluster k3d (coût par jour, latence, refus, troncatures, citations non vérifiées, « aucun article ») ; diagnostic du cluster par k8sgpt, plugins k9s.
