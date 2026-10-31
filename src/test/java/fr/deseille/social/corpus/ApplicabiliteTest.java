@@ -87,6 +87,16 @@ class ApplicabiliteTest {
     }
 
     @Test
+    void texte_a_abrogation_differee_applicable_jusqu_a_sa_date_de_fin() {
+        Texte texte = new Texte("KALICONT000000000010", TypeTexte.CONVENTION_COLLECTIVE, "Convention remplacée");
+        texte.setEtat(EtatJuridique.ABROGE_DIFF);
+        texte.setDateFin(LocalDate.of(2027, 1, 1));
+
+        assertThat(texte.estApplicableLe(LocalDate.of(2026, 12, 31))).isTrue();
+        assertThat(texte.estApplicableLe(LocalDate.of(2027, 1, 1))).isFalse();
+    }
+
+    @Test
     void texte_sans_etat_considere_applicable_sinon_etat_et_dates() {
         Texte convention = new Texte("KALICONT000005635173", TypeTexte.CONVENTION_COLLECTIVE, "Syntec");
         assertThat(convention.estApplicableLe(AUJOURD_HUI)).as("état inconnu (dumps KALI)").isTrue();
