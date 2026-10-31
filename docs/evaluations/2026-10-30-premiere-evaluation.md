@@ -10,8 +10,9 @@ travail et la convention Syntec réels, puis réponses notées par un juge autom
 - **Claude est fiable sur ce qu'il cite** : les 186 extraits cités se trouvent mot pour mot dans les
   articles. Quand l'article utile lui manque, il le dit plutôt que de répondre de mémoire.
 - **La recherche est le maillon faible** : seuls 45 % des articles attendus ont été transmis à Claude.
-  Ce sont presque toujours les articles de principe **du Code du travail** qui manquent : ils sont
-  trouvés mais classés trop bas (13e à 39e rang alors que 8 sont retenus).
+  Ce sont presque toujours les articles de principe **du Code du travail** qui manquent : le plus
+  souvent trouvés mais classés trop bas (13e à 39e rang alors que 8 sont retenus), parfois
+  introuvables parce que l'article n'emploie pas les mots cherchés.
 - **Un bug a faussé toutes les réponses** : le Code était jugé « non intégré » à la date des questions
   (1er novembre 2026), et l'appli l'aurait dit à tous les utilisateurs à partir de cette date.
   Corrigé par la PR #22.
@@ -48,10 +49,10 @@ Indicateurs :
 | Indicateur | Résultat |
 |---|---|
 | Questions traitées | 20/20, aucune en erreur |
-| Recherche | **45 %** des articles attendus transmis |
+| Recherche | **45 %** des articles attendus transmis (moyenne par question ; 21 articles sur 48 au total, soit 44 %) |
 | Citations | 45 % des articles attendus cités (tous ceux qui ont été transmis l'ont été) |
 | Citations vérifiées | **186/186** |
-| Qualité (juge) | **70 %** des points clés |
+| Qualité (juge) | **70 %** des points clés (moyenne par question) |
 | Erreurs à éviter commises | 1 |
 | Jetons | 267 900 en entrée, 53 348 en sortie |
 | Coût | 1,07 $ (0,053 $ par question) + juge 0,29 $ = **1,36 $** |
@@ -137,6 +138,7 @@ convention Syntec, avant et après ajout des titres de section à l'index :
 | indemnité précarité | L1243-8 | 6 | 6 |
 | maladie maintien salaire | L1226-1 | introuvable | introuvable |
 | délai congé démission | L1237-1 | introuvable | introuvable |
+| préavis démission cadres | Syntec 4.2 | 1 | 1 |
 
 Les titres de section apportent un gain net et régulier. Des réglages du classement (normalisation
 par la longueur, « ou » au lieu de « et » entre les mots) ont aussi été essayés : ils améliorent certains
@@ -193,7 +195,7 @@ relire après la correction et la validation du jeu par la juriste.
 
 | Priorité | Action | État |
 |---|---|---|
-| 1 | Code applicable après la fin de sa version consolidée | PR #22 |
+| 1 | Code applicable après la fin de sa version consolidée | fait (PR #22) |
 | 2 | Titres de section dans l'index de recherche (nouveau changeset, réingestion) | à faire |
 | 3 | Articles de l'ancienne numérotation et sans numéro : décider avec la juriste s'ils sont écartés de la rédaction | à décider |
 | 4 | Relancer l'évaluation après 1 et 2 pour mesurer le gain (≈ 1,40 $ en lots) | après 1 et 2 |
