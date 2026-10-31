@@ -25,21 +25,26 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 
 ## LLMOps
 
-1. **Juge automatique** ✅ : note les points clés et les erreurs à éviter ; la juriste n'arbitre que les désaccords.
-2. **Évaluation via l'API Batch** ✅ (`-Devaluation.lots=true`) : moitié prix, trois lots successifs ; testée sans appel réseau, premier lancement réel à faire. Limite : pas de reprise si un lot dépasse le délai d'attente (les lots déjà terminés sont perdus pour le rapport).
-3. **Vérification déterministe des citations** ✅ : chaque extrait cité doit exister dans l'article (aux espaces près), signalé sinon. Reste à faire : un indicateur d'évaluation pour les chiffres absents des articles cités (pas dans l'appli : les montants calculés n'y figurent jamais).
-4. **Métriques et tableau de bord** (Micrometer, Actuator) : jetons, coût, latence par étape, refus, troncatures, « aucun article », quota.
-   - Métriques ✅ (`/actuator/metrics`, `/actuator/prometheus`, voir `docs/fonctionnement.md`) ; reste le tableau de bord (Prometheus et Grafana, par exemple) et la protection des points d'accès.
-5. **Évaluation dans la CI** : sur étiquette `eval` quand une PR touche consignes, recherche ou modèle ; blocage si le score baisse ; historique des scores.
-6. **Prompts versionnés** : consignes dans des fichiers, version inscrite dans chaque réponse et chaque rapport.
-7. **Traces OpenTelemetry** par question (reformulation, recherche, rédaction), sans donnée personnelle.
-8. **Garde-fou données personnelles** : retirer nom, e-mail, numéro de sécurité sociale avant envoi au modèle.
-   - Authentification sans clé permanente : fédération d'identité d'Anthropic (Workload Identity Federation), jeton de courte durée échangé contre l'identité de la charge de travail. D'abord pour l'évaluation dans la CI (jeton OIDC de GitHub Actions, règle limitée à la branche `main`), puis pour la mise en ligne (émetteur public du Kubernetes hébergé). Inapplicable au cluster k3d local, dont l'émetteur n'est pas joignable par Anthropic.
-9. **Coûts** : cache de prompt, modèle par étape (à décider sur le score d'évaluation), alertes de dépense.
-   - Modèle local par Ollama ✅ (`droits.assistant.fournisseur=ollama`, Spring AI) : gratuit, profil gardé sur la machine ; essayé dans le cluster k3d avec Qwen 2.5 7B et Mistral 7B (reformulation corrigée, rédaction lente : plusieurs minutes sur processeur) ; évaluation comparative à faire, idéalement sur une machine avec carte graphique.
-10. **Corpus vivant** : à chaque ingestion qui modifie des articles, réévaluer les questions qui les citent.
-11. **Automatisation** : évaluation nocturne avec issue en cas de baisse, correction automatique de la CI par l'action Claude, évaluation comparative à chaque nouveau modèle.
-12. **Boucle de retour** : « utile / pas utile » en production, mauvaises réponses transformées en questions d'évaluation (anonymisées, validées).
+Objectif : une boucle fermée. Chaque changement (consigne, recherche, modèle, corpus) est mesuré
+automatiquement, comparé à l'historique, tracé en production et corrigé à partir des retours.
+
+### En place
+
+- **Évaluation** ✅ : jeu de 20 questions, juge automatique (points clés, erreurs à éviter), API Batch (moitié prix), rapport par question ; historique des résultats ([`docs/evaluations/`](docs/evaluations/README.md), `historique.csv`). Limite : pas de reprise si un lot dépasse le délai d'attente.
+- **Vérification déterministe des citations** ✅ : chaque extrait cité doit exister dans l'article.
+- **Métriques** ✅ (Micrometer, `/actuator/prometheus`) : issues, durées par étape, appels et jetons par fournisseur, citations, quota.
+- **Quota journalier** ✅ et **deux fournisseurs** ✅ (Claude, Ollama local).
+- **Déploiement local k3d** ✅, base du tableau de bord et de la mise en ligne.
+
+### Plan
+
+1. **Évaluation gratuite de la recherche, dans chaque PR** : requêtes de reformulation figées par question (fichier versionné, régénérées à la demande), puis part des articles attendus parmi les articles retenus, sans appel au modèle ; résumé JSON de chaque évaluation complète, versé dans `historique.csv`.
+2. **Consignes versionnées** : consignes (reformulation, rédaction, juge) dans des fichiers `prompts/`, version inscrite dans chaque réponse de l'API, chaque rapport, l'historique et les métriques.
+3. **Évaluation complète dans la CI** : sur étiquette `eval`, et d'office quand une PR touche consignes, recherche ou modèle ; authentification par fédération d'identité (jeton OIDC de GitHub Actions, règle limitée au dépôt, sans clé stockée) ; comparaison à la dernière ligne de l'historique, blocage en cas de baisse nette, résumé commenté dans la PR ; budget : à la demande et hebdomadaire plutôt que nocturne (≈ 1,40 $ par lancement).
+4. **Observabilité en production** : traces OpenTelemetry par question (une étape par span : jetons, modèle, version des consignes, articles transmis ; aucune donnée du profil) ; Grafana et alertes dans le cluster k3d (coût par jour, latence, refus, troncatures, citations non vérifiées, « aucun article ») ; diagnostic du cluster par k8sgpt, plugins k9s.
+5. **Garde-fous** : en entrée, retrait des données personnelles avant envoi au modèle (e-mail, numéro de sécurité sociale, téléphone) et détection des tentatives d'injection ; en sortie, chaque chiffre de la réponse présent dans les articles cités ou venant du calculateur ; jeu adversarial dans l'évaluation (hors sujet, injections, profils incohérents).
+6. **Coût et choix des modèles, sur preuves** : évaluation par modèle et par étape (Opus, Sonnet, Haiku, Ollama ; reformulation par un modèle plus léger si le score de recherche tient), cache de prompt sur les consignes, alerte de dépense, évaluation comparative à chaque nouveau modèle.
+7. **Boucle de retour et corpus vivant** : « utile / pas utile » dans la page web (sans profil), mauvaises réponses transformées en questions d'évaluation après validation de la juriste ; réévaluation des questions qui citent un article modifié par une ingestion (journal des changements) ; jeu étendu aux 6 autres conventions.
 
 ## Pour des utilisateurs réels
 

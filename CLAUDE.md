@@ -49,4 +49,5 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `EvaluationIT` pose ces questions sur les vraies sources ; désactivé par défaut car il appelle Claude (payant, `ANTHROPIC_API_KEY`) :
   `./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true`
   (`-Devaluation.simulee=true` : faux assistant, gratuit ; `-Devaluation.lots=true` : API Batch, moitié prix, asynchrone ; `-Devaluation.toutes=true` : y compris les questions non validées ; `-Ddroits.assistant.fournisseur=ollama` : modèle local, juge Claude). Rapport dans `target/evaluation/`, avec la note d'un juge automatique (`JugeClaude`).
+- Toute évaluation réelle est historisée dans `docs/evaluations/` (rapport brut daté, analyse, ligne dans `README.md` et `historique.csv`) : voir `docs/evaluations/README.md`.
 - Feuille de route : `FEUILLE_DE_ROUTE.md`.

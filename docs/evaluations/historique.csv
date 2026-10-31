@@ -1,0 +1,2 @@
+date,commit,changement,mode,modele,questions,validees,recherche_pct,articles_transmis,articles_attendus,citations_pct,citations_verifiees,citations_total,qualite_pct,erreurs,jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse
+2026-10-30,50edaac,référence,lots,claude-opus-5-5,20,0,45,21,48,45,186,186,70,1,267900,53348,1.07,0.29,2026-10-30-premiere-evaluation.md
