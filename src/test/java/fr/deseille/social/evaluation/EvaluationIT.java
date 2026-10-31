@@ -7,9 +7,7 @@ import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.MessageCreateParams;
-import fr.deseille.social.corpus.Article;
 import fr.deseille.social.corpus.ArticleRepository;
-import fr.deseille.social.evaluation.JeuEvaluation.ArticleAttendu;
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
 import fr.deseille.social.profil.ProfilService;
@@ -26,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -36,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -264,32 +260,10 @@ class EvaluationIT {
         return e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " : " + e.getMessage());
     }
 
-    /**
-     * Chaque article attendu doit exister dans le corpus ingéré, porter le numéro annoncé (quand le
-     * corpus en a un) et être applicable à la date de référence de la question : sinon (révision
-     * épinglée changée, identifiant erroné), arrêt avant le premier appel payant, avec la liste des
-     * anomalies.
-     */
+    /** Arrêt avant le premier appel payant si un article attendu est introuvable, mal numéroté ou non applicable. */
     private void verifierArticlesAttendus(List<Question> questions) {
-        Map<String, Article> articles = articleRepository.findBySourceIdIn(questions.stream()
-                        .flatMap(q -> q.articlesAttendus().stream()).map(ArticleAttendu::sourceId).toList())
-                .stream().collect(Collectors.toMap(Article::getSourceId, Function.identity()));
-        List<String> anomalies = new ArrayList<>();
-        for (Question q : questions) {
-            LocalDate date = q.profil().dateReference() != null ? q.profil().dateReference() : LocalDate.now();
-            for (ArticleAttendu attendu : q.articlesAttendus()) {
-                Article article = articles.get(attendu.sourceId());
-                String reference = q.id() + " : " + attendu.num() + " (" + attendu.sourceId() + ")";
-                if (article == null) {
-                    anomalies.add(reference + " absent du corpus");
-                } else if (article.getNum() != null && !article.getNum().equals(attendu.num())) {
-                    anomalies.add(reference + " porte le numéro " + article.getNum());
-                } else if (!article.estApplicableLe(date)) {
-                    anomalies.add(reference + " non applicable au " + date + " (" + article.getEtat() + ")");
-                }
-            }
-        }
-        assertThat(anomalies).as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
+        assertThat(ArticlesAttendus.anomalies(questions, articleRepository))
+                .as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
     }
 
     private static JeuEvaluation jeu() throws Exception {
