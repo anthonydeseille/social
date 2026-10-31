@@ -16,10 +16,12 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 
 1. **Évaluation de référence** : valider le jeu de questions avec la juriste, lancer l'évaluation, ajuster reformulation, consignes ou recherche selon les résultats.
    - Jeu de 20 questions prêt ✅ (articles vérifiés dans le corpus à chaque lancement) ; validation juridique en attente (champ `valide`).
+   - Première évaluation ✅ ([`docs/evaluations/2026-10-30-premiere-evaluation.md`](docs/evaluations/2026-10-30-premiere-evaluation.md)) : citations fiables (186/186), qualité 70 %, recherche 45 % (articles du Code mal classés) ; un bug d'applicabilité du Code révélé et corrigé (PR #22). Suites : titres de section dans l'index, ancienne numérotation, nouvelle évaluation.
 2. **Calculateur d'indemnité de licenciement** : légale et Syntec, application de la plus favorable, montants calculés par le code (jamais par le modèle), expliqués par Claude.
    - Calcul et API ✅ (`docs/regles-indemnite-licenciement.md`) ; règles en cours de validation juridique.
    - À faire : brancher le calcul sur le trajet des questions (montant transmis à Claude, qui l'explique).
 3. **Recherche sémantique** (embeddings) : seulement si l'évaluation montre des articles pertinents introuvables.
+   - Justifiée par la première évaluation : L1226-1 (« indemnité complémentaire », cherché comme « maintien de salaire ») et L1237-1 sont introuvables par mots-clés.
 
 ## LLMOps
 

@@ -142,6 +142,9 @@ flowchart LR
 | Citations vérifiées | Les extraits cités existent-ils dans les articles ? |
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
+Résultats et conclusions de chaque évaluation : [`evaluations/`](evaluations/) (la première :
+[30 octobre 2026](evaluations/2026-10-30-premiere-evaluation.md)).
+
 Lancement : voir `CLAUDE.md` (section Tests). Avec `-Ddroits.assistant.fournisseur=ollama`, le
 même jeu est posé au modèle local, le juge restant Claude : les deux rapports se comparent
 directement (coût affiché nul pour le modèle local, durée par question). En mode lots (`-Devaluation.lots=true`), les appels
