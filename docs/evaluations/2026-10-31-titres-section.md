@@ -14,7 +14,8 @@ Rapport brut : [`2026-10-31-rapport-brut.md`](2026-10-31-rapport-brut.md).
 - **Recherche : 45 % → 58 %** (21 → 26 articles attendus transmis sur 48). Les articles de principe
   du Code remontent comme prévu (13 gagnés).
 - **Mais la convention est évincée** : 7 articles Syntec décisifs ont disparu (4.5 trois fois, 5.1,
-  5.7, 9.3, 4.2), plus le chapitre IX (texte de regroupement, attendu par une seule question). Le titre de section avantage tous les articles d'une même section du Code, qui
+  5.7, 9.3, 4.2), plus le chapitre IX (texte de regroupement, attendu par une seule
+  question). Le titre de section avantage tous les articles d'une même section du Code, qui
   occupent alors les 8 places.
 - **Qualité stable : 70 % → 71 %**, faite de nets progrès (absences pour recherche d'emploi, heures
   complémentaires) et de reculs là où l'article Syntec manque (indemnité cadre, congés payés).
