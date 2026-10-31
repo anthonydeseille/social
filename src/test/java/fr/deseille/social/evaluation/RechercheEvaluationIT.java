@@ -217,6 +217,6 @@ class RechercheEvaluationIT {
 
     private static String liste(List<String> sourceIds, Map<String, String> numeros) {
         return sourceIds.isEmpty() ? "" : sourceIds.stream().map(id -> numeros.getOrDefault(id, id))
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(", ")).replace("|", "\\|");
     }
 }

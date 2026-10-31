@@ -214,7 +214,6 @@ final class RapportEvaluation {
         return md.toString();
     }
 
-    /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */
     /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des valeurs de {@link #ligneHistorique}. */
     static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,questions,validees,recherche_pct,"
             + "articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
@@ -271,6 +270,7 @@ final class RapportEvaluation {
         return Double.isNaN(dollars) ? null : Math.round(dollars * 100) / 100.0;
     }
 
+    /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */
     private static String moyenne(List<Resultat> resultats, Function<Resultat, Double> score) {
         List<Double> scores = resultats.stream().map(score).filter(Objects::nonNull).toList();
         if (scores.isEmpty()) {
