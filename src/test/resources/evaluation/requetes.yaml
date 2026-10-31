@@ -1,0 +1,25 @@
+# Requêtes de reformulation figées par question, rejouées par RechercheEvaluationIT pour
+# mesurer la recherche sans appel au modèle. Écrit par EvaluationIT (target/evaluation/) ;
+# à recopier ici quand les consignes de reformulation ou le modèle changent.
+origine: "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31"
+requetes:
+  periode-essai-cadre: ["période essai cadres", "période essai durée", "renouvellement période essai", "période essai ingénieurs cadres"]
+  periode-essai-etam-250: ["période essai durée", "période essai renouvellement", "période essai ETAM", "délai prévenance essai"]
+  preavis-demission-cadre: ["préavis démission", "démission cadre préavis", "durée préavis", "heures recherche emploi"]
+  preavis-licenciement-etam-3ans: ["préavis licenciement", "durée préavis ETAM", "délai congé licenciement", "indemnité compensatrice préavis"]
+  absences-recherche-emploi: ["absence recherche emploi", "préavis heures recherche", "heures recherche emploi rémunérées", "préavis licenciement cadre"]
+  indemnite-licenciement-cadre-7ans: ["indemnité licenciement", "licenciement économique", "indemnité licenciement ingénieurs cadres", "salaire référence indemnité"]
+  indemnite-licenciement-etam-12ans: ["indemnité licenciement", "indemnité licenciement ancienneté", "salaire référence indemnité", "licenciement ETAM"]
+  licenciement-6-mois: ["indemnité licenciement", "préavis licenciement", "délai congé ETAM", "indemnité légale licenciement ancienneté"]
+  grossesse-annonce: ["état grossesse embauche", "révéler état grossesse", "grossesse informations candidat", "certificat médical grossesse employeur"]
+  grossesse-licenciement: ["licenciement grossesse", "état grossesse médicalement constaté", "congé maternité licenciement", "protection maternité salariée"]
+  grossesse-amenagement-horaire: ["grossesse réduction horaire", "examens médicaux obligatoires grossesse", "salariée enceinte autorisation absence", "femme enceinte temps travail"]
+  conge-maternite: ["congé maternité", "durée congé maternité", "maternité maintien salaire", "indemnités journalières maternité"]
+  conges-payes-6ans: ["congés payés durée", "congés ancienneté jours", "jours ouvrables congé", "congés fractionnement jours"]
+  conge-mariage: ["congé mariage", "mariage jours ouvrables", "événements familiaux congé", "absence mariage rémunération"]
+  maladie-cadre-2ans: ["maintien salaire maladie", "indemnité complémentaire maladie", "indemnités journalières sécurité sociale", "arrêt maladie ancienneté"]
+  maladie-etam-6mois: ["indemnité complémentaire maladie", "maintien salaire maladie", "incapacité temporaire travail", "indemnités journalières maladie"]
+  temps-partiel-heures-complementaires: ["heures complémentaires", "heures complémentaires majoration", "temps partiel durée", "complément heures avenant"]
+  heures-supplementaires: ["heures supplémentaires majoration", "heures supplémentaires repos compensateur", "contingent annuel heures supplémentaires", "durée hebdomadaire travail"]
+  fin-cdd: ["indemnité fin contrat", "contrat durée déterminée indemnité", "indemnité précarité", "indemnité compensatrice congés payés"]
+  handicap-preavis: ["préavis travailleur handicapé", "durée préavis licenciement", "préavis ETAM", "doublement préavis handicapé"]

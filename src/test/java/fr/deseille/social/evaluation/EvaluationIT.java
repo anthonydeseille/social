@@ -43,6 +43,7 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Lanceur du jeu d'évaluation sur les <b>vraies sources</b> (ingérées depuis GitHub, révisions
@@ -148,6 +149,45 @@ class EvaluationIT {
                     juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie(), questions.size()),
                     StandardCharsets.UTF_8);
         }
+        if (!simulee) {
+            ecrireSorties(rapport, resultats, assistant.modele(), "direct", tarif, tarifJuge,
+                    juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie());
+        }
+    }
+
+    /**
+     * À côté du rapport : requêtes de reformulation (à recopier dans {@code requetes.yaml} pour
+     * l'évaluation de la recherche), résumé JSON et ligne prête pour {@code historique.csv}.
+     */
+    private static void ecrireSorties(Path rapport, List<Resultat> resultats, String modele, String mode, Tarif tarif,
+                                      Tarif tarifJuge, long jetonsJugeEntree, long jetonsJugeSortie) throws Exception {
+        String base = rapport.getFileName().toString().replace("rapport-", "").replace(".md", "");
+        String commit = commitCourant();
+        Map<String, List<String>> requetes = new LinkedHashMap<>();
+        resultats.stream().filter(r -> r.reponse() != null).forEach(r -> requetes.put(r.question().id(), r.reponse().requetes()));
+        Files.writeString(rapport.resolveSibling("requetes-" + base + ".yaml"), new RequetesFigees(
+                modele + ", consignes de reformulation de " + commit + ", évaluation du " + LocalDateTime.now().toLocalDate(),
+                requetes).yaml(), StandardCharsets.UTF_8);
+        Map<String, Object> synthese = RapportEvaluation.synthese(resultats, LocalDateTime.now().toLocalDate().toString(),
+                commit, mode, tarif, tarifJuge, jetonsJugeEntree, jetonsJugeSortie);
+        Files.writeString(rapport.resolveSibling("resume-" + base + ".json"),
+                JsonMapper.builder().build().writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(synthese), StandardCharsets.UTF_8);
+        Files.writeString(rapport.resolveSibling("historique-" + base + ".csv"),
+                RapportEvaluation.ENTETE_HISTORIQUE + "\n" + RapportEvaluation.ligneHistorique(synthese) + "\n",
+                StandardCharsets.UTF_8);
+        System.out.println("Requêtes, résumé et ligne d'historique écrits à côté du rapport (" + base + ")");
+    }
+
+    /** Commit évalué, pour l'historique ; « inconnu » hors d'un dépôt git. */
+    private static String commitCourant() {
+        try {
+            Process git = new ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectErrorStream(true).start();
+            String sortie = new String(git.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
+            return git.waitFor() == 0 && !sortie.isEmpty() ? sortie : "inconnu";
+        } catch (Exception e) {
+            return "inconnu";
+        }
     }
 
     /**
@@ -247,6 +287,8 @@ class EvaluationIT {
         }
         Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif.lots(), false, tarifJuge.lots(),
                 jetonsJuge[0], jetonsJuge[1], questions.size()), StandardCharsets.UTF_8);
+        ecrireSorties(rapport, resultats, assistantClaude.modele(), "lots", tarif.lots(), tarifJuge.lots(),
+                jetonsJuge[0], jetonsJuge[1]);
     }
 
     private static void compter(long[] jetons, LotClaude.Resultat resultat) {
