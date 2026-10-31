@@ -29,7 +29,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `ingestion` : job Spring Batch, un step par source, sources épinglées sur un commit dans `application.yaml`. La classification des changements se fait dans `CorpusWriter`, dans l'ordre du document, pour ne pas dépendre du découpage en chunks.
 - `consultation` : API en lecture seule (textes, sommaire, articles, historique).
 - `profil` : contexte d'un profil salarié. **Le profil n'est jamais stocké ni journalisé** (données sensibles RGPD : grossesse, santé).
-- `recherche` : recherche plein texte PostgreSQL (configuration `francais`, sans accents).
+- `recherche` : recherche plein texte PostgreSQL (configuration `francais`, sans accents) sur le numéro, les titres de section (`article.titres_section`, recalculés par `TitresSection` en fin de step d'ingestion) et le texte.
 
 ## Pièges connus
 
