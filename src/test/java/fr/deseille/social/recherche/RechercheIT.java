@@ -122,6 +122,8 @@ class RechercheIT {
         assertThat(jdbcClient.sql("select titres_section from article where source_id = ?").param(GROSSESSE)
                 .query(String.class).single())
                 .isEqualTo("Contrat de travail > Protection de la grossesse et de la maternité");
+        assertThat(jdbcClient.sql("select titres_section from article where source_id = ?").param(CONVENTION)
+                .query(String.class).single()).as("convention").isEqualTo("Période d'essai");
         assertThat(mvc.get().uri("/api/recherche?q={q}", "protection maternité")).hasStatusOk().bodyJson()
                 .extractingPath("$[*].articleSourceId").asArray().containsExactly(GROSSESSE);
     }
@@ -138,11 +140,26 @@ class RechercheIT {
             assertThat(titresSection.mettreAJour(texte)).isEqualTo(1);
             assertThat(mvc.get().uri("/api/recherche?q={q}", "égalité professionnelle")).hasStatusOk().bodyJson()
                     .extractingPath("$[*].articleSourceId").asArray().containsExactly(GROSSESSE);
+
+            // Titre retiré : reste celui de la section parente ; plus aucun titre : null, pas l'ancienne valeur
+            jdbcClient.sql("update section set titre = null where source_id = 'LEGISCTA000000000072'").update();
+            titresSection.mettreAJour(texte);
+            assertThat(titres(GROSSESSE)).isEqualTo("Contrat de travail");
+            jdbcClient.sql("update section set titre = null where source_id = 'LEGISCTA000000000071'").update();
+            titresSection.mettreAJour(texte);
+            assertThat(titres(GROSSESSE)).isNull();
+            assertThat(titres(PERIODE_ESSAI)).isNull();
         } finally {
+            jdbcClient.sql("update section set titre = 'Contrat de travail' where source_id = 'LEGISCTA000000000071'").update();
             jdbcClient.sql("update section set titre = 'Protection de la grossesse et de la maternité' "
                     + "where source_id = 'LEGISCTA000000000072'").update();
             titresSection.mettreAJour(texte);
         }
+    }
+
+    private String titres(String articleSourceId) {
+        return jdbcClient.sql("select titres_section from article where source_id = ?").param(articleSourceId)
+                .query(String.class).optional().orElse(null);
     }
 
     @Test

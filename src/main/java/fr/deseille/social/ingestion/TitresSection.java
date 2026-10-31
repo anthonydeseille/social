@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
  * plus proche, séparés par « > ». La colonne entre dans le vecteur de recherche (changeset 008).
  * Recalculée pour tout le texte en fin de step, et pas à l'écriture de chaque article : le writer ne
  * réécrit que les articles modifiés, alors qu'un titre de section peut changer seul. Seules les lignes
- * dont les titres changent sont mises à jour.
+ * dont les titres changent sont mises à jour ; un article qui n'a plus aucune section titrée (titre
+ * retiré, article déplacé) repasse à {@code null}.
  */
 @Service
 public class TitresSection {
@@ -30,8 +31,8 @@ public class TitresSection {
                 from chaine where titre is not null group by depart
             )
             update article a set titres_section = t.titres
-            from titres t
-            where a.section_id = t.depart and a.texte_id = :texte
+            from article b left join titres t on t.depart = b.section_id
+            where a.id = b.id and b.texte_id = :texte
               and a.titres_section is distinct from t.titres
             """;
 
