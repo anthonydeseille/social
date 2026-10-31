@@ -45,6 +45,21 @@ class ProfilServiceTest {
         return new ProfilSalarie(idcc, dateEntree, null, null, null, null, false, null, dateReference);
     }
 
+    /** Évaluation du 30 octobre 2026 : toutes les questions, datées du 1er novembre, l'affichaient. */
+    @Test
+    void pas_d_avertissement_code_absent_apres_la_fin_de_sa_version_consolidee() {
+        Texte code = new Texte("LEGITEXT000006072050", TypeTexte.CODE, "Code du travail");
+        code.setEtat(EtatJuridique.VIGUEUR);
+        code.setDateDebut(LocalDate.of(2026, 10, 8));
+        code.setDateFin(LocalDate.of(2026, 11, 1));
+        when(texteRepository.findByType(TypeTexte.CODE)).thenReturn(List.of(code));
+
+        ContexteProfil contexte = service.contexte(profil(1486, null, LocalDate.of(2026, 11, 1)));
+
+        assertThat(contexte.avertissements()).noneMatch(a -> a.contains("Code du travail"));
+        assertThat(contexte.textesApplicables()).extracting(t -> t.sourceId()).contains("LEGITEXT000006072050");
+    }
+
     @Test
     void anciennete_en_annees_et_mois_revolus_a_la_date_du_jour() {
         ContexteProfil contexte = service.contexte(profil(1486, LocalDate.of(2020, 3, 15), null));

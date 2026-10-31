@@ -60,6 +60,42 @@ class ApplicabiliteTest {
         assertThat(a.estApplicableLe(AUJOURD_HUI)).isFalse();
     }
 
+    /** Dates réelles du Code dans la source épinglée : celles de sa version consolidée. */
+    @Test
+    void code_en_vigueur_applicable_hors_des_dates_de_sa_version_consolidee() {
+        Texte code = new Texte("LEGITEXT000006072050", TypeTexte.CODE, "Code du travail");
+        code.setEtat(EtatJuridique.VIGUEUR);
+        code.setDateDebut(LocalDate.of(2026, 10, 8));
+        code.setDateFin(LocalDate.of(2026, 11, 1));
+
+        assertThat(code.estApplicableLe(LocalDate.of(2026, 11, 1))).as("fin de la version").isTrue();
+        assertThat(code.estApplicableLe(LocalDate.of(2027, 6, 1))).isTrue();
+        assertThat(code.estApplicableLe(LocalDate.of(2025, 1, 1))).as("avant la version").isTrue();
+
+        code.setEtat(EtatJuridique.ABROGE);
+        assertThat(code.estApplicableLe(LocalDate.of(2026, 10, 20))).isFalse();
+    }
+
+    @Test
+    void texte_a_entree_en_vigueur_differee_applicable_a_partir_de_sa_date_de_debut() {
+        Texte texte = new Texte("KALICONT000000000009", TypeTexte.CONVENTION_COLLECTIVE, "Nouvelle convention");
+        texte.setEtat(EtatJuridique.VIGUEUR_DIFF);
+        texte.setDateDebut(LocalDate.of(2027, 1, 1));
+
+        assertThat(texte.estApplicableLe(LocalDate.of(2026, 12, 31))).isFalse();
+        assertThat(texte.estApplicableLe(LocalDate.of(2027, 1, 1))).isTrue();
+    }
+
+    @Test
+    void texte_a_abrogation_differee_applicable_jusqu_a_sa_date_de_fin() {
+        Texte texte = new Texte("KALICONT000000000010", TypeTexte.CONVENTION_COLLECTIVE, "Convention remplacée");
+        texte.setEtat(EtatJuridique.ABROGE_DIFF);
+        texte.setDateFin(LocalDate.of(2027, 1, 1));
+
+        assertThat(texte.estApplicableLe(LocalDate.of(2026, 12, 31))).isTrue();
+        assertThat(texte.estApplicableLe(LocalDate.of(2027, 1, 1))).isFalse();
+    }
+
     @Test
     void texte_sans_etat_considere_applicable_sinon_etat_et_dates() {
         Texte convention = new Texte("KALICONT000005635173", TypeTexte.CONVENTION_COLLECTIVE, "Syntec");

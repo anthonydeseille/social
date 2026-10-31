@@ -67,15 +67,22 @@ public class Texte {
 
     /**
      * Indique si le texte s'applique à une date. Un état absent (cas des conventions dans les
-     * dumps KALI) est inconnu et ne l'exclut pas ; sinon l'état et les dates décident.
+     * dumps KALI) est inconnu et ne l'exclut pas ; sinon l'état décide, avec la date de début pour un
+     * texte à entrée en vigueur différée et la date de fin pour un texte à abrogation différée.
+     * <p>
+     * Les dates d'un texte LEGI sont celles de sa <b>version consolidée</b> dans la source épinglée
+     * (par exemple du 8 octobre au 1er novembre 2026 pour le Code du travail, date de la version
+     * suivante), pas sa période de validité : s'y fier rendait le Code inapplicable dès la fin de la
+     * version, pour toute question. Un texte abrogé porte l'état ABROGE ; la validité dans le temps se
+     * juge article par article ({@link Article#estApplicableLe}).
      */
     public boolean estApplicableLe(LocalDate date) {
         if (etat == null) {
             return true;
         }
         return etat.peutEtreApplicable()
-                && (dateDebut == null || !dateDebut.isAfter(date))
-                && (dateFin == null || date.isBefore(dateFin));
+                && !(etat == EtatJuridique.VIGUEUR_DIFF && dateDebut != null && dateDebut.isAfter(date))
+                && !(etat == EtatJuridique.ABROGE_DIFF && dateFin != null && !date.isBefore(dateFin));
     }
 
     @PrePersist

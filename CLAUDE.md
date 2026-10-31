@@ -38,6 +38,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - Spring Batch 6 : sans `spring-boot-starter-batch-jdbc`, le dépôt de jobs est en mémoire.
 - Données SocialGouv : états DILA à ajouter dans `EtatJuridique` (un état inconnu fait échouer l'ingestion, volontairement) ; sections de regroupement sans identifiant dans les conventions (id synthétique) ; texte des conventions en HTML seulement.
 - Postgres : « les » n'est pas un mot vide de la configuration française.
+- Dates d'un texte LEGI (`texte.date_debut`, `date_fin`) : celles de sa version consolidée dans la source épinglée, pas sa validité. `Texte.estApplicableLe` ne s'y fie pas (sauf entrée en vigueur différée : date de début ; abrogation différée : date de fin) ; la validité se juge article par article.
 - victools épinglé en 4.x dans le pom (exigé par le SDK Anthropic) : ne pas utiliser `BeanOutputConverter` ni les outils de Spring AI, construits sur la 5.x.
 - Spring AI 2.0 ne fusionne pas les options : des `OllamaChatOptions` passées à l'appel remplacent la configuration (modèle « mistral » par défaut) ; partir de `getOptions().mutate()`.
 
