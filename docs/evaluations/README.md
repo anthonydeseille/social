@@ -19,7 +19,19 @@ moyennes par question. Tant que le jeu n'est pas validé par la juriste (`valide
 de qualité restent indicatives.
 
 Les mêmes chiffres, lisibles par un programme (tableau de bord, comparaison dans la CI) :
-[`historique.csv`](historique.csv).
+[`historique.csv`](historique.csv). Colonnes :
+
+| Colonne | Contenu |
+|---|---|
+| `date`, `commit`, `changement`, `mode`, `modele` | lancement : jour, commit de `main` évalué, ce qui a changé depuis la précédente, `lots` ou `direct`, modèle de l'application |
+| `questions`, `validees` | questions posées, dont validées par la juriste |
+| `recherche_pct` | articles attendus transmis à Claude (moyenne par question, en %) |
+| `articles_transmis`, `articles_attendus` | les mêmes, en total sur le jeu |
+| `articles_cites_pct` | articles attendus cités dans la réponse (moyenne par question, en %) |
+| `citations_verifiees`, `citations_total` | citations dont l'extrait est présent dans l'article, sur toutes les citations |
+| `qualite_pct`, `erreurs` | points clés présents selon le juge (moyenne, en %), erreurs à éviter commises |
+| `jetons_entree`, `jetons_sortie`, `cout_questions_usd`, `cout_juge_usd` | consommation et coût réels (dollars) |
+| `analyse` | fichier d'analyse de l'évaluation |
 
 ## Ajouter une évaluation
 
