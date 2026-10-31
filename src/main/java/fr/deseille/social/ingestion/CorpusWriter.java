@@ -51,6 +51,7 @@ public class CorpusWriter implements ItemWriter<CommandeEcriture>, StepExecution
     private final ArticleRepository articleRepository;
     private final JournalChangementRepository journalRepository;
     private final DetecteurDisparition detecteurDisparition;
+    private final TitresSection titresSection;
     private final Long jobExecutionId;
 
     private Long texteId;
@@ -70,12 +71,14 @@ public class CorpusWriter implements ItemWriter<CommandeEcriture>, StepExecution
                         ArticleRepository articleRepository,
                         JournalChangementRepository journalRepository,
                         DetecteurDisparition detecteurDisparition,
+                        TitresSection titresSection,
                         @Value("#{stepExecution.jobExecutionId}") Long jobExecutionId) {
         this.texteRepository = texteRepository;
         this.sectionRepository = sectionRepository;
         this.articleRepository = articleRepository;
         this.journalRepository = journalRepository;
         this.detecteurDisparition = detecteurDisparition;
+        this.titresSection = titresSection;
         this.jobExecutionId = jobExecutionId;
     }
 
@@ -262,15 +265,16 @@ public class CorpusWriter implements ItemWriter<CommandeEcriture>, StepExecution
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         if (stepExecution.getStatus() != BatchStatus.COMPLETED) {
-            log.warn("Step {} terminé en {} : détection des disparitions ignorée",
+            log.warn("Step {} terminé en {} : détection des disparitions et titres de section ignorés",
                     stepExecution.getStepName(), stepExecution.getStatus());
             return stepExecution.getExitStatus();
         }
         try {
             detecteurDisparition.marquerDisparitions(texteId, articlesVus, jobExecutionId, ref);
+            titresSection.mettreAJour(texteId);
             return stepExecution.getExitStatus();
         } catch (RuntimeException e) {
-            log.error("Échec de la détection des disparitions pour le step {}", stepExecution.getStepName(), e);
+            log.error("Échec de la fin du step {} (disparitions, titres de section)", stepExecution.getStepName(), e);
             stepExecution.setStatus(BatchStatus.FAILED);
             stepExecution.addFailureException(e);
             return ExitStatus.FAILED.addExitDescription(e);

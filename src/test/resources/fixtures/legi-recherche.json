@@ -60,18 +60,30 @@
           }
         },
         {
-          "type": "article",
+          "type": "section",
           "data": {
-            "id": "LEGIARTI000000000074",
-            "cid": "LEGIARTC000000000074",
-            "num": "L1225-4",
-            "texte": "Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.",
-            "texteHtml": "<p>Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.</p>",
+            "id": "LEGISCTA000000000072",
+            "cid": "LEGISCTA000000000072",
+            "title": "Protection de la grossesse et de la maternité",
             "etat": "VIGUEUR",
-            "intOrdre": 4,
-            "dateDebut": 1577836800000,
-            "dateFin": 32472144000000
-          }
+            "intOrdre": 2
+          },
+          "children": [
+            {
+              "type": "article",
+              "data": {
+                "id": "LEGIARTI000000000074",
+                "cid": "LEGIARTC000000000074",
+                "num": "L1225-4",
+                "texte": "Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.",
+                "texteHtml": "<p>Aucun employeur ne peut rompre le contrat de travail d'une salariée lorsqu'elle est en état de grossesse médicalement constaté.</p>",
+                "etat": "VIGUEUR",
+                "intOrdre": 4,
+                "dateDebut": 1577836800000,
+                "dateFin": 32472144000000
+              }
+            }
+          ]
         },
         {
           "type": "article",

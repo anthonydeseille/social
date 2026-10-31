@@ -196,7 +196,7 @@ relire après la correction et la validation du jeu par la juriste.
 | Priorité | Action | État |
 |---|---|---|
 | 1 | Code applicable après la fin de sa version consolidée | fait (PR #22) |
-| 2 | Titres de section dans l'index de recherche (nouveau changeset, réingestion) | à faire |
+| 2 | Titres de section dans l'index de recherche (changeset 008, sans réingestion) | fait (PR « titres de section ») : 8 articles attendus sur 12 dans les 10 premiers, contre 3 |
 | 3 | Articles de l'ancienne numérotation et sans numéro : décider avec la juriste s'ils sont écartés de la rédaction | à décider |
 | 4 | Relancer l'évaluation après 1 et 2 pour mesurer le gain (≈ 1,40 $ en lots) | après 1 et 2 |
 | 5 | Lecture du barème ETAM : à trancher par la juriste, puis consigne ou calculateur | en attente de la juriste |

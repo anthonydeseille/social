@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import fr.deseille.social.TestcontainersConfiguration;
 import fr.deseille.social.corpus.Article;
 import fr.deseille.social.corpus.ArticleRepository;
+import fr.deseille.social.ingestion.TitresSection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -113,6 +114,35 @@ class RechercheIT {
                 .extractingPath("$[*].articleSourceId").asArray().containsExactly(PREAVIS);
         assertThat(mvc.get().uri("/api/recherche?q={q}", "L1225-4")).hasStatusOk().bodyJson()
                 .extractingPath("$[0].articleSourceId").isEqualTo(GROSSESSE);
+    }
+
+    /** « protection » et « maternité » ne figurent que dans le titre de la section de L1225-4. */
+    @Test
+    void mots_du_titre_de_section_trouvent_l_article() {
+        assertThat(jdbcClient.sql("select titres_section from article where source_id = ?").param(GROSSESSE)
+                .query(String.class).single())
+                .isEqualTo("Contrat de travail > Protection de la grossesse et de la maternité");
+        assertThat(mvc.get().uri("/api/recherche?q={q}", "protection maternité")).hasStatusOk().bodyJson()
+                .extractingPath("$[*].articleSourceId").asArray().containsExactly(GROSSESSE);
+    }
+
+    /** Titre de section modifié seul (articles inchangés) : titres recalculés, ligne par ligne. */
+    @Test
+    void titres_recalcules_seulement_quand_ils_changent(@Autowired TitresSection titresSection) {
+        Long texte = jdbcClient.sql("select texte_id from article where source_id = ?").param(GROSSESSE)
+                .query(Long.class).single();
+        assertThat(titresSection.mettreAJour(texte)).as("rien n'a changé depuis l'ingestion").isZero();
+
+        jdbcClient.sql("update section set titre = 'Égalité professionnelle' where source_id = 'LEGISCTA000000000072'").update();
+        try {
+            assertThat(titresSection.mettreAJour(texte)).isEqualTo(1);
+            assertThat(mvc.get().uri("/api/recherche?q={q}", "égalité professionnelle")).hasStatusOk().bodyJson()
+                    .extractingPath("$[*].articleSourceId").asArray().containsExactly(GROSSESSE);
+        } finally {
+            jdbcClient.sql("update section set titre = 'Protection de la grossesse et de la maternité' "
+                    + "where source_id = 'LEGISCTA000000000072'").update();
+            titresSection.mettreAJour(texte);
+        }
     }
 
     @Test
