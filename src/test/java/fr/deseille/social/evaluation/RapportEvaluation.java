@@ -217,7 +217,7 @@ final class RapportEvaluation {
     /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */
     /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des valeurs de {@link #ligneHistorique}. */
     static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,questions,validees,recherche_pct,"
-            + "articles_transmis,articles_attendus,citations_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
+            + "articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
             + "jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse";
 
     /**
@@ -241,7 +241,7 @@ final class RapportEvaluation {
         s.put("recherche_pct", pourcentage(resultats, Resultat::scoreRecherche));
         s.put("articles_transmis", resultats.stream().mapToInt(r -> r.trouves().size()).sum());
         s.put("articles_attendus", resultats.stream().mapToInt(r -> r.question().articlesAttendus().size()).sum());
-        s.put("citations_pct", pourcentage(resultats, Resultat::scoreCitations));
+        s.put("articles_cites_pct", pourcentage(resultats, Resultat::scoreCitations));
         s.put("citations_verifiees", citations - resultats.stream().mapToLong(r -> r.nonVerifiees().size()).sum());
         s.put("citations_total", citations);
         s.put("qualite_pct", juges.isEmpty() ? null

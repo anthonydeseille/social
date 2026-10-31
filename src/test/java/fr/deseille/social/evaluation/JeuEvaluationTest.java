@@ -77,7 +77,7 @@ class JeuEvaluationTest {
     @Test
     void requetes_figees_relues_telles_qu_ecrites() {
         RequetesFigees figees = new RequetesFigees("claude, essai", new java.util.LinkedHashMap<>(Map.of(
-                "q1", List.of("période essai", "délai \"prévenance\""))));
+                "q1", List.of("période essai", "délai \"prévenance\"", "sur\ndeux lignes"))));
 
         RequetesFigees relues = RequetesFigees.lire(figees.yaml());
 

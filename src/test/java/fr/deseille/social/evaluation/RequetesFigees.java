@@ -62,6 +62,6 @@ record RequetesFigees(String origine, Map<String, List<String>> parQuestion) {
     }
 
     private static String chaine(String texte) {
-        return "\"" + texte.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + texte.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
     }
 }

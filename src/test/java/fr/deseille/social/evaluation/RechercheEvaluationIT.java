@@ -45,8 +45,10 @@ import tools.jackson.databind.json.JsonMapper;
  * ./mvnw verify -Dit.test=RechercheEvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation.recherche=true
  * </pre>
  * Le résultat est comparé à la référence versionnée ({@code recherche-reference.json}) : le test
- * échoue si le nombre d'articles attendus retrouvés baisse. Après une amélioration, mettre la
- * référence à jour avec {@code -Devaluation.recherche.reference=ecrire}. Rapport :
+ * échoue si le nombre d'articles attendus retrouvés baisse, ou si une question perd un article qu'elle
+ * retrouvait. Après une amélioration, ou pour accepter un compromis (pertes compensées par des gains),
+ * réécrire la référence avec {@code -Devaluation.recherche.reference=ecrire} (refusé si le total
+ * baisse ; {@code forcer} pour l'imposer). Rapport :
  * {@code target/evaluation/recherche-<horodatage>.md} (et {@code .json}).
  */
 @SpringBootTest(properties = "spring.main.web-application-type=none")
@@ -127,13 +129,9 @@ class RechercheEvaluationIT {
                 parQuestion.values().stream().mapToInt(MesureQuestion::attendus).sum(), parQuestion);
 
         Path referenceFichier = Path.of(REFERENCE);
-        if ("ecrire".equals(System.getProperty("evaluation.recherche.reference"))) {
-            Files.writeString(referenceFichier, JSON.writerWithDefaultPrettyPrinter().writeValueAsString(mesure) + "\n",
-                    StandardCharsets.UTF_8);
-            System.out.println("Référence de la recherche réécrite : " + referenceFichier.toAbsolutePath());
-        }
         Mesure reference = Files.exists(referenceFichier)
                 ? JSON.readValue(Files.readString(referenceFichier, StandardCharsets.UTF_8), Mesure.class) : null;
+        List<String> pertes = reference == null ? List.of() : pertes(questions, mesure, reference);
 
         String horodatage = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         Path rapport = Path.of("target", "evaluation", "recherche-" + horodatage + ".md");
@@ -143,10 +141,48 @@ class RechercheEvaluationIT {
                 JSON.writerWithDefaultPrettyPrinter().writeValueAsString(mesure), StandardCharsets.UTF_8);
         System.out.println("Rapport de la recherche : " + rapport.toAbsolutePath());
 
+        List<String> inconnues = requetes.parQuestion().keySet().stream()
+                .filter(id -> questions.stream().noneMatch(q -> q.id().equals(id))).toList();
+        if (!inconnues.isEmpty()) {
+            System.out.println("Requêtes figées pour des questions absentes du jeu (à retirer) : " + inconnues);
+        }
+
+        // Accepter un compromis (des pertes compensées par des gains) est un choix explicite, visible
+        // dans le diff de la référence : « ecrire » le permet si le total ne baisse pas, « forcer » toujours
+        String ecriture = System.getProperty("evaluation.recherche.reference", "");
+        boolean totalEnBaisse = reference != null && mesure.articlesTrouves() < reference.articlesTrouves();
+        if ("forcer".equals(ecriture) || "ecrire".equals(ecriture) && !totalEnBaisse) {
+            Files.writeString(referenceFichier, JSON.writerWithDefaultPrettyPrinter().writeValueAsString(mesure) + "\n",
+                    StandardCharsets.UTF_8);
+            System.out.println("Référence de la recherche réécrite : " + referenceFichier.toAbsolutePath()
+                    + (pertes.isEmpty() ? "" : " (pertes acceptées : " + pertes + ")"));
+            return;
+        }
         assertThat(reference).as("référence absente : la créer avec -Devaluation.recherche.reference=ecrire").isNotNull();
-        assertThat(mesure.articlesTrouves())
-                .as("articles attendus retrouvés en baisse par rapport à la référence (détail : %s)", rapport)
-                .isGreaterThanOrEqualTo(reference.articlesTrouves());
+        assertThat(totalEnBaisse)
+                .as("articles attendus retrouvés en baisse : %d contre %d (détail : %s)", mesure.articlesTrouves(),
+                        reference.articlesTrouves(), rapport)
+                .isFalse();
+        assertThat(pertes)
+                .as("articles attendus perdus par rapport à la référence (détail : %s) ; si le compromis est voulu, "
+                        + "réécrire la référence avec -Devaluation.recherche.reference=ecrire", rapport)
+                .isEmpty();
+    }
+
+    /** Articles attendus retrouvés dans la référence et plus maintenant, au format « question : numéro ». */
+    static List<String> pertes(List<Question> questions, Mesure mesure, Mesure reference) {
+        List<String> pertes = new ArrayList<>();
+        for (Question q : questions) {
+            MesureQuestion avant = reference.questions().get(q.id());
+            MesureQuestion apres = mesure.questions().get(q.id());
+            if (avant == null || apres == null) {
+                continue;
+            }
+            avant.trouves().stream().filter(id -> !apres.trouves().contains(id))
+                    .forEach(id -> pertes.add(q.id() + " : " + q.articlesAttendus().stream()
+                            .filter(a -> a.sourceId().equals(id)).map(ArticleAttendu::num).findFirst().orElse(id)));
+        }
+        return pertes;
     }
 
     /** Rapport : total, comparaison à la référence, puis détail par question (gains et pertes). */
@@ -174,7 +210,7 @@ class RechercheEvaluationIT {
             perdus.removeAll(m.trouves());
             md.append("| ").append(q.id()).append(" | ").append(m.trouves().size()).append('/').append(m.attendus())
                     .append(" | ").append(liste(gagnes, numeros)).append(" | ").append(liste(perdus, numeros))
-                    .append(" | ").append(String.join(", ", m.retenus())).append(" |\n");
+                    .append(" | ").append(String.join(", ", m.retenus()).replace("|", "\\|")).append(" |\n");
         }
         return md.toString();
     }

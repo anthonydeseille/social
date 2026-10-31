@@ -146,7 +146,9 @@ flowchart LR
 requêtes de reformulation d'une évaluation complète sont figées (`src/test/resources/evaluation/requetes.yaml`)
 et rejouées sur les vraies sources, sans appel au modèle ; elle mesure l'indicateur « recherche » (articles
 attendus parmi les 8 retenus) et échoue s'il baisse par rapport à la référence versionnée
-(`recherche-reference.json`). Elle isole la recherche : un réglage du classement se mesure en deux minutes,
+(`recherche-reference.json`), ou si une question perd un article qu'elle retrouvait : accepter un
+compromis (des pertes compensées par des gains) passe par une réécriture de la référence, visible dans
+le diff. Elle isole la recherche : un réglage du classement se mesure en deux minutes,
 sans le bruit des reformulations, qui varient d'un passage à l'autre.
 
 Résultats et conclusions de chaque évaluation, historisés : [`evaluations/`](evaluations/README.md)
