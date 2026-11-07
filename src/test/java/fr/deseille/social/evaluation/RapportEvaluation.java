@@ -122,6 +122,12 @@ final class RapportEvaluation {
         long nonVerifiees = resultats.stream().mapToLong(r -> r.nonVerifiees().size()).sum();
         md.append("- Citations vérifiées (extrait présent dans l'article) : ").append(citations - nonVerifiees)
                 .append('/').append(citations).append('\n');
+        md.append("- Chiffres absents des articles et du profil (calculs ou chiffres à vérifier) : ")
+                .append(resultats.stream().filter(r -> r.reponse() != null)
+                        .mapToLong(r -> r.reponse().chiffresNonRetrouves().size()).sum())
+                .append(", dans ").append(resultats.stream()
+                        .filter(r -> r.reponse() != null && !r.reponse().chiffresNonRetrouves().isEmpty()).count())
+                .append(" réponse(s)\n");
         if (juges.isEmpty()) {
             md.append("- Qualité : juge non lancé\n");
         } else {

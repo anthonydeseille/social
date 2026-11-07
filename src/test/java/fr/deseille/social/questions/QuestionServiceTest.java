@@ -191,6 +191,22 @@ class QuestionServiceTest {
     }
 
     @Test
+    void chiffre_absent_des_sources_signale_sans_etre_retire() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        // L'article simulé contient « texte » : 4 200 n'a pas de source, 3 vient de la question
+        when(assistant.rediger(anyString(), any(), any()))
+                .thenReturn(new Reponse(List.of(new Passage("Vous toucherez 4 200 € pour 3 ans.", List.of())), false, false));
+
+        ReponseQuestion reponse = service.repondre("Que vais-je toucher après 3 ans ?", PROFIL);
+
+        assertThat(reponse.chiffresNonRetrouves()).containsExactly("4 200");
+        assertThat(reponse.passages().getFirst().texte()).contains("4 200");
+        assertThat(reponse.avertissements()).anyMatch(a -> a.startsWith("1 chiffre(s) absent(s)") && a.contains("4 200"));
+        assertThat(registre.counter("droits.chiffres_non_retrouves").count()).isEqualTo(1.0);
+    }
+
+    @Test
     void refus_du_modele_signale() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));

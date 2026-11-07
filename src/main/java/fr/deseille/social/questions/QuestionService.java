@@ -2,6 +2,7 @@ package fr.deseille.social.questions;
 
 import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
+import fr.deseille.social.profil.ProfilIncoherentException;
 import fr.deseille.social.profil.ProfilSalarie;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
@@ -14,13 +15,18 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Répond à la question d'un salarié : contexte du profil, reformulation en requêtes, recherche dans
- * le Code et la convention, puis rédaction à partir des articles retenus, avec citations.
+ * Répond à la question d'un salarié : garde-fous d'entrée (injection refusée, données personnelles
+ * retirées), contexte du profil, reformulation en requêtes, recherche dans le Code et la convention,
+ * rédaction à partir des articles retenus, avec citations, puis contrôles de sortie (citations,
+ * chiffres, troncature).
  */
 @Service
 public class QuestionService {
@@ -55,6 +61,9 @@ public class QuestionService {
             metriques.question("indisponible");
             throw e;
         } catch (ResponseStatusException e) {
+            if (e instanceof ProfilIncoherentException) {
+                metriques.gardeFou("profil_incoherent");
+            }
             metriques.question(e.getStatusCode().is4xxClientError() ? "invalide" : "erreur");
             throw e;
         } catch (RuntimeException e) {
@@ -63,8 +72,19 @@ public class QuestionService {
         }
     }
 
-    private ReponseQuestion traiter(String question, ProfilSalarie profil) {
-        ContexteProfil contexte = profilService.contexte(profil);
+    private ReponseQuestion traiter(String questionSaisie, ProfilSalarie profilSaisi) {
+        // Garde-fous d'entrée, avant tout appel payant : tentative d'injection refusée, données
+        // personnelles du texte libre retirées (le modèle reçoit le texte masqué)
+        refuserInjection(questionSaisie);
+        refuserInjection(profilSaisi.classification());
+        DonneesPersonnelles.Masquage masqueQuestion = DonneesPersonnelles.masquer(questionSaisie);
+        DonneesPersonnelles.Masquage masqueClassification = DonneesPersonnelles.masquer(profilSaisi.classification());
+        String question = masqueQuestion.texte();
+        ProfilSalarie profil = masqueClassification.aucun() ? profilSaisi : new ProfilSalarie(profilSaisi.idcc(),
+                profilSaisi.dateEntree(), profilSaisi.age(), profilSaisi.statut(), masqueClassification.texte(),
+                profilSaisi.typeContrat(), profilSaisi.tempsPartiel(), profilSaisi.situations(), profilSaisi.dateReference());
+        ContexteProfil contexte = avecRetraits(profilService.contexte(profil), masqueQuestion, masqueClassification);
+
         // Le modèle raisonne à la date de référence : la recherche et l'applicabilité aussi
         LocalDate date = contexte.profil().dateReference();
         List<String> requetes = metriques.chronometrer("reformulation", () -> assistant.reformuler(question, contexte));
@@ -76,6 +96,33 @@ public class QuestionService {
 
         Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
         return assembler(question, contexte, requetes, articles, reponse);
+    }
+
+    private void refuserInjection(String texte) {
+        InjectionConsignes.detecter(texte).ifPresent(extrait -> {
+            metriques.gardeFou("injection");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La question ressemble à une instruction adressée "
+                    + "à l'assistant plutôt qu'à une question sur vos droits : reformulez-la.");
+        });
+    }
+
+    /** Contexte complété d'un avertissement quand des données personnelles ont été retirées. */
+    private ContexteProfil avecRetraits(ContexteProfil contexte, DonneesPersonnelles.Masquage... masquages) {
+        Set<String> natures = new LinkedHashSet<>();
+        for (DonneesPersonnelles.Masquage m : masquages) {
+            m.retraits().forEach((nature, nombre) -> {
+                natures.add(nature);
+                metriques.gardeFou("donnees_personnelles");
+            });
+        }
+        if (natures.isEmpty()) {
+            return contexte;
+        }
+        List<String> avertissements = new ArrayList<>(contexte.avertissements());
+        avertissements.add("Données personnelles retirées avant l'envoi au modèle (" + String.join(", ", natures)
+                + ") : elles ne sont pas nécessaires pour connaître vos droits.");
+        return new ContexteProfil(contexte.profil(), contexte.anciennete(), contexte.textesApplicables(),
+                contexte.conventionDisponible(), avertissements);
     }
 
     /**
@@ -94,7 +141,7 @@ public class QuestionService {
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
         return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of(),
-                assistant.consignes());
+                List.of(), assistant.consignes());
     }
 
     /**
@@ -111,14 +158,20 @@ public class QuestionService {
         if (!nonVerifiees.isEmpty()) {
             avertissements.add(nonVerifiees.size() + " extrait(s) cité(s) introuvable(s) dans les articles : à vérifier.");
         }
+        List<String> chiffres = VerificationChiffres.nonRetrouves(reponse.passages(), articles, contexte, question);
+        if (!chiffres.isEmpty()) {
+            avertissements.add(chiffres.size() + " chiffre(s) absent(s) des articles transmis et du profil ("
+                    + String.join(", ", chiffres) + ") : calculs ou chiffres à vérifier.");
+        }
         if (reponse.tronquee()) {
             avertissements.add("Réponse incomplète : elle a été interrompue avant sa fin. Reformulez une question plus précise.");
         }
         metriques.question(reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "repondue");
         metriques.citations((int) reponse.passages().stream().mapToLong(p -> p.citations().size()).sum(),
                 nonVerifiees.size());
+        metriques.chiffresNonRetrouves(chiffres.size());
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
-                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees,
+                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees, chiffres,
                 assistant.consignes());
     }
 
@@ -154,12 +207,14 @@ public class QuestionService {
      * @param refus     le modèle a refusé de répondre
      * @param citationsNonVerifiees citations dont l'extrait est introuvable dans l'article cité
      *                  ({@link VerificationCitations}) : à signaler, sans les retirer
+     * @param chiffresNonRetrouves chiffres de la réponse absents des articles transmis, du profil et de
+     *                  la question ({@link VerificationChiffres}) : à vérifier, sans les retirer
      * @param consignes versions des consignes envoyées au modèle ({@link Consignes}), pour relier
      *                  une réponse aux consignes qui l'ont produite
      */
     public record ReponseQuestion(String question, ContexteProfil contexte, List<String> requetes,
                                   List<Passage> passages, List<Source> sources, boolean refus,
                                   List<String> avertissements, List<Citation> citationsNonVerifiees,
-                                  Assistant.VersionsConsignes consignes) {
+                                  List<String> chiffresNonRetrouves, Assistant.VersionsConsignes consignes) {
     }
 }
