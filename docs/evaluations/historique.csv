@@ -1,0 +1,3 @@
+date,commit,changement,mode,modele,questions,validees,recherche_pct,articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse
+2026-10-30,50edaac,référence,lots,claude-opus-5-5,20,0,45,21,48,45,186,186,70,1,267900,53348,1.07,0.29,2026-10-30-premiere-evaluation.md
+2026-10-31,6c672d5,PR #22 (Code applicable) et #24 (titres de section),lots,claude-opus-5-5,20,0,58,26,48,58,197,197,71,1,174631,50289,0.85,0.28,2026-10-31-titres-section.md
