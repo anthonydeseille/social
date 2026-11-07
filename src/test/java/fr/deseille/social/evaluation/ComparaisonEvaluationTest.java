@@ -13,7 +13,8 @@ class ComparaisonEvaluationTest {
     private static final String HISTORIQUE = RapportEvaluation.ENTETE_HISTORIQUE + "\n"
             + "2026-10-30,aaa1111,référence,lots,claude-opus-5-5,r1,d1,j1,20,0,45,21,48,45,186,186,70,1,267900,53348,1.07,0.29,a.md\n"
             + "2026-10-31,bbb2222,\"PR #22, #24\",lots,claude-opus-5-5,r1,d1,j1,20,0,58,26,48,58,197,197,71,1,174631,50289,0.85,0.28,b.md\n"
-            + "2026-11-01,ccc3333,essai local,direct,qwen2.5:7b,r2,d2,j1,20,0,40,19,48,30,50,60,40,4,0,0,0,0.30,c.md\n";
+            + "2026-11-01,ccc3333,essai local,direct,qwen2.5:7b,r2,d2,j1,20,0,40,19,48,30,50,60,40,4,0,0,0,0.30,c.md\n"
+            + "2026-11-02,eee5555,\"validées seules, \"\"sous-ensemble\"\"\",direct,claude-opus-5-5,r1,d1,j1,5,5,90,9,10,90,40,40,95,0,0,0,0.30,0.07,e.md\n";
 
     private static Map<String, Object> synthese(Object recherche, Object cites, Object qualite, Object erreurs,
                                                 long verifiees, long total) {
@@ -40,7 +41,8 @@ class ComparaisonEvaluationTest {
     void reference_derniere_ligne_du_meme_modele_avec_valeurs_entre_guillemets() {
         Resultat r = ComparaisonEvaluation.comparer(HISTORIQUE, synthese(58L, 58L, 71L, 1L, 197, 197));
 
-        assertThat(r.reference()).containsEntry("commit", "bbb2222").containsEntry("changement", "PR #22, #24");
+        assertThat(r.reference()).as("même modèle et même nombre de questions : pas le sous-ensemble de 5")
+                .containsEntry("commit", "bbb2222").containsEntry("changement", "PR #22, #24");
         assertThat(r.ecarts()).extracting(Ecart::indicateur).containsExactly("Recherche (articles attendus transmis)",
                 "Articles attendus cités", "Qualité (juge)", "Erreurs à éviter commises", "Citations vérifiées");
         assertThat(r.bloquant()).isFalse();
@@ -63,6 +65,24 @@ class ComparaisonEvaluationTest {
     }
 
     @Test
+    void seuils_inclus() {
+        // Exactement au seuil : 5 points, une erreur, 2 points de citations vérifiées (196/200 contre 197/197)
+        Resultat r = ComparaisonEvaluation.comparer(HISTORIQUE, synthese(53L, 53L, 66L, 2L, 196, 200));
+
+        assertThat(r.ecarts()).noneMatch(Ecart::bloquant);
+        assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, synthese(52L, 58L, 71L, 1L, 197, 197)).bloquant())
+                .as("6 points de recherche").isTrue();
+        assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, synthese(58L, 58L, 71L, 1L, 195, 200)).bloquant())
+                .as("2,5 points de citations vérifiées").isTrue();
+    }
+
+    @Test
+    void guillemets_doubles_dans_une_valeur() {
+        assertThat(ComparaisonEvaluation.lire(HISTORIQUE).getLast())
+                .containsEntry("changement", "validées seules, \"sous-ensemble\"").containsEntry("questions", "5");
+    }
+
+    @Test
     void indicateur_absent_non_compare() {
         Resultat r = ComparaisonEvaluation.comparer(HISTORIQUE, synthese(58L, 58L, null, null, 197, 197));
 
@@ -78,6 +98,10 @@ class ComparaisonEvaluationTest {
 
         assertThat(r.bloquant()).isFalse();
         assertThat(ComparaisonEvaluation.markdown(r, s)).contains("Aucune évaluation de l'historique avec ce modèle");
+
+        s.put("modele", "claude-opus-5-5");
+        s.put("questions", 12);
+        assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, s).reference()).as("autre nombre de questions").isNull();
     }
 
     @Test

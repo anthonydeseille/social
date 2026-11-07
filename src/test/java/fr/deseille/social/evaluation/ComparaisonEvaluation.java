@@ -9,7 +9,9 @@ import java.util.Objects;
 
 /**
  * Comparaison d'une évaluation à la dernière ligne de {@code docs/evaluations/historique.csv} faite
- * avec le même modèle : écart par indicateur et décision de blocage, pour la PR qui l'a lancée.
+ * avec le même modèle sur le même nombre de questions (sinon les écarts mesureraient le jeu, pas le
+ * changement) : écart par indicateur et décision de blocage, pour la PR qui l'a lancée. Le mode
+ * (lots ou direct) n'entre pas en compte : mêmes requêtes au modèle, seul le prix diffère.
  * <p>
  * Seule une <b>baisse nette</b> bloque : sur 20 questions, une réponse qui perd un point clé fait
  * varier la qualité d'environ 2 points d'un passage à l'autre, sans aucun changement. Les seuils
@@ -29,7 +31,8 @@ final class ComparaisonEvaluation {
     static final int SEUIL_VERIFIEES_POINTS = 2;
 
     /**
-     * @param reference ligne de l'historique comparée, {@code null} si aucune n'a le même modèle
+     * @param reference ligne de l'historique comparée, {@code null} si aucune n'a le même modèle et le
+     *                  même nombre de questions
      * @param ecarts    un écart par indicateur comparable, dans l'ordre d'affichage
      */
     record Resultat(Map<String, String> reference, List<Ecart> ecarts) {
@@ -53,9 +56,10 @@ final class ComparaisonEvaluation {
     static Resultat comparer(String historique, Map<String, Object> synthese) {
         List<Map<String, String>> lignes = lire(historique);
         String modele = String.valueOf(synthese.get("modele"));
+        String questions = String.valueOf(synthese.get("questions"));
         Map<String, String> reference = null;
         for (Map<String, String> ligne : lignes) {
-            if (modele.equals(ligne.get("modele"))) {
+            if (modele.equals(ligne.get("modele")) && questions.equals(ligne.get("questions"))) {
                 reference = ligne;
             }
         }
@@ -76,7 +80,8 @@ final class ComparaisonEvaluation {
         Double partAvant = part(reference.get("citations_verifiees"), reference.get("citations_total"));
         Double partApres = part(synthese.get("citations_verifiees"), synthese.get("citations_total"));
         if (partAvant != null && partApres != null) {
-            double ecart = 100 * (partApres - partAvant);
+            // Arrondi au dixième : 196/200 contre 197/197 doit donner -2,0 et non -2,0000000000000018
+            double ecart = Math.round(1000 * (partApres - partAvant)) / 10.0;
             ecarts.add(new Ecart("Citations vérifiées",
                     reference.get("citations_verifiees") + "/" + reference.get("citations_total"),
                     synthese.get("citations_verifiees") + "/" + synthese.get("citations_total"),
@@ -99,11 +104,12 @@ final class ComparaisonEvaluation {
         }
         md.append('\n');
         if (resultat.reference() == null) {
-            md.append("Aucune évaluation de l'historique avec ce modèle : pas de comparaison, pas de blocage.\n");
+            md.append("Aucune évaluation de l'historique avec ce modèle et ce nombre de questions : pas de "
+                    + "comparaison, pas de blocage.\n");
             return md.toString();
         }
         Map<String, String> ref = resultat.reference();
-        md.append("Référence : dernière ligne de `historique.csv` avec ce modèle, du ").append(ref.get("date"))
+        md.append("Référence : dernière ligne de `historique.csv` avec ce modèle et ce nombre de questions, du ").append(ref.get("date"))
                 .append(" (`").append(ref.get("commit")).append("`, ").append(ref.get("questions"))
                 .append(" questions, consignes `").append(ref.get("consignes_reformulation")).append("` / `")
                 .append(ref.get("consignes_redaction")).append("`).\n\n");

@@ -9,7 +9,7 @@ dernière ligne de [`evaluations/historique.csv`](evaluations/historique.csv) fa
 | Déclencheur | Pourquoi |
 |---|---|
 | Étiquette `eval` posée sur une PR | à la demande. L'étiquette est retirée en fin de lancement : la reposer relance (par exemple après de nouveaux commits) |
-| Ouverture d'une PR (hors brouillon) qui touche `prompts/`, `recherche/`, `questions/` ou `application.yaml` | consignes, recherche ou modèle : ce qui change les réponses. Les commits suivants ne relancent pas d'office (coût) : poser l'étiquette |
+| Ouverture, réouverture ou sortie de brouillon d'une PR qui touche `src/*/resources/prompts/` (consignes), `recherche/`, `questions/` (trajet d'une question, paramètres des appels) ou `application.yaml` (modèle, sources épinglées) | ce qui change les réponses. Les commits suivants ne relancent pas d'office (coût) : après une retouche, reposer l'étiquette |
 | Chaque lundi à 5 h (UTC), sur `main` | dérive du modèle ou du corpus sans changement de code |
 | À la demande (`workflow_dispatch`) | |
 
@@ -26,6 +26,10 @@ Batch, moitié prix), soit 5 à 6 $ par mois pour le seul passage hebdomadaire.
   n'est pas protégée (voir la feuille de route), le blocage est un signal : la fusion reste possible,
   en l'expliquant dans la PR.
 - Un **artefact** (90 jours) : rapport, résumé JSON, ligne d'historique, requêtes de reformulation.
+
+La référence est la dernière ligne de l'historique avec le même modèle **et le même nombre de
+questions** : un sous-ensemble ou un jeu agrandi ne se compare pas (pas de blocage, c'est dit dans le
+commentaire). Le mode (lots ou direct) n'entre pas en compte.
 
 Un lancement de la CI n'est pas ajouté d'office à l'historique : on l'y verse, avec son analyse, comme
 une évaluation locale ([`evaluations/README.md`](evaluations/README.md)), quand il marque une étape.
@@ -61,3 +65,13 @@ fois : le job le réécrit chaque minute, et le SDK relit le fichier à chaque r
 
 Ne pas définir de secret `ANTHROPIC_API_KEY` sur ce workflow : une clé, même vide, passe avant la
 fédération.
+
+### Limites de sécurité
+
+Sur une PR, c'est le workflow **de la branche** qui s'exécute : quiconque peut pousser une branche dans
+le dépôt peut modifier `evaluation.yml` ou les tests et obtenir un jeton Anthropic de 10 minutes. La
+condition CEL protège des autres workflows (y compris sur `refs/pull/N/merge`, qu'elle accepte), pas
+d'une branche modifiée ; les dépôts dérivés, eux, n'obtiennent aucun jeton. Le dépôt étant personnel,
+c'est acceptable ; avec des contributeurs, réserver la règle à `main` et déclencher les PR par
+`workflow_dispatch`. Dans tous les cas, plafonner la dépense de l'espace de travail du compte de
+service dans la Console (limite de dépense mensuelle).

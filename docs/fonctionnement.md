@@ -153,8 +153,10 @@ flowchart LR
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
 **Évaluation complète dans la CI** (workflow « Évaluation complète », payant) : sur l'étiquette `eval`
-d'une PR, d'office à l'ouverture d'une PR qui touche consignes, recherche ou modèle, et chaque lundi sur
-`main`. Le résultat est comparé à la dernière ligne de l'historique faite avec le même modèle, commenté
+d'une PR, d'office à l'ouverture d'une PR qui touche les consignes, la recherche, le trajet des questions
+ou `application.yaml` (les commits suivants ne relancent pas : reposer l'étiquette), et chaque lundi sur
+`main`. Le résultat est comparé à la dernière ligne de l'historique faite avec le même modèle et le même
+nombre de questions, commenté
 dans la PR, et le job échoue sur une baisse nette. Authentification par fédération d'identité, sans clé
 stockée : voir [`evaluation-ci.md`](evaluation-ci.md).
 

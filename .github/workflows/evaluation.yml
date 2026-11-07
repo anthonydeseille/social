@@ -19,7 +19,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: evaluation-${{ github.event.pull_request.number || github.ref }}
+  # Par action ou étiquette : l'ajout d'une autre étiquette (qui ne lance rien) ne doit pas remplacer
+  # un lancement « eval » en attente
+  group: evaluation-${{ github.event.pull_request.number || github.ref }}-${{ github.event.label.name || github.event.action || github.event_name }}
   # Un lot annulé est quand même facturé pour ce qu'il a traité : on laisse finir
   cancel-in-progress: false
 
@@ -93,12 +95,18 @@ jobs:
       # le job (les lots peuvent durer plus d'une heure)
       - name: Jeton d'identité GitHub, renouvelé en continu
         run: |
+          # Un échec de GitHub (5xx, 429) ne doit jamais remplacer le jeton valide par un fichier vide
           cat > "$RUNNER_TEMP/jeton.sh" <<'EOF'
+          set -o pipefail
           while true; do
-            curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
-              | jq -r .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" \
-              && mv "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+            jeton=$(curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r .value)
+            if [ $? -eq 0 ] && [ -n "$jeton" ] && [ "$jeton" != null ]; then
+              printf %s "$jeton" > "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" \
+                && mv "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+            else
+              echo "$(date -u +%T) jeton non renouvelé, nouvel essai dans 60 s"
+            fi
             sleep 60
           done
           EOF
