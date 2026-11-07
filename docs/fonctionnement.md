@@ -92,6 +92,7 @@ ce qui change :
 | Rédaction illisible (hors du JSON demandé) | sans objet | 503 |
 | Rédaction coupée par la limite de jetons (`num-predict`) | passages reçus, signalés tronqués | JSON complet : passages servis, signalés tronqués ; JSON inachevé : illisible, donc **réponse vide** signalée tronquée (rien de ce qui a été généré n'est montré) |
 | Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres ni mots vides, sans IDCC, « convention collective » ni type de contrat recopiés du profil (gardés si la question les emploie : « fin de CDD ») : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
+| Versions des consignes | empreintes de `reformulation.md` et `redaction.md` | empreintes des mêmes consignes suivies de leurs compléments (`ollama-exemples-reformulation.md`, `ollama-citations.md`) : versions distinctes de celles de Claude, puisque le texte envoyé diffère |
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
