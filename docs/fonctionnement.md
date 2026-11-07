@@ -152,6 +152,12 @@ flowchart LR
 | Citations vérifiées | Les extraits cités existent-ils dans les articles ? |
 | Qualité (juge) | Les points clés de la réponse de référence sont-ils présents, chiffres exacts compris ? |
 
+**Évaluation complète dans la CI** (workflow « Évaluation complète », payant) : sur l'étiquette `eval`
+d'une PR, d'office à l'ouverture d'une PR qui touche consignes, recherche ou modèle, et chaque lundi sur
+`main`. Le résultat est comparé à la dernière ligne de l'historique faite avec le même modèle, commenté
+dans la PR, et le job échoue sur une baisse nette. Authentification par fédération d'identité, sans clé
+stockée : voir [`evaluation-ci.md`](evaluation-ci.md).
+
 **Évaluation de la recherche, gratuite, dans chaque PR** (job CI « Évaluation de la recherche ») : les
 requêtes de reformulation d'une évaluation complète sont figées (`src/test/resources/evaluation/requetes.yaml`)
 et rejouées sur les vraies sources, sans appel au modèle ; elle mesure l'indicateur « recherche » (articles

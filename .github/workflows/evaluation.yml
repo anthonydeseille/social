@@ -1,0 +1,162 @@
+name: Évaluation complète
+
+# Évaluation payante (Claude, API Batch : environ 1,10 à 1,40 $ par lancement), comparée à
+# docs/evaluations/historique.csv ; échoue sur une baisse nette (voir ComparaisonEvaluation).
+# Lancement :
+#   - sur une PR, en posant l'étiquette « eval » (retirée en fin de lancement : la reposer relance) ;
+#   - d'office à l'ouverture d'une PR qui touche les consignes, la recherche ou le modèle ;
+#   - chaque lundi sur main, et à la demande (workflow_dispatch).
+# Authentification sans clé stockée : fédération d'identité (jeton OIDC de GitHub Actions échangé
+# contre un jeton Anthropic de courte durée) ; voir docs/evaluation-ci.md.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled]
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evaluation-${{ github.event.pull_request.number || github.ref }}
+  # Un lot annulé est quand même facturé pour ce qu'il a traité : on laisse finir
+  cancel-in-progress: false
+
+jobs:
+  decider:
+    name: Lancer l'évaluation ?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      lancer: ${{ steps.decision.outputs.lancer }}
+    steps:
+      - id: decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENEMENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          ETIQUETTE: ${{ github.event.label.name }}
+          BROUILLON: ${{ github.event.pull_request.draft }}
+          PR: ${{ github.event.pull_request.number }}
+          DEPOT_PR: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          lancer=false
+          if [ "$EVENEMENT" != pull_request ]; then
+            lancer=true
+          elif [ "$DEPOT_PR" != "$GITHUB_REPOSITORY" ]; then
+            echo "PR d'un dépôt dérivé : pas d'évaluation payante"
+          elif [ "$ACTION" = labeled ]; then
+            [ "$ETIQUETTE" = eval ] && lancer=true
+          elif [ "$BROUILLON" != true ]; then
+            # Consignes, recherche, trajet des questions, configuration (modèle, sources)
+            fichiers=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
+            echo "$fichiers"
+            if echo "$fichiers" | grep -qE '^src/(main|test)/resources/prompts/|^src/main/java/fr/deseille/social/(recherche|questions)/|^src/main/resources/application\.yaml$'; then
+              lancer=true
+            fi
+          fi
+          echo "Lancer : $lancer"
+          echo "lancer=$lancer" >> "$GITHUB_OUTPUT"
+
+  evaluer:
+    name: Évaluation complète
+    needs: decider
+    if: needs.decider.outputs.lancer == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+    env:
+      ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+      ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+      ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Fédération d'identité configurée
+        run: |
+          if [ -z "$ANTHROPIC_FEDERATION_RULE_ID" ] || [ -z "$ANTHROPIC_ORGANIZATION_ID" ] || [ -z "$ANTHROPIC_SERVICE_ACCOUNT_ID" ]; then
+            echo "::error::Variables du dépôt ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID et ANTHROPIC_SERVICE_ACCOUNT_ID à définir (docs/evaluation-ci.md)"
+            exit 1
+          fi
+          echo "ANTHROPIC_IDENTITY_TOKEN_FILE=$RUNNER_TEMP/jeton-github.jwt" >> "$GITHUB_ENV"
+
+      # Le jeton de GitHub vit environ 5 minutes et ne s'échange qu'une fois (jti) ; le SDK relit le
+      # fichier à chaque renouvellement du jeton Anthropic : on le réécrit chaque minute, pendant tout
+      # le job (les lots peuvent durer plus d'une heure)
+      - name: Jeton d'identité GitHub, renouvelé en continu
+        run: |
+          cat > "$RUNNER_TEMP/jeton.sh" <<'EOF'
+          while true; do
+            curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
+              | jq -r .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" \
+              && mv "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+            sleep 60
+          done
+          EOF
+          nohup bash "$RUNNER_TEMP/jeton.sh" > "$RUNNER_TEMP/jeton.log" 2>&1 &
+          for i in $(seq 1 15); do [ -s "$ANTHROPIC_IDENTITY_TOKEN_FILE" ] && exit 0; sleep 1; done
+          echo "::error::Jeton d'identité GitHub introuvable"; cat "$RUNNER_TEMP/jeton.log"; exit 1
+
+      - name: Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Cache des sources
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/droits-corpus
+          key: corpus-${{ hashFiles('src/main/resources/application.yaml') }}
+
+      # Toutes les questions (le jeu n'est pas encore validé par la juriste), par lots (moitié prix)
+      - name: Évaluation
+        run: >-
+          ./mvnw -B -ntp verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false
+          -Devaluation=true -Devaluation.lots=true -Devaluation.lots.heures=2 -Devaluation.toutes=true
+          -Devaluation.comparer=true -Ddroits.ingestion.cache-dir=$HOME/.cache/droits-corpus
+
+      - name: Résumé du job
+        if: always()
+        run: |
+          cat target/evaluation/comparaison-*.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null \
+            || echo "Évaluation interrompue avant la comparaison : voir le journal." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commentaire dans la PR
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          { cat target/evaluation/comparaison-*.md 2>/dev/null \
+              || printf '## Évaluation complète\n\nInterrompue avant la comparaison.\n'
+            printf '\nRapport complet, requêtes et ligne d'\''historique : [artefact du lancement](%s).\n' "$LIEN"
+          } > "$RUNNER_TEMP/commentaire.md"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/commentaire.md"
+
+      # L'étiquette déclenche un lancement : la retirer permet de relancer en la reposant
+      - name: Retrait de l'étiquette eval
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label eval 2>/dev/null || true
+
+      - name: Rapport en artefact
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: evaluation-complete
+          path: target/evaluation/
+          retention-days: 90
