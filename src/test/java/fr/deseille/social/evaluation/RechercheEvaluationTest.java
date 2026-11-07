@@ -54,9 +54,19 @@ class RechercheEvaluationTest {
         Mesure reference = mesure(List.of("KALIARTI1"), List.of("KALIARTI2"));
         Mesure apres = mesure(List.of("KALIARTI1", "LEGIARTI1"), List.of());
 
-        String md = RechercheEvaluationIT.markdown(List.of(ESSAI, PREAVIS), apres, reference);
+        String md = RechercheEvaluationIT.markdown(List.of(ESSAI, PREAVIS), apres, reference, "aaaa1111", "aaaa1111");
 
         assertThat(md).contains("Articles attendus retrouvés : **2/4**", "Référence : 2/4 (inchangé)",
                 "| essai | 2/2 | L1221-19 |  |", "| preavis | 0/2 |  | 4.2 |");
+    }
+
+    @Test
+    void requetes_figees_perimees_signalees_quand_les_consignes_de_reformulation_changent() {
+        Mesure mesure = mesure(List.of("KALIARTI1"), List.of());
+
+        assertThat(RechercheEvaluationIT.markdown(List.of(ESSAI, PREAVIS), mesure, null, "aaaa1111", "aaaa1111"))
+                .contains("reformulation des requêtes figées : aaaa1111 (actuelles)").doesNotContain("périmées");
+        assertThat(RechercheEvaluationIT.markdown(List.of(ESSAI, PREAVIS), mesure, null, "aaaa1111", "bbbb2222"))
+                .contains("aaaa1111 ; actuelles : bbbb2222 (**requêtes périmées**");
     }
 }

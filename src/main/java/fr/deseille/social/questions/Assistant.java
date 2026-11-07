@@ -37,6 +37,19 @@ public interface Assistant {
         return "inconnu";
     }
 
+    /**
+     * Versions des consignes envoyées au modèle, par étape ({@link Consignes#version}) : inscrites
+     * dans chaque réponse, les métriques et les rapports d'évaluation.
+     */
+    default VersionsConsignes consignes() {
+        return VersionsConsignes.INCONNUES;
+    }
+
+    record VersionsConsignes(String reformulation, String redaction) {
+
+        public static final VersionsConsignes INCONNUES = new VersionsConsignes("inconnue", "inconnue");
+    }
+
     /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
     default Consommation consommation() {
         return new Consommation(0, 0, 0);

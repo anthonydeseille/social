@@ -24,6 +24,7 @@ Les mêmes chiffres, lisibles par un programme (tableau de bord, comparaison dan
 | Colonne | Contenu |
 |---|---|
 | `date`, `commit`, `changement`, `mode`, `modele` | lancement : jour, commit de `main` évalué, ce qui a changé depuis la précédente, `lots` ou `direct`, modèle de l'application |
+| `consignes_reformulation`, `consignes_redaction`, `consignes_juge` | versions des consignes (empreintes des fichiers `prompts/`, voir [`fonctionnement.md`](../fonctionnement.md)) ; juge vide s'il n'a pas été lancé. Les deux premières évaluations, antérieures au versionnement, ont été complétées après vérification que les consignes n'avaient pas changé |
 | `questions`, `validees` | questions posées, dont validées par la juriste |
 | `recherche_pct` | articles attendus transmis à Claude (moyenne par question, en %) |
 | `articles_transmis`, `articles_attendus` | les mêmes, en total sur le jeu |
@@ -44,7 +45,7 @@ Les mêmes chiffres, lisibles par un programme (tableau de bord, comparaison dan
    comparaison question par question, conclusions et actions.
 4. Ajouter la ligne d'historique à `historique.csv` en remplissant `changement` et `analyse`, et la
    ligne correspondante dans le tableau ci-dessus.
-5. Si les consignes de reformulation ou le modèle ont changé : recopier `requetes-*.yaml` dans
+5. Si les consignes de reformulation (colonne `consignes_reformulation`) ou le modèle ont changé : recopier `requetes-*.yaml` dans
    `src/test/resources/evaluation/requetes.yaml` et réécrire la référence de l'évaluation de la
    recherche (`-Devaluation.recherche.reference=ecrire`).
 

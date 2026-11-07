@@ -4,6 +4,7 @@ import fr.deseille.social.evaluation.JeuEvaluation.ArticleAttendu;
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Passage;
+import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
 import java.util.ArrayList;
@@ -108,6 +109,11 @@ final class RapportEvaluation {
         long sortie = resultats.stream().mapToLong(Resultat::jetonsSortie).sum();
         md.append("# Rapport d'évaluation").append(resultats.size() < prevues ? " (partiel)" : "").append("\n\n");
         md.append("- Modèle : ").append(simule ? "simulé (aucun appel payant)" : tarif.libelle()).append('\n');
+        VersionsConsignes consignes = consignes(resultats);
+        if (consignes != null) {
+            md.append("- Consignes : reformulation ").append(consignes.reformulation()).append(", rédaction ")
+                    .append(consignes.redaction()).append(", juge ").append(JugeClaude.VERSION).append('\n');
+        }
         md.append("- Questions : ").append(resultats.size()).append('/').append(prevues)
                 .append(", en erreur : ").append(resultats.stream().filter(r -> r.erreur() != null).count()).append('\n');
         md.append("- Recherche (articles attendus transmis) : ").append(moyenne(resultats, Resultat::scoreRecherche)).append('\n');
@@ -215,7 +221,7 @@ final class RapportEvaluation {
     }
 
     /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des valeurs de {@link #ligneHistorique}. */
-    static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,questions,validees,recherche_pct,"
+    static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,consignes_reformulation,consignes_redaction,consignes_juge,questions,validees,recherche_pct,"
             + "articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
             + "jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse";
 
@@ -225,6 +231,7 @@ final class RapportEvaluation {
      */
     static Map<String, Object> synthese(List<Resultat> resultats, String date, String commit, String mode, Tarif tarif,
                                         Tarif tarifJuge, long jetonsJugeEntree, long jetonsJugeSortie) {
+        VersionsConsignes consignes = consignes(resultats);
         List<Resultat> juges = resultats.stream().filter(r -> r.verdict() != null).toList();
         long entree = resultats.stream().mapToLong(Resultat::jetonsEntree).sum();
         long sortie = resultats.stream().mapToLong(Resultat::jetonsSortie).sum();
@@ -235,6 +242,9 @@ final class RapportEvaluation {
         s.put("changement", "");
         s.put("mode", mode);
         s.put("modele", tarif.modele().replace(" (lots, moitié prix)", ""));
+        s.put("consignes_reformulation", consignes == null ? null : consignes.reformulation());
+        s.put("consignes_redaction", consignes == null ? null : consignes.redaction());
+        s.put("consignes_juge", juges.isEmpty() ? null : JugeClaude.VERSION);
         s.put("questions", resultats.size());
         s.put("validees", resultats.stream().filter(r -> r.question().valide()).count());
         s.put("recherche_pct", pourcentage(resultats, Resultat::scoreRecherche));
@@ -252,6 +262,15 @@ final class RapportEvaluation {
         s.put("cout_juge_usd", arrondi(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie)));
         s.put("analyse", "");
         return s;
+    }
+
+    /**
+     * Versions des consignes de l'évaluation, lues dans les réponses (toutes produites par le même
+     * assistant) ; {@code null} si aucune question n'a abouti.
+     */
+    static VersionsConsignes consignes(List<Resultat> resultats) {
+        return resultats.stream().filter(r -> r.reponse() != null).map(r -> r.reponse().consignes())
+                .findFirst().orElse(null);
     }
 
     /** Ligne CSV de {@code historique.csv} ; une valeur inconnue est laissée vide. */

@@ -52,26 +52,16 @@ public class AssistantOllama implements Assistant {
     private static final Logger log = LoggerFactory.getLogger(AssistantOllama.class);
     private static final String FOURNISSEUR = "ollama";
 
-    static final String CONSIGNES_CITATIONS = """
-            Format de la réponse : les articles sont numérotés (document 1, document 2…). Découpe ta \
-            réponse en passages, dans l'ordre de lecture. Pour chaque passage qui énonce une règle, \
-            indique dans « citations » le numéro du document et un extrait recopié mot pour mot, sans \
-            rien changer (une phrase ou un membre de phrase de l'article). Un passage de liaison n'a \
-            pas de citation. N'invente jamais d'extrait.""";
-
     /**
-     * Exemples pour les petits modèles, qui recopient sinon le profil dans les requêtes (« idcc 1486
-     * cdi cadre… ») et les allongent. Thèmes choisis hors du jeu d'évaluation, pour ne pas le fausser.
+     * Consignes de Claude complétées pour un petit modèle : exemples de reformulation, qui recopie
+     * sinon le profil dans les requêtes (« idcc 1486 cdi cadre… ») et les allonge, thèmes choisis hors
+     * du jeu d'évaluation ; format des citations en JSON, faute de citations natives.
      */
-    static final String EXEMPLES_REFORMULATION = """
-            N'ajoute jamais aux requêtes le numéro de convention, le type de contrat ni d'autres \
-            éléments du profil : ils servent déjà à choisir les textes. Exemples :
-            - « Je suis cadre en CDI chez un employeur Syntec, puis-je demander du télétravail ? » → \
-            {"requetes": ["télétravail", "télétravail accord", "télétravail refus employeur"]}
-            - « Salariée en CDI depuis 5 ans, comment se passe une rupture conventionnelle ? » → \
-            {"requetes": ["rupture conventionnelle", "rupture conventionnelle indemnité", "homologation rupture"]}
-            - « Je travaille la nuit dans un hôtel, ai-je droit à une contrepartie ? » → \
-            {"requetes": ["travail nuit contrepartie", "repos compensateur nuit"]}""";
+    static final String SYSTEME_REFORMULATION = AssistantClaude.CONSIGNES_REFORMULATION + "\n\n"
+            + Consignes.lire("ollama-exemples-reformulation");
+    static final String SYSTEME_REDACTION = AssistantClaude.CONSIGNES_REDACTION + "\n\n" + Consignes.lire("ollama-citations");
+    private static final VersionsConsignes CONSIGNES = new VersionsConsignes(
+            Consignes.version(SYSTEME_REFORMULATION), Consignes.version(SYSTEME_REDACTION));
 
     /** Mots vides, toujours retirés des requêtes : la recherche les exigerait. */
     private static final Set<String> MOTS_VIDES = Set.of(
@@ -150,6 +140,11 @@ public class AssistantOllama implements Assistant {
     }
 
     @Override
+    public VersionsConsignes consignes() {
+        return CONSIGNES;
+    }
+
+    @Override
     public Consommation consommation() {
         return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
     }
@@ -158,7 +153,7 @@ public class AssistantOllama implements Assistant {
     public List<String> reformuler(String question, ContexteProfil contexte) {
         ChatResponse reponse;
         try {
-            reponse = modele.call(new Prompt(List.of(new SystemMessage(AssistantClaude.CONSIGNES_REFORMULATION + "\n\n" + EXEMPLES_REFORMULATION),
+            reponse = modele.call(new Prompt(List.of(new SystemMessage(SYSTEME_REFORMULATION),
                     new UserMessage(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)),
                     options(SCHEMA_REQUETES)));
         } catch (RuntimeException e) {
@@ -249,7 +244,7 @@ public class AssistantOllama implements Assistant {
                     .append(AssistantClaude.contenu(a)).append("\n\n");
         }
         return new Prompt(List.of(
-                new SystemMessage(AssistantClaude.CONSIGNES_REDACTION + "\n\n" + CONSIGNES_CITATIONS),
+                new SystemMessage(SYSTEME_REDACTION),
                 new UserMessage(documents + DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)),
                 options(SCHEMA_REDACTION));
     }

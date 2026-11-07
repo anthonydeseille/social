@@ -11,6 +11,7 @@ import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
+import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.MetriquesQuestions;
 import fr.deseille.social.questions.QuestionService;
 import fr.deseille.social.recherche.RechercheService;
@@ -136,7 +137,8 @@ class RechercheEvaluationIT {
         String horodatage = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         Path rapport = Path.of("target", "evaluation", "recherche-" + horodatage + ".md");
         Files.createDirectories(rapport.getParent());
-        Files.writeString(rapport, markdown(questions, mesure, reference), StandardCharsets.UTF_8);
+        Files.writeString(rapport, markdown(questions, mesure, reference, requetes.consignes(),
+                AssistantClaude.CONSIGNES.reformulation()), StandardCharsets.UTF_8);
         Files.writeString(rapport.resolveSibling("recherche-" + horodatage + ".json"),
                 JSON.writerWithDefaultPrettyPrinter().writeValueAsString(mesure), StandardCharsets.UTF_8);
         System.out.println("Rapport de la recherche : " + rapport.toAbsolutePath());
@@ -186,9 +188,16 @@ class RechercheEvaluationIT {
     }
 
     /** Rapport : total, comparaison à la référence, puis détail par question (gains et pertes). */
-    static String markdown(List<Question> questions, Mesure mesure, Mesure reference) {
+    static String markdown(List<Question> questions, Mesure mesure, Mesure reference, String consignesFigees,
+                           String consignesActuelles) {
         StringBuilder md = new StringBuilder("# Évaluation de la recherche\n\n");
         md.append("- Requêtes figées : ").append(mesure.origineRequetes()).append('\n');
+        // Les requêtes ne sont pas régénérées dans le CI (appel payant) : une consigne retouchée les périme
+        md.append("- Consignes de reformulation des requêtes figées : ").append(consignesFigees)
+                .append(consignesFigees.equals(consignesActuelles) ? " (actuelles)"
+                        : " ; actuelles : " + consignesActuelles + " (**requêtes périmées** : la mesure ne reflète pas "
+                        + "les consignes actuelles ; relancer une évaluation complète et recopier ses requêtes)")
+                .append('\n');
         md.append(String.format("- Articles attendus retrouvés : **%d/%d** (%.0f %%)%n", mesure.articlesTrouves(),
                 mesure.articlesAttendus(), 100.0 * mesure.articlesTrouves() / Math.max(1, mesure.articlesAttendus())));
         if (reference != null) {

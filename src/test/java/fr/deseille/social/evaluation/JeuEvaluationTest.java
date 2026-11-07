@@ -9,6 +9,7 @@ import fr.deseille.social.profil.ProfilSalarie;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Passage;
+import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
 import java.time.LocalDate;
@@ -42,7 +43,7 @@ class JeuEvaluationTest {
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
                 List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec"),
                         new Source("LEGIARTI000019071113", "L1221-19", "LEGITEXT", "Code")),
-                false, List.of(), List.of());
+                false, List.of(), List.of(), VersionsConsignes.INCONNUES);
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
         assertThat(r.scoreRecherche()).isEqualTo(1.0);
@@ -60,7 +61,8 @@ class JeuEvaluationTest {
         ContexteProfil contexte = new ContexteProfil(q.profil(), null, List.of(), true, List.of());
         ReponseQuestion reponse = new ReponseQuestion(q.question(), contexte, List.of("période essai"),
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
-                List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of());
+                List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of(),
+                new VersionsConsignes("aaaa1111", "bbbb2222"));
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
         Map<String, Object> synthese = RapportEvaluation.synthese(List.of(r), "2026-10-31", "abc1234", "lots",
@@ -68,7 +70,7 @@ class JeuEvaluationTest {
         String ligne = RapportEvaluation.ligneHistorique(synthese);
 
         assertThat(synthese.keySet()).containsExactly(RapportEvaluation.ENTETE_HISTORIQUE.split(","));
-        assertThat(ligne).isEqualTo("2026-10-31,abc1234,,lots,claude-opus-5-5,1,1,50,1,2,50,1,1,,,5000,2000,0.03,0.01,");
+        assertThat(ligne).isEqualTo("2026-10-31,abc1234,,lots,claude-opus-5-5,aaaa1111,bbbb2222,,1,1,50,1,2,50,1,1,,,5000,2000,0.03,0.01,");
         // L'en-tête est celui du fichier versionné : une colonne ajoutée d'un côté doit l'être de l'autre
         assertThat(java.nio.file.Files.readAllLines(java.nio.file.Path.of("docs/evaluations/historique.csv")).getFirst())
                 .isEqualTo(RapportEvaluation.ENTETE_HISTORIQUE);
@@ -76,12 +78,14 @@ class JeuEvaluationTest {
 
     @Test
     void requetes_figees_relues_telles_qu_ecrites() {
-        RequetesFigees figees = new RequetesFigees("claude, essai", new java.util.LinkedHashMap<>(Map.of(
+        RequetesFigees figees = new RequetesFigees("claude, essai", "aaaa1111", new java.util.LinkedHashMap<>(Map.of(
                 "q1", List.of("période essai", "délai \"prévenance\"", "sur\ndeux lignes"))));
 
         RequetesFigees relues = RequetesFigees.lire(figees.yaml());
 
         assertThat(relues).isEqualTo(figees);
+        assertThat(RequetesFigees.lire("origine: x\nrequetes:\n  q1: [a]\n").consignes())
+                .as("fichier antérieur au versionnement des consignes").isEqualTo("inconnue");
         assertThatThrownBy(() -> RequetesFigees.lire("origine: x\nrequetes:\n  q1: []\n"))
                 .hasMessageContaining("q1");
     }
@@ -92,7 +96,8 @@ class JeuEvaluationTest {
         Question avec = questions.getFirst();
         Question sans = new Question("sans-article", "t", true, "q ?", avec.profil(), "r", List.of(), List.of(), List.of());
         ContexteProfil contexte = new ContexteProfil(avec.profil(), null, List.of(), true, List.of());
-        ReponseQuestion vide = new ReponseQuestion("q", contexte, List.of(), List.of(), List.of(), false, List.of(), List.of());
+        ReponseQuestion vide = new ReponseQuestion("q", contexte, List.of(), List.of(), List.of(), false, List.of(), List.of(),
+                VersionsConsignes.INCONNUES);
 
         String md = RapportEvaluation.markdown(List.of(new Resultat(avec, vide, null, 0, 0, 0),
                 new Resultat(sans, vide, null, 0, 0, 0)), "claude-opus-5-5", false);

@@ -88,7 +88,7 @@ class AssistantOllamaTest {
         verify(modele).call(prompt.capture());
         assertThat(prompt.getValue().getSystemMessage().getText())
                 .startsWith(AssistantClaude.CONSIGNES_REDACTION)
-                .endsWith(AssistantOllama.CONSIGNES_CITATIONS);
+                .endsWith(Consignes.lire("ollama-citations"));
         assertThat(prompt.getValue().getUserMessage().getText())
                 .contains("Document 1 : article L1221-19 (Code du travail)\nEmplacement : Partie législative > Période d'essai\n"
                         + "Le contrat peut comporter une période d'essai.")
@@ -260,7 +260,7 @@ class AssistantOllamaTest {
         verify(modele).call(prompt.capture());
         assertThat(prompt.getValue().getSystemMessage().getText())
                 .startsWith(AssistantClaude.CONSIGNES_REFORMULATION)
-                .endsWith(AssistantOllama.EXEMPLES_REFORMULATION);
+                .endsWith(Consignes.lire("ollama-exemples-reformulation"));
     }
 
     @Test

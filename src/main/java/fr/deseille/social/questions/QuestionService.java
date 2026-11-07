@@ -41,6 +41,7 @@ public class QuestionService {
         this.consultationService = consultationService;
         this.assistant = assistant;
         this.metriques = metriques;
+        metriques.consignes(assistant.modele(), assistant.consignes());
     }
 
     /**
@@ -92,7 +93,8 @@ public class QuestionService {
         metriques.question("aucun_article");
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
-        return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of());
+        return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of(),
+                assistant.consignes());
     }
 
     /**
@@ -116,7 +118,8 @@ public class QuestionService {
         metriques.citations((int) reponse.passages().stream().mapToLong(p -> p.citations().size()).sum(),
                 nonVerifiees.size());
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
-                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees);
+                articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees,
+                assistant.consignes());
     }
 
     /**
@@ -151,9 +154,12 @@ public class QuestionService {
      * @param refus     le modèle a refusé de répondre
      * @param citationsNonVerifiees citations dont l'extrait est introuvable dans l'article cité
      *                  ({@link VerificationCitations}) : à signaler, sans les retirer
+     * @param consignes versions des consignes envoyées au modèle ({@link Consignes}), pour relier
+     *                  une réponse aux consignes qui l'ont produite
      */
     public record ReponseQuestion(String question, ContexteProfil contexte, List<String> requetes,
                                   List<Passage> passages, List<Source> sources, boolean refus,
-                                  List<String> avertissements, List<Citation> citationsNonVerifiees) {
+                                  List<String> avertissements, List<Citation> citationsNonVerifiees,
+                                  Assistant.VersionsConsignes consignes) {
     }
 }
