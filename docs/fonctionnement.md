@@ -33,7 +33,7 @@ flowchart TD
     V5["5. Contrôles de sortie<br/>extraits cités présents dans les articles ?<br/>réponse interrompue ?"]
     V5 --> REP
 
-    REP(["📄 Réponse<br/>passages avec citations · sources<br/>requêtes · contexte · avertissements<br/>citations non vérifiées"])
+    REP(["📄 Réponse<br/>passages avec citations · sources<br/>requêtes · contexte · avertissements<br/>citations non vérifiées · versions des consignes"])
 
     classDef claude fill:#fde7c8,stroke:#d97706,color:#000
     classDef gratuit fill:#e3f2e1,stroke:#2e7d32,color:#000
@@ -65,6 +65,14 @@ souvenir de mes informations », et un bouton l'efface.
 | 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; signalement d'une réponse interrompue. | gratuit |
 
+**Consignes versionnées.** Les consignes des étapes 2 et 4 sont des fichiers :
+`src/main/resources/prompts/reformulation.md` et `redaction.md`, complétés pour Ollama par
+`ollama-exemples-reformulation.md` et `ollama-citations.md` ; celles du juge de l'évaluation sont dans
+`src/test/resources/prompts/juge.md`. Leur version est l'empreinte (SHA-256, 8 caractères) du texte exact
+envoyé au modèle : elle change d'elle-même à chaque retouche. Chaque réponse porte les versions de ses
+deux étapes (`consignes` : `reformulation`, `redaction`), comme la métrique `droits.assistant.consignes`,
+les rapports d'évaluation et `historique.csv`.
+
 ## Fournisseur local : Ollama
 
 Avec `droits.assistant.fournisseur=ollama`, les étapes 2 et 4 sont confiées à un modèle servi par
@@ -84,6 +92,7 @@ ce qui change :
 | Rédaction illisible (hors du JSON demandé) | sans objet | 503 |
 | Rédaction coupée par la limite de jetons (`num-predict`) | passages reçus, signalés tronqués | JSON complet : passages servis, signalés tronqués ; JSON inachevé : illisible, donc **réponse vide** signalée tronquée (rien de ce qui a été généré n'est montré) |
 | Reformulation | consignes seules | consignes plus trois exemples (thèmes hors du jeu d'évaluation), puis requêtes ramenées à trois mots-clés au plus, sans chiffres ni mots vides, sans IDCC, « convention collective » ni type de contrat recopiés du profil (gardés si la question les emploie : « fin de CDD ») : les petits modèles recopient le profil dans des requêtes trop longues, qui ne trouvent aucun article |
+| Versions des consignes | empreintes de `reformulation.md` et `redaction.md` | empreintes des mêmes consignes suivies de leurs compléments (`ollama-exemples-reformulation.md`, `ollama-citations.md`) : versions distinctes de celles de Claude, puisque le texte envoyé diffère |
 | Reformulation en panne ou illisible | question brute | question brute |
 
 Ollama est relancé une fois sur erreur temporaire (`spring.ai.retry.max-attempts`, dix par défaut
@@ -116,6 +125,7 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 | `droits.assistant.jetons` | fournisseur, etape, sens : entree, sortie | jetons consommés (le coût, pour Claude) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
 | `droits.questions.quota_atteint` | | questions refusées par le quota |
+| `droits.assistant.consignes` | modele, reformulation, redaction | jauge à 1 portant les versions des consignes en service, à croiser avec les autres métriques |
 
 Ils révèlent le volume, le coût et le quota : ne pas activer ce profil sur un serveur public sans
 protection (port interne, authentification).
@@ -149,7 +159,9 @@ attendus parmi les 8 retenus) et échoue s'il baisse par rapport à la référen
 (`recherche-reference.json`), ou si une question perd un article qu'elle retrouvait : accepter un
 compromis (des pertes compensées par des gains) passe par une réécriture de la référence, visible dans
 le diff. Elle isole la recherche : un réglage du classement se mesure en deux minutes,
-sans le bruit des reformulations, qui varient d'un passage à l'autre.
+sans le bruit des reformulations, qui varient d'un passage à l'autre. Les requêtes figées gardent la
+version des consignes de reformulation qui les a produites : si elle diffère de l'actuelle, le rapport les
+signale périmées (sans échec : les régénérer demande une évaluation payante).
 
 Résultats et conclusions de chaque évaluation, historisés : [`evaluations/`](evaluations/README.md)
 (tableau de l'historique, analyses datées, rapports bruts, `historique.csv`).

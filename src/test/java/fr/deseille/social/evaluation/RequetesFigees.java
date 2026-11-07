@@ -17,9 +17,11 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
  * gratuitement et de façon déterministe. Toute évaluation complète en écrit une nouvelle version dans
  * {@code target/evaluation/} ; on la recopie quand les consignes de reformulation ou le modèle changent.
  *
- * @param origine provenance (modèle, consignes, date), recopiée dans le rapport
+ * @param origine   provenance (modèle, commit, date), recopiée dans le rapport
+ * @param consignes version des consignes de reformulation qui les ont produites ({@code Consignes}),
+ *                  comparée à l'actuelle : « inconnue » pour un fichier antérieur à leur versionnement
  */
-record RequetesFigees(String origine, Map<String, List<String>> parQuestion) {
+record RequetesFigees(String origine, String consignes, Map<String, List<String>> parQuestion) {
 
     static RequetesFigees lireRessource(String ressource) throws IOException {
         try (InputStream in = RequetesFigees.class.getResourceAsStream(ressource)) {
@@ -42,7 +44,8 @@ record RequetesFigees(String origine, Map<String, List<String>> parQuestion) {
             }
             parQuestion.put(String.valueOf(id), l.stream().map(String.class::cast).toList());
         });
-        return new RequetesFigees(String.valueOf(racine.get("origine")), parQuestion);
+        return new RequetesFigees(String.valueOf(racine.get("origine")),
+                racine.get("consignes") == null ? "inconnue" : String.valueOf(racine.get("consignes")), parQuestion);
     }
 
     /** Fichier YAML, dans l'ordre des questions, prêt à remplacer {@code requetes.yaml}. */
@@ -50,9 +53,10 @@ record RequetesFigees(String origine, Map<String, List<String>> parQuestion) {
         StringBuilder y = new StringBuilder("""
                 # Requêtes de reformulation figées par question, rejouées par RechercheEvaluationIT pour
                 # mesurer la recherche sans appel au modèle. Écrit par EvaluationIT (target/evaluation/) ;
-                # à recopier ici quand les consignes de reformulation ou le modèle changent.
+                # à recopier ici quand les consignes de reformulation (version « consignes ») ou le modèle changent.
                 """);
-        y.append("origine: ").append(chaine(origine)).append("\nrequetes:\n");
+        y.append("origine: ").append(chaine(origine)).append("\nconsignes: ").append(chaine(consignes))
+                .append("\nrequetes:\n");
         parQuestion.forEach((id, requetes) -> {
             List<String> echappees = new ArrayList<>();
             requetes.forEach(r -> echappees.add(chaine(r)));

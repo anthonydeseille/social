@@ -12,6 +12,7 @@ import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.questions.Assistant.Citation;
 import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.questions.ClaudeProperties;
+import fr.deseille.social.questions.Consignes;
 import fr.deseille.social.questions.DescriptionProfil;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import java.util.List;
@@ -28,18 +29,9 @@ final class JugeClaude implements Juge {
 
     private static final long MAX_TOKENS = 16_000L;
 
-    static final String CONSIGNES = """
-            Tu évalues la réponse d'un assistant juridique à la question d'un salarié, par rapport à \
-            une réponse de référence validée par une juriste.
-            - Pour chaque point clé, dans l'ordre, indique s'il est présent dans la réponse évaluée : \
-            présent si la réponse l'affirme, même formulé autrement. Les chiffres (durées, montants, \
-            pourcentages, seuils d'ancienneté) doivent être exacts. Un point seulement suggéré, \
-            incomplet ou contredit est absent.
-            - Pour chaque erreur à éviter, dans l'ordre, indique si la réponse la commet.
-            - Justifie chaque décision en une phrase.
-            - Ne juge ni le style ni la longueur.
-            - Dans le commentaire, signale toute autre affirmation fausse ou dangereuse pour le \
-            salarié au regard de la référence ; laisse-le vide sinon.""";
+    /** Consignes du juge ({@code src/test/resources/prompts/juge.md}) et leur version, pour l'historique. */
+    static final String CONSIGNES = Consignes.lire("juge");
+    static final String VERSION = Consignes.version(CONSIGNES);
 
     private final String modele;
     private final Supplier<AnthropicClient> fabrique;

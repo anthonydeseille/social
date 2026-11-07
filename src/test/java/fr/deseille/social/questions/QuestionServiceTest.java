@@ -19,6 +19,7 @@ import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.questions.Assistant.Reponse;
+import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.recherche.RechercheService;
 import fr.deseille.social.recherche.RechercheService.Resultat;
@@ -43,7 +44,9 @@ class QuestionServiceTest {
     private final ProfilService profilService = mock(ProfilService.class);
     private final RechercheService rechercheService = mock(RechercheService.class);
     private final ConsultationService consultationService = mock(ConsultationService.class);
-    private final Assistant assistant = mock(Assistant.class);
+    private static final VersionsConsignes CONSIGNES = new VersionsConsignes("aaaa1111", "bbbb2222");
+
+    private final Assistant assistant = assistant();
     private final SimpleMeterRegistry registre = new SimpleMeterRegistry();
     private final QuestionService service = new QuestionService(profilService, rechercheService, consultationService,
             assistant, new MetriquesQuestions(registre));
@@ -54,6 +57,14 @@ class QuestionServiceTest {
         when(assistant.articlesMax()).thenReturn(8);
         when(profilService.contexte(PROFIL)).thenReturn(CONTEXTE);
         when(consultationService.article(anyString(), eq(DATE))).thenAnswer(i -> article(i.getArgument(0)));
+    }
+
+    /** Simulacre prêt avant la construction du service, qui publie les versions des consignes. */
+    private static Assistant assistant() {
+        Assistant assistant = mock(Assistant.class);
+        when(assistant.modele()).thenReturn("modele-test");
+        when(assistant.consignes()).thenReturn(CONSIGNES);
+        return assistant;
     }
 
     private static Resultat resultat(String id, double pertinence) {
@@ -157,6 +168,15 @@ class QuestionServiceTest {
         assertThat(registre.counter("droits.questions", "issue", "aucun_article").count()).isEqualTo(1.0);
         assertThat(reponse.passages()).isEmpty();
         assertThat(reponse.avertissements()).last().asString().contains("Aucun article pertinent");
+    }
+
+    @Test
+    void versions_des_consignes_dans_la_reponse_et_les_metriques() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("introuvable"));
+
+        assertThat(service.repondre("question", PROFIL).consignes()).isEqualTo(CONSIGNES);
+        assertThat(registre.get("droits.assistant.consignes").tag("modele", "modele-test")
+                .tag("reformulation", "aaaa1111").tag("redaction", "bbbb2222").gauge().value()).isEqualTo(1.0);
     }
 
     @Test

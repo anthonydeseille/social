@@ -13,6 +13,7 @@ import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
+import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.AssistantOllama;
 import fr.deseille.social.questions.ClaudeProperties;
@@ -165,9 +166,10 @@ class EvaluationIT {
         String commit = commitCourant();
         Map<String, List<String>> requetes = new LinkedHashMap<>();
         resultats.stream().filter(r -> r.reponse() != null).forEach(r -> requetes.put(r.question().id(), r.reponse().requetes()));
+        VersionsConsignes consignes = RapportEvaluation.consignes(resultats);
         Files.writeString(rapport.resolveSibling("requetes-" + base + ".yaml"), new RequetesFigees(
-                modele + ", consignes de reformulation de " + commit + ", évaluation du " + LocalDateTime.now().toLocalDate(),
-                requetes).yaml(), StandardCharsets.UTF_8);
+                modele + ", commit " + commit + ", évaluation du " + LocalDateTime.now().toLocalDate(),
+                consignes == null ? "inconnue" : consignes.reformulation(), requetes).yaml(), StandardCharsets.UTF_8);
         Map<String, Object> synthese = RapportEvaluation.synthese(resultats, LocalDateTime.now().toLocalDate().toString(),
                 commit, mode, tarif, tarifJuge, jetonsJugeEntree, jetonsJugeSortie);
         Files.writeString(rapport.resolveSibling("resume-" + base + ".json"),
