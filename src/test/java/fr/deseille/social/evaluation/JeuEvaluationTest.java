@@ -1,6 +1,7 @@
 package fr.deseille.social.evaluation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
@@ -12,6 +13,7 @@ import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class JeuEvaluationTest {
@@ -50,6 +52,38 @@ class JeuEvaluationTest {
         String md = RapportEvaluation.markdown(List.of(r), "claude-opus-5-5", false);
         assertThat(md).contains("| q-validee | 2/2 | 1/2 |", "Citations (articles attendus cités) : 50 %",
                 "Attendus trouvés mais non cités** : L1221-19 (CODE)", "- [ ] 4 mois", "0,06 $");
+    }
+
+    @Test
+    void synthese_et_ligne_d_historique_aux_colonnes_de_historique_csv() throws Exception {
+        Question q = JeuEvaluation.lireRessource("/evaluation/questions-test.yaml").questions().getFirst();
+        ContexteProfil contexte = new ContexteProfil(q.profil(), null, List.of(), true, List.of());
+        ReponseQuestion reponse = new ReponseQuestion(q.question(), contexte, List.of("période essai"),
+                List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
+                List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of());
+        Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
+
+        Map<String, Object> synthese = RapportEvaluation.synthese(List.of(r), "2026-10-31", "abc1234", "lots",
+                Tarif.pour("claude-opus-5-5").lots(), Tarif.pour("claude-opus-5-5").lots(), 1_000, 500);
+        String ligne = RapportEvaluation.ligneHistorique(synthese);
+
+        assertThat(synthese.keySet()).containsExactly(RapportEvaluation.ENTETE_HISTORIQUE.split(","));
+        assertThat(ligne).isEqualTo("2026-10-31,abc1234,,lots,claude-opus-5-5,1,1,50,1,2,50,1,1,,,5000,2000,0.03,0.01,");
+        // L'en-tête est celui du fichier versionné : une colonne ajoutée d'un côté doit l'être de l'autre
+        assertThat(java.nio.file.Files.readAllLines(java.nio.file.Path.of("docs/evaluations/historique.csv")).getFirst())
+                .isEqualTo(RapportEvaluation.ENTETE_HISTORIQUE);
+    }
+
+    @Test
+    void requetes_figees_relues_telles_qu_ecrites() {
+        RequetesFigees figees = new RequetesFigees("claude, essai", new java.util.LinkedHashMap<>(Map.of(
+                "q1", List.of("période essai", "délai \"prévenance\"", "sur\ndeux lignes"))));
+
+        RequetesFigees relues = RequetesFigees.lire(figees.yaml());
+
+        assertThat(relues).isEqualTo(figees);
+        assertThatThrownBy(() -> RequetesFigees.lire("origine: x\nrequetes:\n  q1: []\n"))
+                .hasMessageContaining("q1");
     }
 
     @Test

@@ -8,8 +8,10 @@ import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.Objects;
@@ -210,6 +212,62 @@ final class RapportEvaluation {
             }
         }
         return md.toString();
+    }
+
+    /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des valeurs de {@link #ligneHistorique}. */
+    static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,questions,validees,recherche_pct,"
+            + "articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
+            + "jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse";
+
+    /**
+     * Synthèse d'une évaluation, dans l'ordre des colonnes de {@code historique.csv} : versée au
+     * résumé JSON et à la ligne d'historique. Changement et analyse sont laissés vides, à rédiger.
+     */
+    static Map<String, Object> synthese(List<Resultat> resultats, String date, String commit, String mode, Tarif tarif,
+                                        Tarif tarifJuge, long jetonsJugeEntree, long jetonsJugeSortie) {
+        List<Resultat> juges = resultats.stream().filter(r -> r.verdict() != null).toList();
+        long entree = resultats.stream().mapToLong(Resultat::jetonsEntree).sum();
+        long sortie = resultats.stream().mapToLong(Resultat::jetonsSortie).sum();
+        long citations = resultats.stream().mapToLong(r -> r.citations().size()).sum();
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("date", date);
+        s.put("commit", commit);
+        s.put("changement", "");
+        s.put("mode", mode);
+        s.put("modele", tarif.modele().replace(" (lots, moitié prix)", ""));
+        s.put("questions", resultats.size());
+        s.put("validees", resultats.stream().filter(r -> r.question().valide()).count());
+        s.put("recherche_pct", pourcentage(resultats, Resultat::scoreRecherche));
+        s.put("articles_transmis", resultats.stream().mapToInt(r -> r.trouves().size()).sum());
+        s.put("articles_attendus", resultats.stream().mapToInt(r -> r.question().articlesAttendus().size()).sum());
+        s.put("articles_cites_pct", pourcentage(resultats, Resultat::scoreCitations));
+        s.put("citations_verifiees", citations - resultats.stream().mapToLong(r -> r.nonVerifiees().size()).sum());
+        s.put("citations_total", citations);
+        s.put("qualite_pct", juges.isEmpty() ? null
+                : Math.round(100 * juges.stream().mapToDouble(r -> r.verdict().scoreQualite()).average().orElse(0)));
+        s.put("erreurs", juges.isEmpty() ? null : juges.stream().mapToLong(r -> r.verdict().erreursCommises().size()).sum());
+        s.put("jetons_entree", entree);
+        s.put("jetons_sortie", sortie);
+        s.put("cout_questions_usd", arrondi(tarif.cout(entree, sortie)));
+        s.put("cout_juge_usd", arrondi(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie)));
+        s.put("analyse", "");
+        return s;
+    }
+
+    /** Ligne CSV de {@code historique.csv} ; une valeur inconnue est laissée vide. */
+    static String ligneHistorique(Map<String, Object> synthese) {
+        return synthese.values().stream()
+                .map(v -> v == null ? "" : v.toString().contains(",") ? "\"" + v.toString().replace("\"", "\"\"") + "\"" : v.toString())
+                .collect(Collectors.joining(","));
+    }
+
+    private static Long pourcentage(List<Resultat> resultats, Function<Resultat, Double> score) {
+        return resultats.stream().map(score).filter(Objects::nonNull).mapToDouble(Double::doubleValue).average()
+                .stream().mapToObj(m -> Math.round(100 * m)).findFirst().orElse(null);
+    }
+
+    private static Double arrondi(double dollars) {
+        return Double.isNaN(dollars) ? null : Math.round(dollars * 100) / 100.0;
     }
 
     /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */

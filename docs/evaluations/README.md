@@ -35,12 +35,22 @@ Les mêmes chiffres, lisibles par un programme (tableau de bord, comparaison dan
 
 ## Ajouter une évaluation
 
-1. Lancer l'évaluation (commande dans `CLAUDE.md`, section Tests) sur un commit de `main`.
-2. Copier le rapport de `target/evaluation/` en `AAAA-MM-JJ-rapport-brut.md` (ne plus le modifier
-   ensuite).
+1. Lancer l'évaluation (commande dans `CLAUDE.md`, section Tests) sur un commit de `main`. Elle
+   écrit dans `target/evaluation/`, sous le même horodatage : le rapport (`rapport-*.md`), le résumé
+   (`resume-*.json`), la ligne d'historique (`historique-*.csv`, avec l'en-tête) et les requêtes de
+   reformulation (`requetes-*.yaml`).
+2. Copier le rapport en `AAAA-MM-JJ-rapport-brut.md` (ne plus le modifier ensuite).
 3. Écrire l'analyse `AAAA-MM-JJ-<sujet>.md` : ce qui a changé depuis la précédente, résultats,
    comparaison question par question, conclusions et actions.
-4. Ajouter une ligne ici et dans `historique.csv` (mêmes colonnes ; un seul passage par ligne).
+4. Ajouter la ligne d'historique à `historique.csv` en remplissant `changement` et `analyse`, et la
+   ligne correspondante dans le tableau ci-dessus.
+5. Si les consignes de reformulation ou le modèle ont changé : recopier `requetes-*.yaml` dans
+   `src/test/resources/evaluation/requetes.yaml` et réécrire la référence de l'évaluation de la
+   recherche (`-Devaluation.recherche.reference=ecrire`).
+
+L'évaluation de la recherche (gratuite, dans chaque PR) n'est pas historisée ici : sa référence
+versionnée, `src/test/resources/evaluation/recherche-reference.json`, en tient lieu ; son historique est
+celui du fichier dans git.
 
 Pour comparer deux évaluations, ne retenir que les écarts nets : 20 questions et un seul passage ne
 permettent pas de conclure sur quelques points.

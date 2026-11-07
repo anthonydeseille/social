@@ -65,3 +65,43 @@ jobs:
           tar -xzf kubeconform.tar.gz kubeconform
           { kubectl kustomize deploy/k8s; echo '---'; cat deploy/k8s/ingestion.yaml; } \
             | ./kubeconform -strict -summary
+
+  recherche:
+    name: Évaluation de la recherche
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # Sources épinglées (legi-data, kali-data) : téléchargées une fois par révision
+      - name: Cache des sources
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/droits-corpus
+          key: corpus-${{ hashFiles('src/main/resources/application.yaml') }}
+
+      # Requêtes figées rejouées sur les vraies sources, sans appel au modèle ; échec si la recherche
+      # retrouve moins d'articles attendus que la référence (src/test/resources/evaluation/)
+      - name: Évaluation de la recherche
+        run: >-
+          ./mvnw -B -ntp verify -Dit.test=RechercheEvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false
+          -Devaluation.recherche=true -Ddroits.ingestion.cache-dir=$HOME/.cache/droits-corpus
+
+      - name: Rapport dans le résumé du job
+        if: always()
+        run: cat target/evaluation/recherche-*.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - name: Rapport en artefact
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: evaluation-recherche
+          path: target/evaluation/
+          retention-days: 30

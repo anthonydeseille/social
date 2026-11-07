@@ -7,9 +7,7 @@ import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.MessageCreateParams;
-import fr.deseille.social.corpus.Article;
 import fr.deseille.social.corpus.ArticleRepository;
-import fr.deseille.social.evaluation.JeuEvaluation.ArticleAttendu;
 import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
 import fr.deseille.social.profil.ProfilService;
@@ -26,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -36,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -47,6 +43,7 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Lanceur du jeu d'évaluation sur les <b>vraies sources</b> (ingérées depuis GitHub, révisions
@@ -152,6 +149,45 @@ class EvaluationIT {
                     juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie(), questions.size()),
                     StandardCharsets.UTF_8);
         }
+        if (!simulee) {
+            ecrireSorties(rapport, resultats, assistant.modele(), "direct", tarif, tarifJuge,
+                    juge == null ? 0 : juge.jetonsEntree(), juge == null ? 0 : juge.jetonsSortie());
+        }
+    }
+
+    /**
+     * À côté du rapport : requêtes de reformulation (à recopier dans {@code requetes.yaml} pour
+     * l'évaluation de la recherche), résumé JSON et ligne prête pour {@code historique.csv}.
+     */
+    private static void ecrireSorties(Path rapport, List<Resultat> resultats, String modele, String mode, Tarif tarif,
+                                      Tarif tarifJuge, long jetonsJugeEntree, long jetonsJugeSortie) throws Exception {
+        String base = rapport.getFileName().toString().replace("rapport-", "").replace(".md", "");
+        String commit = commitCourant();
+        Map<String, List<String>> requetes = new LinkedHashMap<>();
+        resultats.stream().filter(r -> r.reponse() != null).forEach(r -> requetes.put(r.question().id(), r.reponse().requetes()));
+        Files.writeString(rapport.resolveSibling("requetes-" + base + ".yaml"), new RequetesFigees(
+                modele + ", consignes de reformulation de " + commit + ", évaluation du " + LocalDateTime.now().toLocalDate(),
+                requetes).yaml(), StandardCharsets.UTF_8);
+        Map<String, Object> synthese = RapportEvaluation.synthese(resultats, LocalDateTime.now().toLocalDate().toString(),
+                commit, mode, tarif, tarifJuge, jetonsJugeEntree, jetonsJugeSortie);
+        Files.writeString(rapport.resolveSibling("resume-" + base + ".json"),
+                JsonMapper.builder().build().writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(synthese), StandardCharsets.UTF_8);
+        Files.writeString(rapport.resolveSibling("historique-" + base + ".csv"),
+                RapportEvaluation.ENTETE_HISTORIQUE + "\n" + RapportEvaluation.ligneHistorique(synthese) + "\n",
+                StandardCharsets.UTF_8);
+        System.out.println("Requêtes, résumé et ligne d'historique écrits à côté du rapport (" + base + ")");
+    }
+
+    /** Commit évalué, pour l'historique ; « inconnu » hors d'un dépôt git. */
+    private static String commitCourant() {
+        try {
+            Process git = new ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectErrorStream(true).start();
+            String sortie = new String(git.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
+            return git.waitFor() == 0 && !sortie.isEmpty() ? sortie : "inconnu";
+        } catch (Exception e) {
+            return "inconnu";
+        }
     }
 
     /**
@@ -251,6 +287,8 @@ class EvaluationIT {
         }
         Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif.lots(), false, tarifJuge.lots(),
                 jetonsJuge[0], jetonsJuge[1], questions.size()), StandardCharsets.UTF_8);
+        ecrireSorties(rapport, resultats, assistantClaude.modele(), "lots", tarif.lots(), tarifJuge.lots(),
+                jetonsJuge[0], jetonsJuge[1]);
     }
 
     private static void compter(long[] jetons, LotClaude.Resultat resultat) {
@@ -264,32 +302,10 @@ class EvaluationIT {
         return e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " : " + e.getMessage());
     }
 
-    /**
-     * Chaque article attendu doit exister dans le corpus ingéré, porter le numéro annoncé (quand le
-     * corpus en a un) et être applicable à la date de référence de la question : sinon (révision
-     * épinglée changée, identifiant erroné), arrêt avant le premier appel payant, avec la liste des
-     * anomalies.
-     */
+    /** Arrêt avant le premier appel payant si un article attendu est introuvable, mal numéroté ou non applicable. */
     private void verifierArticlesAttendus(List<Question> questions) {
-        Map<String, Article> articles = articleRepository.findBySourceIdIn(questions.stream()
-                        .flatMap(q -> q.articlesAttendus().stream()).map(ArticleAttendu::sourceId).toList())
-                .stream().collect(Collectors.toMap(Article::getSourceId, Function.identity()));
-        List<String> anomalies = new ArrayList<>();
-        for (Question q : questions) {
-            LocalDate date = q.profil().dateReference() != null ? q.profil().dateReference() : LocalDate.now();
-            for (ArticleAttendu attendu : q.articlesAttendus()) {
-                Article article = articles.get(attendu.sourceId());
-                String reference = q.id() + " : " + attendu.num() + " (" + attendu.sourceId() + ")";
-                if (article == null) {
-                    anomalies.add(reference + " absent du corpus");
-                } else if (article.getNum() != null && !article.getNum().equals(attendu.num())) {
-                    anomalies.add(reference + " porte le numéro " + article.getNum());
-                } else if (!article.estApplicableLe(date)) {
-                    anomalies.add(reference + " non applicable au " + date + " (" + article.getEtat() + ")");
-                }
-            }
-        }
-        assertThat(anomalies).as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
+        assertThat(ArticlesAttendus.anomalies(questions, articleRepository))
+                .as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
     }
 
     private static JeuEvaluation jeu() throws Exception {

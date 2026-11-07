@@ -49,5 +49,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `EvaluationIT` pose ces questions sur les vraies sources ; désactivé par défaut car il appelle Claude (payant, `ANTHROPIC_API_KEY`) :
   `./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true`
   (`-Devaluation.simulee=true` : faux assistant, gratuit ; `-Devaluation.lots=true` : API Batch, moitié prix, asynchrone ; `-Devaluation.toutes=true` : y compris les questions non validées ; `-Ddroits.assistant.fournisseur=ollama` : modèle local, juge Claude). Rapport dans `target/evaluation/`, avec la note d'un juge automatique (`JugeClaude`).
+- `RechercheEvaluationIT` : évaluation de la recherche seule, gratuite (requêtes figées `requetes.yaml`, aucun appel au modèle), lancée par le CI ; échoue si les articles attendus retrouvés baissent par rapport à `recherche-reference.json`, ou si une question en perd un :
+  `./mvnw verify -Dit.test=RechercheEvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation.recherche=true` (`-Devaluation.recherche.reference=ecrire` pour réécrire la référence après une amélioration ou pour accepter un compromis, refusé si le total baisse ; `forcer` pour l'imposer).
 - Toute évaluation réelle est historisée dans `docs/evaluations/` (rapport brut daté, analyse, ligne dans `README.md` et `historique.csv`) : voir `docs/evaluations/README.md`.
 - Feuille de route : `FEUILLE_DE_ROUTE.md`.
