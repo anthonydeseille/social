@@ -60,7 +60,9 @@ import tools.jackson.databind.json.JsonMapper;
  * heures ; {@code -Devaluation.lots.heures=2} pour l'attente maximale),
  * {@code -Devaluation.toutes=true} (y compris les questions non validées),
  * {@code -Devaluation.questions=id1,id2} (sélection), {@code -Devaluation.fichier=chemin}
- * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}).
+ * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}),
+ * {@code -Devaluation.comparer=true} (comparaison à {@code docs/evaluations/historique.csv} et échec sur
+ * une baisse nette, voir {@link ComparaisonEvaluation} ; c'est ce que lance la CI).
  * Fournisseur : celui de la configuration ; {@code -Ddroits.assistant.fournisseur=ollama} évalue le
  * modèle local (Ollama démarré, modèle téléchargé), le juge restant Claude, pour comparer les deux
  * sur le même jeu. Le mode lots ne concerne que Claude.
@@ -179,6 +181,16 @@ class EvaluationIT {
                 RapportEvaluation.ENTETE_HISTORIQUE + "\n" + RapportEvaluation.ligneHistorique(synthese) + "\n",
                 StandardCharsets.UTF_8);
         System.out.println("Requêtes, résumé et ligne d'historique écrits à côté du rapport (" + base + ")");
+
+        // Dans la CI : comparaison à la dernière évaluation de l'historique, échec sur une baisse nette
+        if (Boolean.getBoolean("evaluation.comparer")) {
+            ComparaisonEvaluation.Resultat comparaison = ComparaisonEvaluation.comparer(
+                    Files.readString(Path.of("docs/evaluations/historique.csv"), StandardCharsets.UTF_8), synthese);
+            Path fichier = rapport.resolveSibling("comparaison-" + base + ".md");
+            Files.writeString(fichier, ComparaisonEvaluation.markdown(comparaison, synthese), StandardCharsets.UTF_8);
+            assertThat(comparaison.bloquant()).as("baisse nette par rapport à l'historique (détail : %s)", fichier)
+                    .isFalse();
+        }
     }
 
     /** Commit évalué, pour l'historique ; « inconnu » hors d'un dépôt git. */
