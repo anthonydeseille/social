@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
  *       illisible, erreur ;</li>
  *   <li>{@code droits.assistant.jetons} (fournisseur, etape, sens) : jetons en entrée et en sortie ;</li>
  *   <li>{@code droits.citations} (verification) : verifiee, non_verifiee ;</li>
+ *   <li>{@code droits.chiffres_non_retrouves} : chiffres des réponses absents des sources ;</li>
+ *   <li>{@code droits.garde_fous} (type) : injection, donnees_personnelles (une par donnée retirée),
+ *       profil_incoherent ;</li>
  *   <li>{@code droits.questions.quota_atteint} : questions refusées par le quota journalier ;</li>
  *   <li>{@code droits.assistant.consignes} (modele, reformulation, redaction) : jauge à 1 portant les
  *       versions des consignes en service, à croiser avec les autres métriques (une version change
@@ -72,6 +75,16 @@ public class MetriquesQuestions {
                 .description("Versions des consignes envoyées au modèle (empreintes des fichiers prompts/)")
                 .tag("modele", modele).tag("reformulation", consignes.reformulation())
                 .tag("redaction", consignes.redaction()).register(registre);
+    }
+
+    public void chiffresNonRetrouves(int nombre) {
+        Counter.builder("droits.chiffres_non_retrouves").description("Chiffres des réponses absents des sources")
+                .register(registre).increment(nombre);
+    }
+
+    public void gardeFou(String type, int nombre) {
+        Counter.builder("droits.garde_fous").description("Interventions des garde-fous d'entrée")
+                .tag("type", type).register(registre).increment(nombre);
     }
 
     public void quotaAtteint() {

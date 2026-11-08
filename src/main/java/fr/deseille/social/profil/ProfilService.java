@@ -10,10 +10,8 @@ import java.time.Period;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Établit le contexte juridique d'un profil : ancienneté à la date de référence, textes qui
@@ -78,16 +76,22 @@ public class ProfilService {
     }
 
     /** Ancienneté à la date de référence, ou null si la date d'entrée n'est pas connue. */
-    private static Anciennete anciennete(ProfilSalarie profil) {
+    private Anciennete anciennete(ProfilSalarie profil) {
         if (profil.dateEntree() == null) {
             return null;
         }
         if (profil.dateEntree().isAfter(profil.dateReference())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La date d'entrée (" + profil.dateEntree() + ") est postérieure à la date de référence ("
-                            + profil.dateReference() + ")");
+            throw new ProfilIncoherentException("La date d'entrée (" + profil.dateEntree()
+                    + ") est postérieure à la date de référence (" + profil.dateReference() + ")");
         }
         Period periode = Period.between(profil.dateEntree(), profil.dateReference());
+        // On ne travaille pas avant 14 ans (âge minimal des jeunes travailleurs, hors spectacle). L'âge
+        // saisi est celui d'aujourd'hui : pas de contrôle pour une date de référence future (simulation)
+        if (profil.age() != null && !profil.dateReference().isAfter(LocalDate.now(clock))
+                && periode.getYears() > profil.age() - 14) {
+            throw new ProfilIncoherentException("Une ancienneté de " + periode.getYears() + " ans est incompatible avec un "
+                    + "âge de " + profil.age() + " ans : vérifiez la date d'entrée et l'âge.");
+        }
         return new Anciennete(periode.getYears(), periode.getMonths(), periode.toTotalMonths());
     }
 

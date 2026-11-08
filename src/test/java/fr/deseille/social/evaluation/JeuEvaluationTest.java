@@ -43,7 +43,7 @@ class JeuEvaluationTest {
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
                 List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec"),
                         new Source("LEGIARTI000019071113", "L1221-19", "LEGITEXT", "Code")),
-                false, List.of(), List.of(), VersionsConsignes.INCONNUES);
+                false, List.of(), List.of(), List.of(), VersionsConsignes.INCONNUES);
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
         assertThat(r.scoreRecherche()).isEqualTo(1.0);
@@ -61,7 +61,7 @@ class JeuEvaluationTest {
         ContexteProfil contexte = new ContexteProfil(q.profil(), null, List.of(), true, List.of());
         ReponseQuestion reponse = new ReponseQuestion(q.question(), contexte, List.of("période essai"),
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
-                List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of(),
+                List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of(), List.of(),
                 new VersionsConsignes("aaaa1111", "bbbb2222"));
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
@@ -96,7 +96,7 @@ class JeuEvaluationTest {
         Question avec = questions.getFirst();
         Question sans = new Question("sans-article", "t", true, "q ?", avec.profil(), "r", List.of(), List.of(), List.of());
         ContexteProfil contexte = new ContexteProfil(avec.profil(), null, List.of(), true, List.of());
-        ReponseQuestion vide = new ReponseQuestion("q", contexte, List.of(), List.of(), List.of(), false, List.of(), List.of(),
+        ReponseQuestion vide = new ReponseQuestion("q", contexte, List.of(), List.of(), List.of(), false, List.of(), List.of(), List.of(),
                 VersionsConsignes.INCONNUES);
 
         String md = RapportEvaluation.markdown(List.of(new Resultat(avec, vide, null, 0, 0, 0),

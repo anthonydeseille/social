@@ -46,6 +46,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 ## Tests
 
 - Vérifier qu'un nouveau test échoue bien sans le correctif (mutation volontaire, puis retour arrière).
+- `src/test/resources/evaluation/adversarial.yaml` : cas pièges des garde-fous d'entrée (injections, données personnelles, profils incohérents, et questions légitimes qui doivent passer), rejoués gratuitement par `GardeFousTest` ; y ajouter tout faux positif rencontré.
 - `src/test/resources/evaluation/questions.yaml` : jeu de questions de salariés avec réponses de référence validées par une juriste (champ `valide`).
 - `EvaluationIT` pose ces questions sur les vraies sources ; désactivé par défaut car il appelle Claude (payant, `ANTHROPIC_API_KEY`) :
   `./mvnw verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation=true`
