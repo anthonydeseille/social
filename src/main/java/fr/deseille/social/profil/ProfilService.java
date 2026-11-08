@@ -76,7 +76,7 @@ public class ProfilService {
     }
 
     /** Ancienneté à la date de référence, ou null si la date d'entrée n'est pas connue. */
-    private static Anciennete anciennete(ProfilSalarie profil) {
+    private Anciennete anciennete(ProfilSalarie profil) {
         if (profil.dateEntree() == null) {
             return null;
         }
@@ -85,8 +85,10 @@ public class ProfilService {
                     + ") est postérieure à la date de référence (" + profil.dateReference() + ")");
         }
         Period periode = Period.between(profil.dateEntree(), profil.dateReference());
-        // On ne travaille pas avant 14 ans (âge minimal des jeunes travailleurs, hors spectacle)
-        if (profil.age() != null && periode.getYears() > profil.age() - 14) {
+        // On ne travaille pas avant 14 ans (âge minimal des jeunes travailleurs, hors spectacle). L'âge
+        // saisi est celui d'aujourd'hui : pas de contrôle pour une date de référence future (simulation)
+        if (profil.age() != null && !profil.dateReference().isAfter(LocalDate.now(clock))
+                && periode.getYears() > profil.age() - 14) {
             throw new ProfilIncoherentException("Une ancienneté de " + periode.getYears() + " ans est incompatible avec un "
                     + "âge de " + profil.age() + " ans : vérifiez la date d'entrée et l'âge.");
         }

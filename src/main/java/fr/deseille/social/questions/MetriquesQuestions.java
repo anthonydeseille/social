@@ -82,9 +82,9 @@ public class MetriquesQuestions {
                 .register(registre).increment(nombre);
     }
 
-    public void gardeFou(String type) {
+    public void gardeFou(String type, int nombre) {
         Counter.builder("droits.garde_fous").description("Interventions des garde-fous d'entrée")
-                .tag("type", type).register(registre).increment();
+                .tag("type", type).register(registre).increment(nombre);
     }
 
     public void quotaAtteint() {

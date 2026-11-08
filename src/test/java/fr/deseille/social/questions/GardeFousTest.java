@@ -91,7 +91,11 @@ class GardeFousTest {
                     assertThat(contexte.getValue().profil().classification()).isEqualTo(cas.get("classification_recue"));
                 }
                 assertThat(reponse.avertissements()).anyMatch(a -> a.startsWith("Données personnelles retirées"));
-                assertThat(registre.counter("droits.garde_fous", "type", "donnees_personnelles").count()).isPositive();
+                double comptees = registre.counter("droits.garde_fous", "type", "donnees_personnelles").count();
+                assertThat(comptees).isPositive();
+                if (cas.containsKey("retraits")) {
+                    assertThat(comptees).as("une par donnée retirée").isEqualTo(((Number) cas.get("retraits")).doubleValue());
+                }
             }
             case "legitime" -> {
                 QuestionService.ReponseQuestion reponse = service.repondre(question, profil);

@@ -65,6 +65,8 @@ class VerificationChiffresTest {
         assertThat(VerificationChiffres.nombresEnLettres("quatre-vingt-dix jours, vingt-cinq ans, trois cents heures, "
                 + "soixante et onze, deux mille"))
                 .contains("90", "25", "300", "71", "2000").doesNotContain("73000");
+        assertThat(VerificationChiffres.nombresEnLettres("trois et quatre jours, vingt et un ans"))
+                .contains("3", "4", "21").doesNotContain("7");
     }
 
     @Test

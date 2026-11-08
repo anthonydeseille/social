@@ -20,7 +20,8 @@ public final class DonneesPersonnelles {
     private static final Map<String, Pattern> MOTIFS = new LinkedHashMap<>();
 
     static {
-        MOTIFS.put("IBAN", Pattern.compile("\\b[A-Z]{2}\\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\\b"));
+        MOTIFS.put("IBAN", Pattern.compile("\\b[A-Z]{2}\\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\\b",
+                Pattern.CASE_INSENSITIVE));
         // 13 chiffres (sexe, année, mois, département dont 2A/2B, commune, ordre) et clé facultative
         MOTIFS.put("numéro de sécurité sociale", Pattern.compile(
                 "\\b[12][ .]?\\d{2}[ .]?(?:0[1-9]|1[0-2]|[2-9]\\d)[ .]?(?:\\d{2}|2[AaBb])[ .]?\\d{3}[ .]?\\d{3}(?:[ .]?\\d{2})?\\b"));

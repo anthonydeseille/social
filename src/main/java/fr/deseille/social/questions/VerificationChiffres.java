@@ -122,6 +122,19 @@ public final class VerificationChiffres {
                 courant = null;
             }
             fin = m.end();
+            // « et » ne lie qu'une dizaine à son unité (« vingt et un », « soixante et onze ») :
+            // « trois et quatre » reste deux nombres, et non 7
+            if (m.group().equals("et")) {
+                if (courant != null && courant >= 20 && courant % 10 == 0 && courant < 100) {
+                    continue;
+                }
+                if (courant != null) {
+                    resultat.add(cle((total == null ? 0 : total) + courant));
+                }
+                total = null;
+                courant = null;
+                continue;
+            }
             String[] parties = m.group().split("-");
             boolean nombre = true;
             for (String partie : parties) {

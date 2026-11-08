@@ -34,7 +34,6 @@ public final class InjectionConsignes {
             // Anglais
             Pattern.compile("\\b(?:ignore|disregard|forget)\\b.{0,30}\\b(?:previous|prior|above|all|your)\\b.{0,20}\\b"
                     + "(?:instructions|rules|prompt)\\b"),
-            // Changement de rôle
             // Changement de rôle adressé au modèle ; « on m'a dit : tu es maintenant cadre » passe
             Pattern.compile("\\b(?:tu es|vous etes) (?:maintenant|desormais|a present) (?:un|une) "
                     + "(?:assistant|ia|intelligence artificielle|modele|chatbot|robot|agent)\\b"

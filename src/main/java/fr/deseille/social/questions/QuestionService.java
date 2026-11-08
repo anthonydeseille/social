@@ -14,8 +14,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -62,7 +62,7 @@ public class QuestionService {
             throw e;
         } catch (ResponseStatusException e) {
             if (e instanceof ProfilIncoherentException) {
-                metriques.gardeFou("profil_incoherent");
+                metriques.gardeFou("profil_incoherent", 1);
             }
             metriques.question(e.getStatusCode().is4xxClientError() ? "invalide" : "erreur");
             throw e;
@@ -100,7 +100,7 @@ public class QuestionService {
 
     private void refuserInjection(String texte) {
         InjectionConsignes.detecter(texte).ifPresent(extrait -> {
-            metriques.gardeFou("injection");
+            metriques.gardeFou("injection", 1);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La question ressemble à une instruction adressée "
                     + "à l'assistant plutôt qu'à une question sur vos droits : reformulez-la.");
         });
@@ -112,7 +112,7 @@ public class QuestionService {
         for (DonneesPersonnelles.Masquage m : masquages) {
             m.retraits().forEach((nature, nombre) -> {
                 natures.add(nature);
-                metriques.gardeFou("donnees_personnelles");
+                metriques.gardeFou("donnees_personnelles", nombre);
             });
         }
         if (natures.isEmpty()) {
