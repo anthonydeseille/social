@@ -99,6 +99,11 @@ class ComparaisonEvaluationTest {
         assertThat(r.bloquant()).isFalse();
         assertThat(ComparaisonEvaluation.markdown(r, s)).contains("Aucune évaluation de l'historique avec ce modèle");
 
+        Resultat parRepli = ComparaisonEvaluation.comparer(HISTORIQUE, s, "claude-opus-5-5");
+        assertThat(parRepli.reference()).as("nouveau modèle comparé au modèle actuel").containsEntry("commit", "bbb2222");
+        assertThat(parRepli.bloquant()).isTrue();
+        assertThat(ComparaisonEvaluation.markdown(parRepli, s)).contains("Référence : le modèle actuel, claude-opus-5-5");
+
         s.put("modele", "claude-opus-5-5");
         s.put("questions", 12);
         assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, s).reference()).as("autre nombre de questions").isNull();

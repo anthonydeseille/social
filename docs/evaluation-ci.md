@@ -11,7 +11,7 @@ dernière ligne de [`evaluations/historique.csv`](evaluations/historique.csv) fa
 | Étiquette `eval` posée sur une PR | à la demande. L'étiquette est retirée en fin de lancement : la reposer relance (par exemple après de nouveaux commits) |
 | Ouverture, réouverture ou sortie de brouillon d'une PR qui touche `src/*/resources/prompts/` (consignes), `recherche/`, `questions/` (trajet d'une question, paramètres des appels) ou `application.yaml` (modèle, sources épinglées) | ce qui change les réponses. Les commits suivants ne relancent pas d'office (coût) : après une retouche, reposer l'étiquette |
 | Chaque lundi à 5 h (UTC), sur `main` | dérive du modèle ou du corpus sans changement de code |
-| À la demande (`workflow_dispatch`) | |
+| À la demande (`workflow_dispatch`) | champs facultatifs : `etape` (`reformulation` : reformulation et recherche seules, quelques centimes), `modele`, `modele_reformulation`, `reference` (modèle actuel, auquel se compare un modèle sans historique) ; voir [`couts-et-modeles.md`](couts-et-modeles.md) |
 
 Les PR venant d'un dépôt dérivé ne lancent rien. Coût : environ 1,10 à 1,40 $ par lancement (API
 Batch, moitié prix), soit 5 à 6 $ par mois pour le seul passage hebdomadaire.

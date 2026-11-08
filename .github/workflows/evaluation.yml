@@ -5,7 +5,9 @@ name: Évaluation complète
 # Lancement :
 #   - sur une PR, en posant l'étiquette « eval » (retirée en fin de lancement : la reposer relance) ;
 #   - d'office à l'ouverture d'une PR qui touche les consignes, la recherche ou le modèle ;
-#   - chaque lundi sur main, et à la demande (workflow_dispatch).
+#   - chaque lundi sur main, et à la demande (workflow_dispatch), où l'on peut essayer un autre
+#     modèle (comparé au modèle actuel tant qu'il n'a pas d'historique) ou n'évaluer que la
+#     reformulation (quelques centimes ; voir docs/couts-et-modeles.md).
 # Authentification sans clé stockée : fédération d'identité (jeton OIDC de GitHub Actions échangé
 # contre un jeton Anthropic de courte durée) ; voir docs/evaluation-ci.md.
 on:
@@ -14,6 +16,24 @@ on:
   schedule:
     - cron: '0 5 * * 1'
   workflow_dispatch:
+    inputs:
+      etape:
+        description: "complete (toutes les étapes, ~1,2 $) ou reformulation (reformulation et recherche seules, quelques centimes)"
+        type: choice
+        options: [complete, reformulation]
+        default: complete
+      modele:
+        description: "Modèle de la rédaction (vide : celui de la configuration)"
+        type: string
+        required: false
+      modele_reformulation:
+        description: "Modèle de la reformulation (vide : celui de la rédaction)"
+        type: string
+        required: false
+      reference:
+        description: "Modèle de référence si le modèle évalué n'a pas d'historique"
+        type: string
+        default: claude-opus-5-5
 
 permissions:
   contents: read
@@ -83,6 +103,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Fédération d'identité configurée
+        id: configuration
         run: |
           if [ -z "$ANTHROPIC_FEDERATION_RULE_ID" ] || [ -z "$ANTHROPIC_ORGANIZATION_ID" ] || [ -z "$ANTHROPIC_SERVICE_ACCOUNT_ID" ]; then
             echo "::error::Variables du dépôt ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID et ANTHROPIC_SERVICE_ACCOUNT_ID à définir (docs/evaluation-ci.md)"
@@ -127,21 +148,40 @@ jobs:
           path: ~/.cache/droits-corpus
           key: corpus-${{ hashFiles('src/main/resources/application.yaml') }}
 
-      # Toutes les questions (le jeu n'est pas encore validé par la juriste), par lots (moitié prix)
+      # Toutes les questions (le jeu n'est pas encore validé par la juriste), par lots (moitié prix) ;
+      # la reformulation seule passe en direct (20 appels courts)
       - name: Évaluation
-        run: >-
-          ./mvnw -B -ntp verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false
-          -Devaluation=true -Devaluation.lots=true -Devaluation.lots.heures=2 -Devaluation.toutes=true
-          -Devaluation.comparer=true -Ddroits.ingestion.cache-dir=$HOME/.cache/droits-corpus
-
-      - name: Résumé du job
-        if: always()
+        env:
+          ETAPE: ${{ inputs.etape || 'complete' }}
+          MODELE: ${{ inputs.modele }}
+          MODELE_REFORMULATION: ${{ inputs.modele_reformulation }}
+          REFERENCE: ${{ inputs.reference || 'claude-opus-5-5' }}
         run: |
-          cat target/evaluation/comparaison-*.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null \
-            || echo "Évaluation interrompue avant la comparaison : voir le journal." >> "$GITHUB_STEP_SUMMARY"
+          options=(-Devaluation=true -Devaluation.toutes=true -Ddroits.ingestion.cache-dir=$HOME/.cache/droits-corpus)
+          if [ -n "$MODELE" ]; then options+=("-Ddroits.claude.modele=$MODELE"); fi
+          if [ -n "$MODELE_REFORMULATION" ]; then options+=("-Ddroits.claude.modele-reformulation=$MODELE_REFORMULATION"); fi
+          if [ "$ETAPE" = reformulation ]; then
+            options+=(-Devaluation.etape=reformulation)
+          else
+            options+=(-Devaluation.lots=true -Devaluation.lots.heures=2 -Devaluation.comparer=true
+              "-Devaluation.reference.modele=$REFERENCE")
+          fi
+          ./mvnw -B -ntp verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false "${options[@]}"
+
+      # Sans fédération configurée, rien n'a tourné : ni commentaire ni artefact
+      - name: Résumé du job
+        if: always() && steps.configuration.outcome == 'success'
+        run: |
+          trouve=false
+          for f in target/evaluation/comparaison-*.md target/evaluation/reformulation-*.md; do
+            if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; trouve=true; fi
+          done
+          if [ "$trouve" = false ]; then
+            echo "Évaluation interrompue avant la comparaison : voir le journal." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Commentaire dans la PR
-        if: always() && github.event_name == 'pull_request'
+        if: always() && steps.configuration.outcome == 'success' && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -162,7 +202,7 @@ jobs:
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label eval 2>/dev/null || true
 
       - name: Rapport en artefact
-        if: always()
+        if: always() && steps.configuration.outcome == 'success'
         uses: actions/upload-artifact@v5
         with:
           name: evaluation-complete

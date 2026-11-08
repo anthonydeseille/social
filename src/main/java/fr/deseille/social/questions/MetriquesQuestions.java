@@ -18,6 +18,9 @@ import org.springframework.stereotype.Component;
  *   <li>{@code droits.assistant.appels} (fournisseur, etape, issue) : succes, refus, tronquee,
  *       illisible, erreur ;</li>
  *   <li>{@code droits.assistant.jetons} (fournisseur, etape, sens) : jetons en entrée et en sortie ;</li>
+ *   <li>{@code droits.assistant.cout_usd} (fournisseur, etape) : coût des appels, en dollars
+ *       ({@link PrixModeles}) ; {@code droits.assistant.depense_jour_usd} : dépense du jour ;
+ *       {@code droits.questions.budget_atteint} : questions refusées par le budget journalier ;</li>
  *   <li>{@code droits.citations} (verification) : verifiee, non_verifiee ;</li>
  *   <li>{@code droits.chiffres_non_retrouves} : chiffres des réponses absents des sources ;</li>
  *   <li>{@code droits.garde_fous} (type) : injection, donnees_personnelles (une par donnée retirée),
@@ -85,6 +88,23 @@ public class MetriquesQuestions {
     public void gardeFou(String type, int nombre) {
         Counter.builder("droits.garde_fous").description("Interventions des garde-fous d'entrée")
                 .tag("type", type).register(registre).increment(nombre);
+    }
+
+    /** @param dollars coût d'un appel ({@link PrixModeles}) ; ignoré s'il est inconnu */
+    public void cout(String fournisseur, String etape, double dollars) {
+        if (!Double.isNaN(dollars)) {
+            Counter.builder("droits.assistant.cout_usd").description("Coût des appels au modèle (dollars)")
+                    .tag("fournisseur", fournisseur).tag("etape", etape).register(registre).increment(dollars);
+        }
+    }
+
+    public void budgetAtteint() {
+        Counter.builder("droits.questions.budget_atteint").description("Questions refusées par le budget journalier")
+                .register(registre).increment();
+    }
+
+    public void jauge(String nom, String description, Supplier<Number> valeur) {
+        Gauge.builder(nom, valeur).description(description).register(registre);
     }
 
     public void quotaAtteint() {
