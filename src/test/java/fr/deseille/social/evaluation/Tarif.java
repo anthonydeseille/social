@@ -1,7 +1,7 @@
 package fr.deseille.social.evaluation;
 
+import fr.deseille.social.questions.PrixModeles;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Tarif d'un modèle, en dollars par million de jetons, pour chiffrer le coût réel d'une évaluation.
@@ -11,15 +11,10 @@ import java.util.Map;
  */
 record Tarif(String modele, double entree, double sortie) {
 
-    /** Tarifs de la documentation Anthropic (octobre 2026) ; à mettre à jour s'ils changent. */
-    private static final Map<String, double[]> CONNUS = Map.of(
-            "claude-opus-5-5", new double[] {4.0, 20.0},
-            "claude-sonnet-5-5", new double[] {2.0, 10.0},
-            "claude-haiku-5-5", new double[] {0.10, 0.50});
-
+    /** Prix de l'application ({@link PrixModeles}), seule table à tenir à jour. */
     static Tarif pour(String modele) {
-        double[] prix = CONNUS.get(modele);
-        return prix == null ? new Tarif(modele, Double.NaN, Double.NaN) : new Tarif(modele, prix[0], prix[1]);
+        return PrixModeles.pour(modele).map(p -> new Tarif(modele, p.entree(), p.sortie()))
+                .orElse(new Tarif(modele, Double.NaN, Double.NaN));
     }
 
     /** Tarif du modèle, sauf s'il est forcé par {@code -D<prefixe>.prix.entree/sortie}. */
@@ -30,6 +25,15 @@ record Tarif(String modele, double entree, double sortie) {
             return new Tarif(modele, Double.parseDouble(entree), Double.parseDouble(sortie));
         }
         return pour(modele);
+    }
+
+    /**
+     * Modèles différents pour la reformulation et la rédaction : pas de tarif unique, le coût de
+     * chaque question vient du prix de chaque étape ({@code Resultat.cout}).
+     */
+    static Tarif parEtapes(String modele, String modeleReformulation) {
+        return modele.equals(modeleReformulation) ? pour(modele, "evaluation")
+                : new Tarif(modele + " + reformulation " + modeleReformulation, Double.NaN, Double.NaN);
     }
 
     /** Modèle local (Ollama) : pas de facturation, seulement le temps de calcul de la machine. */
@@ -52,6 +56,9 @@ record Tarif(String modele, double entree, double sortie) {
     }
 
     String libelle() {
+        if (modele.contains(" + reformulation ")) {
+            return modele + " (au prix de chaque étape)";
+        }
         return connu()
                 ? String.format(Locale.FRANCE, "%s à %.2f $ / %.2f $ par million de jetons", modele, entree, sortie)
                 : modele + " (tarif inconnu : préciser -Devaluation.prix.entree et .sortie)";

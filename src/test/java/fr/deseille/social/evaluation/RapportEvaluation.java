@@ -34,16 +34,30 @@ final class RapportEvaluation {
      * Résultat d'une question ; {@code erreur} non nul si l'appel a échoué, {@code verdict} nul si le
      * juge n'a pas tourné ({@code erreurJuge} en dit la raison s'il a échoué).
      */
+    /**
+     * @param cout coût réel de la question en dollars, au prix du modèle de chaque étape ; {@code NaN}
+     *             s'il n'est pas connu (le rapport le déduit alors du tarif et des jetons)
+     */
     record Resultat(Question question, ReponseQuestion reponse, String erreur, long jetonsEntree, long jetonsSortie,
-                    long dureeMs, Juge.Verdict verdict, String erreurJuge) {
+                    long dureeMs, Juge.Verdict verdict, String erreurJuge, double cout) {
 
         Resultat(Question question, ReponseQuestion reponse, String erreur, long jetonsEntree, long jetonsSortie,
                  long dureeMs) {
-            this(question, reponse, erreur, jetonsEntree, jetonsSortie, dureeMs, null, null);
+            this(question, reponse, erreur, jetonsEntree, jetonsSortie, dureeMs, Double.NaN);
+        }
+
+        Resultat(Question question, ReponseQuestion reponse, String erreur, long jetonsEntree, long jetonsSortie,
+                 long dureeMs, double cout) {
+            this(question, reponse, erreur, jetonsEntree, jetonsSortie, dureeMs, null, null, cout);
         }
 
         Resultat avecVerdict(Juge.Verdict verdict, String erreurJuge) {
-            return new Resultat(question, reponse, erreur, jetonsEntree, jetonsSortie, dureeMs, verdict, erreurJuge);
+            return new Resultat(question, reponse, erreur, jetonsEntree, jetonsSortie, dureeMs, verdict, erreurJuge, cout);
+        }
+
+        /** Coût réel s'il est connu, sinon déduit du tarif unique de l'évaluation. */
+        double cout(Tarif tarif) {
+            return Double.isNaN(cout) ? tarif.cout(jetonsEntree, jetonsSortie) : cout;
         }
 
         List<ArticleAttendu> trouves() {
@@ -136,7 +150,7 @@ final class RapportEvaluation {
             md.append("- Erreurs à éviter commises : ")
                     .append(juges.stream().mapToLong(r -> r.verdict().erreursCommises().size()).sum()).append('\n');
         }
-        double cout = tarif.cout(entree, sortie);
+        double cout = resultats.stream().mapToDouble(r -> r.cout(tarif)).sum();
         md.append(String.format(Locale.FRANCE, "- Jetons : %d en entrée, %d en sortie ; coût : %s (%s par question)%n",
                 entree, sortie, Tarif.dollars(cout, "%.2f $"),
                 Tarif.dollars(resultats.isEmpty() ? 0 : cout / resultats.size(), "%.3f $")));
@@ -152,7 +166,7 @@ final class RapportEvaluation {
                     r.question().id(),
                     attendus == 0 ? "n/a" : r.trouves().size() + "/" + attendus,
                     attendus == 0 ? "n/a" : r.cites().size() + "/" + attendus,
-                    qualite, erreurs, Tarif.dollars(tarif.cout(r.jetonsEntree(), r.jetonsSortie()), "%.3f $"),
+                    qualite, erreurs, Tarif.dollars(r.cout(tarif), "%.3f $"),
                     r.dureeMs() < 0 ? "lot" : String.format(Locale.FRANCE, "%.1f s", r.dureeMs() / 1000.0)));
         }
 
@@ -264,7 +278,7 @@ final class RapportEvaluation {
         s.put("erreurs", juges.isEmpty() ? null : juges.stream().mapToLong(r -> r.verdict().erreursCommises().size()).sum());
         s.put("jetons_entree", entree);
         s.put("jetons_sortie", sortie);
-        s.put("cout_questions_usd", arrondi(tarif.cout(entree, sortie)));
+        s.put("cout_questions_usd", arrondi(resultats.stream().mapToDouble(r -> r.cout(tarif)).sum()));
         s.put("cout_juge_usd", arrondi(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie)));
         s.put("analyse", "");
         return s;

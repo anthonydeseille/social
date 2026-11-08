@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -71,24 +72,36 @@ public class AssistantClaude implements Assistant {
     private final AtomicLong appels = new AtomicLong();
     private final AtomicLong jetonsEntree = new AtomicLong();
     private final AtomicLong jetonsSortie = new AtomicLong();
+    private final DoubleAdder cout = new DoubleAdder();
+    private final DepensesJournalieres depenses;
 
     @Override
     public Consommation consommation() {
-        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
+        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get(), cout.sum());
     }
 
     @Autowired
-    public AssistantClaude(ClaudeProperties properties, MetriquesQuestions metriques) {
+    public AssistantClaude(ClaudeProperties properties, MetriquesQuestions metriques, DepensesJournalieres depenses) {
         this(properties, () -> AnthropicOkHttpClient.builder()
                 .fromEnv()
                 .timeout(properties.delai())
                 .maxRetries(properties.tentatives())
-                .build(), metriques);
+                .build(), metriques, depenses);
+    }
+
+    /** Hors application (outils, tests) : dépense suivie, sans budget. */
+    public AssistantClaude(ClaudeProperties properties, MetriquesQuestions metriques) {
+        this(properties, metriques, DepensesJournalieres.sansBudget(metriques));
     }
 
     @Override
     public String modele() {
         return properties.modele();
+    }
+
+    @Override
+    public String modeleReformulation() {
+        return properties.modeleDeReformulation();
     }
 
     @Override
@@ -98,9 +111,15 @@ public class AssistantClaude implements Assistant {
 
     /** Pour les tests : client fourni (simulé). */
     AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique, MetriquesQuestions metriques) {
+        this(properties, fabrique, metriques, DepensesJournalieres.sansBudget(metriques));
+    }
+
+    AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique, MetriquesQuestions metriques,
+                    DepensesJournalieres depenses) {
         this.properties = properties;
         this.fabrique = fabrique;
         this.metriques = metriques;
+        this.depenses = depenses;
     }
 
     /** Requêtes de recherche produites par la reformulation (sortie structurée). */
@@ -118,7 +137,7 @@ public class AssistantClaude implements Assistant {
             log.warn("Reformulation impossible ({}) : recherche sur la question brute", e.getClass().getSimpleName());
             return List.of(question);
         }
-        journaliser("reformulation", message.usage());
+        journaliser("reformulation", properties.modeleDeReformulation(), message.usage());
         boolean refusee = message.stopReason().filter(StopReason.REFUSAL::equals).isPresent();
         metriques.appelModele(FOURNISSEUR, "reformulation", refusee ? "refus" : "succes");
         if (refusee) {
@@ -171,7 +190,7 @@ public class AssistantClaude implements Assistant {
             log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
             throw new AssistantIndisponibleException(e);
         }
-        journaliser("redaction", message.usage());
+        journaliser("redaction", properties.modele(), message.usage());
         Reponse reponse = versReponse(message, articles);
         metriques.appelModele(FOURNISSEUR, "redaction", reponse.refus() ? "refus" : reponse.tronquee() ? "tronquee" : "succes");
         return reponse;
@@ -180,7 +199,7 @@ public class AssistantClaude implements Assistant {
     /** Requête de reformulation : sortie structurée, schéma déduit de {@link Requetes}. Publique pour les lots. */
     public StructuredMessageCreateParams<Requetes> parametresReformulation(String question, ContexteProfil contexte) {
         return MessageCreateParams.builder()
-                .model(properties.modele())
+                .model(properties.modeleDeReformulation())
                 .maxTokens(MAX_TOKENS)
                 .system(CONSIGNES_REFORMULATION)
                 .outputConfig(Requetes.class)
@@ -267,11 +286,15 @@ public class AssistantClaude implements Assistant {
         return titres.isEmpty() ? a.texte().titre() : String.join(" > ", titres);
     }
 
-    private void journaliser(String etape, Usage usage) {
+    private void journaliser(String etape, String modele, Usage usage) {
         appels.incrementAndGet();
         jetonsEntree.addAndGet(usage.inputTokens());
         jetonsSortie.addAndGet(usage.outputTokens());
         metriques.jetons(FOURNISSEUR, etape, usage.inputTokens(), usage.outputTokens());
+        double dollars = PrixModeles.cout(modele, usage.inputTokens(), usage.outputTokens());
+        cout.add(dollars);
+        metriques.cout(FOURNISSEUR, etape, dollars);
+        depenses.ajouter(dollars);
         log.info("Claude, {} : {} jetons en entrée, {} en sortie", etape, usage.inputTokens(), usage.outputTokens());
     }
 

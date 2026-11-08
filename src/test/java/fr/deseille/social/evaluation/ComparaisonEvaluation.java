@@ -54,14 +54,19 @@ final class ComparaisonEvaluation {
      * @param synthese   synthèse de l'évaluation ({@link RapportEvaluation#synthese})
      */
     static Resultat comparer(String historique, Map<String, Object> synthese) {
+        return comparer(historique, synthese, null);
+    }
+
+    /**
+     * @param modeleReference modèle de repli quand l'historique n'a pas encore le modèle évalué :
+     *                        un nouveau modèle se compare alors au modèle actuel ; {@code null} sinon
+     */
+    static Resultat comparer(String historique, Map<String, Object> synthese, String modeleReference) {
         List<Map<String, String>> lignes = lire(historique);
-        String modele = String.valueOf(synthese.get("modele"));
         String questions = String.valueOf(synthese.get("questions"));
-        Map<String, String> reference = null;
-        for (Map<String, String> ligne : lignes) {
-            if (modele.equals(ligne.get("modele")) && questions.equals(ligne.get("questions"))) {
-                reference = ligne;
-            }
+        Map<String, String> reference = derniere(lignes, String.valueOf(synthese.get("modele")), questions);
+        if (reference == null && modeleReference != null) {
+            reference = derniere(lignes, modeleReference, questions);
         }
         if (reference == null) {
             return new Resultat(null, List.of());
@@ -90,6 +95,16 @@ final class ComparaisonEvaluation {
         return new Resultat(reference, ecarts);
     }
 
+    private static Map<String, String> derniere(List<Map<String, String>> lignes, String modele, String questions) {
+        Map<String, String> reference = null;
+        for (Map<String, String> ligne : lignes) {
+            if (modele.equals(ligne.get("modele")) && questions.equals(ligne.get("questions"))) {
+                reference = ligne;
+            }
+        }
+        return reference;
+    }
+
     /** Commentaire de PR : tableau des écarts, référence et décision. */
     static String markdown(Resultat resultat, Map<String, Object> synthese) {
         StringBuilder md = new StringBuilder("## Évaluation complète\n\n");
@@ -109,7 +124,9 @@ final class ComparaisonEvaluation {
             return md.toString();
         }
         Map<String, String> ref = resultat.reference();
-        md.append("Référence : dernière ligne de `historique.csv` avec ce modèle et ce nombre de questions, du ").append(ref.get("date"))
+        md.append(ref.get("modele").equals(String.valueOf(synthese.get("modele")))
+                ? "Référence : dernière ligne de `historique.csv` avec ce modèle et ce nombre de questions, du "
+                : "Référence : le modèle actuel, " + ref.get("modele") + " (le modèle évalué n'a pas encore d'historique), du ").append(ref.get("date"))
                 .append(" (`").append(ref.get("commit")).append("`, ").append(ref.get("questions"))
                 .append(" questions, consignes `").append(ref.get("consignes_reformulation")).append("` / `")
                 .append(ref.get("consignes_redaction")).append("`).\n\n");

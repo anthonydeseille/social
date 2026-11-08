@@ -146,7 +146,7 @@ public class AssistantOllama implements Assistant {
 
     @Override
     public Consommation consommation() {
-        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get());
+        return new Consommation(appels.get(), jetonsEntree.get(), jetonsSortie.get(), 0);
     }
 
     @Override

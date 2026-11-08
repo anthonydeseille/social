@@ -128,7 +128,7 @@ class AssistantOllamaTest {
                 "issue", "succes").count()).isEqualTo(1.0);
         assertThat(registre.counter("droits.assistant.jetons", "fournisseur", "ollama", "etape", "redaction",
                 "sens", "entree").count()).isEqualTo(900.0);
-        assertThat(assistant.consommation()).isEqualTo(new Assistant.Consommation(1, 900, 300));
+        assertThat(assistant.consommation()).isEqualTo(new Assistant.Consommation(1, 900, 300, 0));
     }
 
     @Test
@@ -311,7 +311,7 @@ class AssistantOllamaTest {
             assertThat(reponse.passages()).containsExactly(new Passage("Oui. ",
                     List.of(new Citation("LEGIARTI000019071113", "L1221-19", "peut comporter"))));
             assertThat(reel.modele()).isEqualTo("qwen2.5:7b");
-            assertThat(reel.consommation()).isEqualTo(new Assistant.Consommation(1, 900, 300));
+            assertThat(reel.consommation()).isEqualTo(new Assistant.Consommation(1, 900, 300, 0));
             JsonNode envoye = JsonMapper.builder().build().readTree(requete.get());
             assertThat(envoye.path("model").asString()).isEqualTo("qwen2.5:7b");
             assertThat(envoye.path("stream").asBoolean()).isFalse();

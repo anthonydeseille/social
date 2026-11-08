@@ -22,15 +22,21 @@ public class QuestionController {
 
     private final QuestionService service;
     private final QuotaQuestions quota;
+    private final DepensesJournalieres depenses;
 
-    public QuestionController(QuestionService service, QuotaQuestions quota) {
+    public QuestionController(QuestionService service, QuotaQuestions quota, DepensesJournalieres depenses) {
         this.service = service;
         this.quota = quota;
+        this.depenses = depenses;
     }
 
-    /** Répond à la question, dans la limite du quota journalier (429 au-delà, 503 si le modèle est indisponible). */
+    /**
+     * Répond à la question, dans la limite du budget et du quota journaliers (429 au-delà, 503 si le
+     * modèle est indisponible).
+     */
     @PostMapping
     public ReponseQuestion repondre(@Valid @RequestBody QuestionSalarie demande) {
+        depenses.verifier();
         quota.consommer();
         return service.repondre(demande.question(), demande.profil());
     }

@@ -50,12 +50,18 @@ public interface Assistant {
         public static final VersionsConsignes INCONNUES = new VersionsConsignes("inconnue", "inconnue");
     }
 
-    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
-    default Consommation consommation() {
-        return new Consommation(0, 0, 0);
+    /** Modèle de la reformulation, s'il diffère de celui de la rédaction. */
+    default String modeleReformulation() {
+        return modele();
     }
 
-    record Consommation(long appels, long jetonsEntree, long jetonsSortie) {
+    /** Consommation cumulée depuis le démarrage (mesure du coût réel, évaluation). */
+    default Consommation consommation() {
+        return new Consommation(0, 0, 0, 0);
+    }
+
+    /** @param coutUsd coût cumulé en dollars, au prix de chaque appel ({@code NaN} si un modèle est inconnu) */
+    record Consommation(long appels, long jetonsEntree, long jetonsSortie, double coutUsd) {
     }
 
     /**

@@ -202,12 +202,33 @@ class AssistantClaudeTest {
         when(messages.create(any(MessageCreateParams.class))).thenReturn(message);
         SimpleMeterRegistry registre = new SimpleMeterRegistry();
 
-        new AssistantClaude(PROPRIETES, () -> client, new MetriquesQuestions(registre))
-                .rediger("question", CONTEXTE, List.of(L1221_19));
+        MetriquesQuestions metriques = new MetriquesQuestions(registre);
+        DepensesJournalieres depenses = DepensesJournalieres.sansBudget(metriques);
+        AssistantClaude assistant = new AssistantClaude(PROPRIETES, () -> client, metriques, depenses);
+        assistant.rediger("question", CONTEXTE, List.of(L1221_19));
+
+        // Opus 5.5 : 4 200 × 4 $ + 1 800 × 20 $ par million = 0,0528 $
+        assertThat(registre.counter("droits.assistant.cout_usd", "fournisseur", "claude", "etape", "redaction").count())
+                .isCloseTo(0.0528, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(assistant.consommation().coutUsd()).isCloseTo(0.0528, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(depenses.depenseDuJour()).isCloseTo(0.0528, org.assertj.core.data.Offset.offset(1e-9));
 
         assertThat(registre.counter("droits.assistant.jetons", "fournisseur", "claude", "etape", "redaction", "sens", "entree").count()).isEqualTo(4200.0);
         assertThat(registre.counter("droits.assistant.jetons", "fournisseur", "claude", "etape", "redaction", "sens", "sortie").count()).isEqualTo(1800.0);
         assertThat(registre.counter("droits.assistant.appels", "fournisseur", "claude", "etape", "redaction", "issue", "succes").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void modele_de_reformulation_distinct_si_configure() {
+        AssistantClaude parDefaut = new AssistantClaude(PROPRIETES, new MetriquesQuestions(new SimpleMeterRegistry()));
+        AssistantClaude leger = new AssistantClaude(new ClaudeProperties("claude-opus-5-5", Duration.ofMinutes(3), 2,
+                "claude-haiku-5-5"), new MetriquesQuestions(new SimpleMeterRegistry()));
+
+        assertThat(parDefaut.parametresReformulation("q", CONTEXTE).rawParams().model().asString()).isEqualTo("claude-opus-5-5");
+        assertThat(parDefaut.modeleReformulation()).isEqualTo("claude-opus-5-5");
+        assertThat(leger.parametresReformulation("q", CONTEXTE).rawParams().model().asString()).isEqualTo("claude-haiku-5-5");
+        assertThat(leger.parametresRedaction("q", CONTEXTE, List.of(L1221_19)).model().asString()).isEqualTo("claude-opus-5-5");
+        assertThat(leger.modeleReformulation()).isEqualTo("claude-haiku-5-5");
     }
 
     @Test

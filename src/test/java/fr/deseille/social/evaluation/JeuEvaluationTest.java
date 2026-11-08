@@ -77,6 +77,21 @@ class JeuEvaluationTest {
     }
 
     @Test
+    void cout_reel_par_question_prioritaire_sur_le_tarif() throws Exception {
+        Question q = JeuEvaluation.lireRessource("/evaluation/questions-test.yaml").questions().getFirst();
+        Tarif parEtapes = Tarif.parEtapes("claude-opus-5-5", "claude-haiku-5-5").lots();
+        Resultat r = new Resultat(q, null, "erreur", 5_000, 2_000, 1, 0.42);
+
+        Map<String, Object> synthese = RapportEvaluation.synthese(List.of(r), "2026-11-08", "abc1234", "lots",
+                parEtapes, Tarif.pour("claude-opus-5-5").lots(), 0, 0);
+
+        assertThat(synthese).containsEntry("modele", "claude-opus-5-5 + reformulation claude-haiku-5-5")
+                .containsEntry("cout_questions_usd", 0.42);
+        assertThat(RapportEvaluation.markdown(List.of(r), parEtapes, false, Tarif.pour("claude-opus-5-5").lots(), 0, 0, 1))
+                .contains("coût : 0,42 $");
+    }
+
+    @Test
     void requetes_figees_relues_telles_qu_ecrites() {
         RequetesFigees figees = new RequetesFigees("claude, essai", "aaaa1111", new java.util.LinkedHashMap<>(Map.of(
                 "q1", List.of("période essai", "délai \"prévenance\"", "sur\ndeux lignes"))));

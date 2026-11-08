@@ -18,6 +18,7 @@ import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.AssistantOllama;
 import fr.deseille.social.questions.ClaudeProperties;
 import fr.deseille.social.questions.MetriquesQuestions;
+import fr.deseille.social.questions.PrixModeles;
 import fr.deseille.social.questions.QuestionService;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.recherche.RechercheService;
@@ -62,7 +63,11 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code -Devaluation.questions=id1,id2} (sélection), {@code -Devaluation.fichier=chemin}
  * (autre jeu que {@code src/test/resources/evaluation/questions.yaml}),
  * {@code -Devaluation.comparer=true} (comparaison à {@code docs/evaluations/historique.csv} et échec sur
- * une baisse nette, voir {@link ComparaisonEvaluation} ; c'est ce que lance la CI).
+ * une baisse nette, voir {@link ComparaisonEvaluation} ; c'est ce que lance la CI),
+ * {@code -Devaluation.etape=reformulation} (reformulation et recherche seulement, quelques centimes :
+ * pour choisir le modèle de la reformulation, {@code -Ddroits.claude.modele-reformulation=…}),
+ * {@code -Devaluation.reference.modele=…} (avec {@code comparer} : modèle de référence quand
+ * l'historique n'a pas encore le modèle évalué, pour comparer un nouveau modèle à l'actuel).
  * Fournisseur : celui de la configuration ; {@code -Ddroits.assistant.fournisseur=ollama} évalue le
  * modèle local (Ollama démarré, modèle téléchargé), le juge restant Claude, pour comparer les deux
  * sur le même jeu. Le mode lots ne concerne que Claude.
@@ -110,13 +115,18 @@ class EvaluationIT {
                 : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 
         Tarif tarif = assistant instanceof AssistantOllama ? Tarif.local(assistant.modele())
-                : Tarif.pour(claudeProperties.modele(), "evaluation");
+                : Tarif.parEtapes(claudeProperties.modele(), claudeProperties.modeleDeReformulation());
         Tarif tarifJuge = juge == null ? tarif
                 : Tarif.pour(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), "evaluation.juge");
         Path rapport = Path.of("target", "evaluation",
                 "rapport-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".md");
         Files.createDirectories(rapport.getParent());
         System.out.println("Rapport d'évaluation (mis à jour après chaque question) : " + rapport.toAbsolutePath());
+
+        if ("reformulation".equals(System.getProperty("evaluation.etape"))) {
+            evaluerReformulation(questions, service, assistant, rapport);
+            return;
+        }
 
         if (Boolean.getBoolean("evaluation.lots") && !simulee) {
             assertThat(assistant).as("le mode lots passe par l'API Batch d'Anthropic : fournisseur claude seulement")
@@ -138,7 +148,8 @@ class EvaluationIT {
             }
             var apres = assistant.consommation();
             Resultat resultat = new Resultat(q, reponse, erreur, apres.jetonsEntree() - avant.jetonsEntree(),
-                    apres.jetonsSortie() - avant.jetonsSortie(), System.currentTimeMillis() - debut);
+                    apres.jetonsSortie() - avant.jetonsSortie(), System.currentTimeMillis() - debut,
+                    apres.coutUsd() - avant.coutUsd());
             if (juge != null && reponse != null && !reponse.refus() && !reponse.passages().isEmpty()) {
                 try {
                     resultat = resultat.avecVerdict(juge.juger(q, reponse), null);
@@ -185,7 +196,8 @@ class EvaluationIT {
         // Dans la CI : comparaison à la dernière évaluation de l'historique, échec sur une baisse nette
         if (Boolean.getBoolean("evaluation.comparer")) {
             ComparaisonEvaluation.Resultat comparaison = ComparaisonEvaluation.comparer(
-                    Files.readString(Path.of("docs/evaluations/historique.csv"), StandardCharsets.UTF_8), synthese);
+                    Files.readString(Path.of("docs/evaluations/historique.csv"), StandardCharsets.UTF_8), synthese,
+                    System.getProperty("evaluation.reference.modele"));
             Path fichier = rapport.resolveSibling("comparaison-" + base + ".md");
             Files.writeString(fichier, ComparaisonEvaluation.markdown(comparaison, synthese), StandardCharsets.UTF_8);
             assertThat(comparaison.bloquant()).as("baisse nette par rapport à l'historique (détail : %s)", fichier)
@@ -216,6 +228,8 @@ class EvaluationIT {
                 Duration.ofHours(Long.getLong("evaluation.lots.heures", 2)));
         Map<String, ContexteProfil> contextes = new LinkedHashMap<>();
         Map<String, long[]> jetons = new HashMap<>();
+        // Coût réel de chaque question, au prix du modèle de chaque étape (moitié prix par lots)
+        Map<String, Double> couts = new HashMap<>();
         for (Question q : questions) {
             contextes.put(q.id(), profilService.contexte(q.profil()));
             jetons.put(q.id(), new long[2]);
@@ -238,6 +252,7 @@ class EvaluationIT {
             requetes.put(q.id(), r == null || r.message() == null ? List.of(q.question())
                     : AssistantClaude.requetesDepuis(r.message(), q.question()));
             compter(jetons.get(q.id()), r);
+            couts.merge(q.id(), coutLot(assistantClaude.modeleReformulation(), r), Double::sum);
         }
 
         // 2. Recherche locale, puis rédactions
@@ -261,6 +276,7 @@ class EvaluationIT {
             Question q = questions.stream().filter(x -> x.id().equals(id)).findFirst().orElseThrow();
             LotClaude.Resultat r = r2.get(id);
             compter(jetons.get(id), r);
+            couts.merge(id, coutLot(assistantClaude.modele(), r), Double::sum);
             if (r == null || r.message() == null) {
                 erreurs.put(id, r == null ? "résultat absent du lot" : r.erreur());
             } else {
@@ -286,7 +302,8 @@ class EvaluationIT {
         List<Resultat> resultats = new ArrayList<>();
         for (Question q : questions) {
             long[] j = jetons.get(q.id());
-            Resultat resultat = new Resultat(q, reponses.get(q.id()), erreurs.get(q.id()), j[0], j[1], -1);
+            Resultat resultat = new Resultat(q, reponses.get(q.id()), erreurs.get(q.id()), j[0], j[1], -1,
+                    couts.getOrDefault(q.id(), 0.0));
             LotClaude.Resultat jugement = r3.get(q.id());
             if (jugement != null) {
                 compter(jetonsJuge, jugement);
@@ -303,6 +320,68 @@ class EvaluationIT {
                 jetonsJuge[0], jetonsJuge[1], questions.size()), StandardCharsets.UTF_8);
         ecrireSorties(rapport, resultats, assistantClaude.modele(), "lots", tarif.lots(), tarifJuge.lots(),
                 jetonsJuge[0], jetonsJuge[1]);
+    }
+
+    /** Coût d'un résultat de lot : moitié du prix du modèle ; 0 sans message (rien de facturé). */
+    private static double coutLot(String modele, LotClaude.Resultat resultat) {
+        return resultat == null || resultat.message() == null ? 0
+                : PrixModeles.cout(modele, resultat.message().usage().inputTokens(),
+                        resultat.message().usage().outputTokens()) / 2;
+    }
+
+    /**
+     * Évaluation de la seule reformulation (quelques centimes) : reformulation par le modèle configuré
+     * ({@code -Ddroits.claude.modele-reformulation=…}), recherche, puis part des articles attendus
+     * retenus. Ni rédaction ni juge : c'est l'indicateur « recherche » de l'évaluation complète, pour
+     * choisir sur preuves le modèle de la reformulation. Écrit le rapport et les requêtes (au format de
+     * {@code requetes.yaml}).
+     */
+    private void evaluerReformulation(List<Question> questions, QuestionService service, Assistant assistant,
+                                      Path rapport) throws Exception {
+        String modele = assistant.modeleReformulation();
+        var avant = assistant.consommation();
+        Map<String, List<String>> requetes = new LinkedHashMap<>();
+        StringBuilder detail = new StringBuilder("| Question | Retrouvés | Requêtes |\n|---|---|---|\n");
+        int trouves = 0;
+        int attendus = 0;
+        double somme = 0;
+        int notees = 0;
+        for (Question q : questions) {
+            ContexteProfil contexte = profilService.contexte(q.profil());
+            List<String> r = assistant.reformuler(q.question(), contexte);
+            requetes.put(q.id(), r);
+            java.util.Set<String> retenus = service.articles(r, q.profil().idcc(), contexte.profil().dateReference())
+                    .stream().map(ArticleDetail::sourceId).collect(Collectors.toSet());
+            long n = q.articlesAttendus().stream().filter(a -> retenus.contains(a.sourceId())).count();
+            trouves += (int) n;
+            attendus += q.articlesAttendus().size();
+            if (!q.articlesAttendus().isEmpty()) {
+                somme += (double) n / q.articlesAttendus().size();
+                notees++;
+            }
+            detail.append("| ").append(q.id()).append(" | ").append(n).append('/').append(q.articlesAttendus().size())
+                    .append(" | ").append(String.join(" · ", r).replace("|", "\\|")).append(" |\n");
+        }
+        var apres = assistant.consommation();
+        String md = "# Évaluation de la reformulation\n\n"
+                + "- Modèle de la reformulation : " + modele + "\n"
+                + "- Consignes de reformulation : " + assistant.consignes().reformulation() + "\n"
+                + String.format(Locale.FRANCE, "- Recherche (articles attendus retenus, moyenne par question) : %.0f %%%n",
+                        notees == 0 ? 0 : 100 * somme / notees)
+                + "- Articles attendus retenus : " + trouves + "/" + attendus + "\n"
+                + String.format(Locale.FRANCE, "- Jetons : %d en entrée, %d en sortie ; coût : %s%n",
+                        apres.jetonsEntree() - avant.jetonsEntree(), apres.jetonsSortie() - avant.jetonsSortie(),
+                        Tarif.dollars(apres.coutUsd() - avant.coutUsd(), "%.3f $"))
+                + "\n" + detail;
+        Path fichier = rapport.resolveSibling(rapport.getFileName().toString().replace("rapport-", "reformulation-"));
+        Files.writeString(fichier, md, StandardCharsets.UTF_8);
+        Files.writeString(fichier.resolveSibling(fichier.getFileName().toString().replace(".md", ".yaml")
+                        .replace("reformulation-", "requetes-")),
+                new RequetesFigees(modele + ", commit " + commitCourant() + ", évaluation de la reformulation du "
+                        + LocalDateTime.now().toLocalDate(), assistant.consignes().reformulation(), requetes).yaml(),
+                StandardCharsets.UTF_8);
+        System.out.println(md);
+        System.out.println("Rapport de la reformulation : " + fichier.toAbsolutePath());
     }
 
     private static void compter(long[] jetons, LotClaude.Resultat resultat) {

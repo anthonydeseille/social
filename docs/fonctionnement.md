@@ -9,9 +9,9 @@ flowchart TD
     S(["👤 Salarié<br/>question + profil<br/>(IDCC, statut, contrat, ancienneté, situations…)"])
 
     S --> G0
-    G0{"0. Garde-fous d'entrée<br/>validation · quota du jour<br/>injection · profil incohérent<br/>données personnelles retirées"}
+    G0{"0. Garde-fous d'entrée<br/>validation · budget et quota du jour<br/>injection · profil incohérent<br/>données personnelles retirées"}
     G0 -->|"invalide, injection,<br/>profil incohérent"| E400["400 Requête invalide"]
-    G0 -->|"quota atteint"| E429["429 Trop de questions"]
+    G0 -->|"budget ou quota atteint"| E429["429 Trop de questions"]
     G0 -->|"ok"| P1
 
     P1["1. Contexte du profil<br/>ancienneté · textes applicables à la date de référence<br/>avertissements"]
@@ -58,9 +58,9 @@ souvenir de mes informations », et un bouton l'efface.
 
 | Étape | Rôle | Coût |
 |---|---|---|
-| 0. Garde-fous d'entrée | Validation de la question (≤ 1000 caractères) et du profil, quota journalier global (200 par défaut, `droits.questions.quota-journalier` ; anciennement `droits.claude.quota-journalier`). Refus (400), avant tout appel payant, d'une tentative d'injection dans la question ou la classification (« ignore tes consignes », « révèle ton prompt système », balises de rôle : `InjectionConsignes`, formules adressées au modèle seulement, pour ne pas refuser « mon employeur ignore les consignes de sécurité ») et d'un profil incohérent (date d'entrée après la date de référence, ancienneté supérieure à l'âge moins 14 ans). Les données personnelles du texte libre (e-mail, numéro de sécurité sociale, téléphone, IBAN) sont remplacées par leur nature (« [téléphone] ») avant l'envoi au modèle, avec un avertissement (`DonneesPersonnelles`). Ni la question ni le profil ne sont stockés ou journalisés (données sensibles : grossesse, santé). | gratuit |
+| 0. Garde-fous d'entrée | Validation de la question (≤ 1000 caractères) et du profil, quota journalier global (200 par défaut, `droits.questions.quota-journalier` ; anciennement `droits.claude.quota-journalier`) et budget journalier en dollars (10 $ par défaut, `droits.questions.budget-journalier-usd` : dépense du jour au prix de chaque appel, alerte dans le journal à 80 % et 100 %, voir [`couts-et-modeles.md`](couts-et-modeles.md)). Refus (400), avant tout appel payant, d'une tentative d'injection dans la question ou la classification (« ignore tes consignes », « révèle ton prompt système », balises de rôle : `InjectionConsignes`, formules adressées au modèle seulement, pour ne pas refuser « mon employeur ignore les consignes de sécurité ») et d'un profil incohérent (date d'entrée après la date de référence, ancienneté supérieure à l'âge moins 14 ans). Les données personnelles du texte libre (e-mail, numéro de sécurité sociale, téléphone, IBAN) sont remplacées par leur nature (« [téléphone] ») avant l'envoi au modèle, avec un avertissement (`DonneesPersonnelles`). Ni la question ni le profil ne sont stockés ou journalisés (données sensibles : grossesse, santé). | gratuit |
 | 1. Contexte du profil | Ancienneté à la date de référence (aujourd'hui par défaut), textes applicables à cette date (Code du travail, convention collective si intégrée), avertissements (convention non renseignée ou non intégrée). | gratuit |
-| 2. Reformulation | Claude transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. Avec un modèle local, exemples et simplification des requêtes en plus (voir [Fournisseur local : Ollama](#fournisseur-local--ollama)). | ≈ 1 centime |
+| 2. Reformulation | Claude (`droits.claude.modele-reformulation` s'il diffère du modèle de la rédaction, choisi par l'évaluation de la reformulation seule : [`couts-et-modeles.md`](couts-et-modeles.md)) transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. Avec un modèle local, exemples et simplification des requêtes en plus (voir [Fournisseur local : Ollama](#fournisseur-local--ollama)). | ≈ 1 centime |
 | 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence. Chaque article est indexé par son numéro et les titres de ses sections (poids fort), puis son texte : les mots d'un article de principe sont souvent dans le titre de sa section (« Congés payés ») plutôt que dans son texte. Puis fusion des résultats et sélection des 8 meilleurs (4 pour un modèle local). | gratuit |
 | 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
 | 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; chiffres de la réponse (durées, montants, pourcentages) recherchés dans les articles transmis (nombres en lettres compris : « quatre-vingt-dix », « un quart »), le profil et la question : un chiffre absent (souvent un calcul) est signalé « à vérifier », sans être retiré (`VerificationChiffres`, champ `chiffresNonRetrouves`) ; signalement d'une réponse interrompue. | gratuit |
@@ -125,6 +125,9 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 | `droits.assistant.jetons` | fournisseur, etape, sens : entree, sortie | jetons consommés (le coût, pour Claude) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
 | `droits.questions.quota_atteint` | | questions refusées par le quota |
+| `droits.assistant.cout_usd` | fournisseur, etape | coût des appels en dollars, au prix du modèle de chaque étape (`PrixModeles`) |
+| `droits.assistant.depense_jour_usd` | | dépense du jour (jauge), pour alerter |
+| `droits.questions.budget_atteint` | | questions refusées par le budget journalier |
 | `droits.garde_fous` | type : injection, donnees_personnelles (une par donnée retirée), profil_incoherent | interventions des garde-fous d'entrée |
 | `droits.chiffres_non_retrouves` | | chiffres des réponses absents des sources |
 | `droits.assistant.consignes` | modele, reformulation, redaction | jauge à 1 portant les versions des consignes en service, à croiser avec les autres métriques |
