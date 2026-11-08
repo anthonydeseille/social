@@ -12,7 +12,7 @@ une évaluation.
 | `PrixModeles` | prix de chaque modèle (dollars par million de jetons), seule table à tenir à jour ; un modèle absent a un coût inconnu, jamais faux |
 | `droits.assistant.cout_usd` (fournisseur, etape) | coût de chaque appel, au prix du modèle de l'étape |
 | `droits.assistant.depense_jour_usd` | dépense du jour, pour alerter dans un tableau de bord |
-| Budget journalier (`droits.questions.budget-journalier-usd`, 10 $ par défaut) | au-delà, questions refusées (429) jusqu'au lendemain ; alerte dans le journal à 80 % et à 100 %. Complète le quota (200 questions) : un modèle plus cher ou des rédactions longues épuisent le budget avant le quota |
+| Budget journalier (`droits.questions.budget-journalier-usd`, 10 $ par défaut) | au-delà, questions refusées (429) jusqu'au lendemain ; alerte dans le journal à 80 % et à 100 %. Complète le quota (200 questions) : un modèle plus cher ou des rédactions longues épuisent le budget avant le quota. Approximatif : la dépense est constatée après chaque appel, des questions simultanées peuvent le dépasser de quelques dixièmes de dollar. Un modèle absent de `PrixModeles` y échappe (signalé dans le journal) |
 | `droits.claude.modele-reformulation` | modèle de la reformulation, s'il diffère de celui de la rédaction (`droits.claude.modele`) |
 | Évaluation de la reformulation seule | `-Devaluation.etape=reformulation` : reformulation et recherche, ni rédaction ni juge ; quelques centimes |
 | Évaluation complète d'un autre modèle | `workflow_dispatch` du workflow « Évaluation complète » (champs `modele`, `modele_reformulation`), comparée au modèle actuel tant que le nouveau n'a pas d'historique |
@@ -32,7 +32,8 @@ fixer sur l'espace de travail de l'application et sur celui du compte de service
    ```
 
    (ou Actions → *Évaluation complète* → *Run workflow*, étape `reformulation`). Rapport :
-   `target/evaluation/reformulation-*.md`. Les reformulations varient d'un passage à l'autre : lancer
+   `target/evaluation/reformulation-*.md`. Ce lancement ne compare rien et ne bloque rien : un job
+   vert ne prouve pas que la recherche tient, il faut lire le score. Les reformulations varient d'un passage à l'autre : lancer
    deux fois chaque modèle avant de conclure. Un modèle plus léger est retenu si la recherche ne
    baisse pas au-delà de ce bruit.
 2. **Confirmation** par une évaluation complète avec le couple retenu (rédaction inchangée), comparée

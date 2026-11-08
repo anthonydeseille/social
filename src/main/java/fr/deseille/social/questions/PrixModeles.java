@@ -5,9 +5,12 @@ import java.util.Optional;
 
 /**
  * Prix des modèles Claude, en dollars par million de jetons : coût de chaque appel (métrique,
- * budget journalier) et coût des évaluations. Tarifs de la documentation Anthropic (octobre
- * 2026), à mettre à jour s'ils changent ; un modèle absent a un coût inconnu ({@code NaN}),
- * jamais un coût faux. L'API Batch facture moitié prix ; les modèles locaux sont gratuits.
+ * budget journalier) et coût des évaluations. Source : barème de la documentation Anthropic
+ * (platform.claude.com, page Pricing, relevé en octobre 2026), à reprendre à chaque nouveau modèle
+ * ou changement de prix. Un modèle absent a un coût inconnu ({@code NaN}), jamais un coût faux,
+ * et le signale ({@link AssistantClaude}) : sans prix, le budget journalier ne compte pas ses
+ * appels. Les jetons de réflexion sont facturés en sortie (inclus dans les jetons de sortie de
+ * l'API). L'API Batch facture moitié prix ; les modèles locaux sont gratuits.
  */
 public final class PrixModeles {
 

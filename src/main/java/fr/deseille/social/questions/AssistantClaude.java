@@ -74,6 +74,7 @@ public class AssistantClaude implements Assistant {
     private final AtomicLong jetonsSortie = new AtomicLong();
     private final DoubleAdder cout = new DoubleAdder();
     private final DepensesJournalieres depenses;
+    private final java.util.Set<String> sansPrix = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     @Override
     public Consommation consommation() {
@@ -120,6 +121,20 @@ public class AssistantClaude implements Assistant {
         this.fabrique = fabrique;
         this.metriques = metriques;
         this.depenses = depenses;
+        signalerSansPrix(properties.modele());
+        signalerSansPrix(properties.modeleDeReformulation());
+    }
+
+    /**
+     * Un modèle sans prix connu échappe au budget journalier : signalé une fois par modèle (au
+     * démarrage pour les modèles configurés). Pas d'échec : on doit pouvoir évaluer un nouveau
+     * modèle avant d'en saisir le prix.
+     */
+    private void signalerSansPrix(String modele) {
+        if (PrixModeles.pour(modele).isEmpty() && sansPrix.add(modele)) {
+            log.warn("Modèle {} absent de PrixModeles : coût inconnu, ses appels ne comptent pas dans le budget "
+                    + "journalier ; ajouter son prix", modele);
+        }
     }
 
     /** Requêtes de recherche produites par la reformulation (sortie structurée). */
@@ -291,6 +306,7 @@ public class AssistantClaude implements Assistant {
         jetonsEntree.addAndGet(usage.inputTokens());
         jetonsSortie.addAndGet(usage.outputTokens());
         metriques.jetons(FOURNISSEUR, etape, usage.inputTokens(), usage.outputTokens());
+        signalerSansPrix(modele);
         double dollars = PrixModeles.cout(modele, usage.inputTokens(), usage.outputTokens());
         cout.add(dollars);
         metriques.cout(FOURNISSEUR, etape, dollars);

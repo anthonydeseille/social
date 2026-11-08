@@ -103,7 +103,7 @@ public class MetriquesQuestions {
                 .register(registre).increment();
     }
 
-    public void jauge(String nom, String description, java.util.function.Supplier<Number> valeur) {
+    public void jauge(String nom, String description, Supplier<Number> valeur) {
         Gauge.builder(nom, valeur).description(description).register(registre);
     }
 
