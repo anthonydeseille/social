@@ -66,9 +66,10 @@ But : montrer une application LLMOps de bout en bout. La librairie montre la mé
    - Étapes : dépôt public avec CI et exemple minimal ; extraction du code ; social consomme la librairie ; 0.1.0 sur JitPack, puis Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
 2. **Passer social en public** :
    - Claude ne répond qu'au propriétaire et aux collaborateurs (`claude.yml`) ✅ (PR #32).
-   - À faire : gitleaks sur tout l'historique Git ; règle de fédération resserrée sur le propriétaire du dépôt ; accord de la juriste pour publier ses réponses validées (et la nommer ou non) ; relecture de `docs/evaluations/`.
+   - Permet aussi la protection de `main` (voir « En suspens »).
+   - À faire, gitleaks en premier (un secret trouvé impose de réécrire l'historique avant toute relecture) : gitleaks sur tout l'historique Git ; règle de fédération resserrée sur le propriétaire du dépôt ; accord de la juriste pour publier ses réponses validées (et la nommer ou non) ; relecture de `docs/evaluations/`.
 
 ## En suspens
 
-- Protection de `main` (GitHub Pro ou dépôt public).
+- Protection de `main` (GitHub Pro ou dépôt public, voir « Vitrine publique »).
 - GitLab CI, pour comparaison.
