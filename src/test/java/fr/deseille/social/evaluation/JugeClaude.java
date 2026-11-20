@@ -15,6 +15,7 @@ import fr.deseille.social.questions.ClaudeProperties;
 import fr.deseille.social.questions.Consignes;
 import fr.deseille.social.questions.DescriptionProfil;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
+import io.github.anthonydeseille.llmeval4j.prompts.Prompts;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -31,7 +32,7 @@ final class JugeClaude implements Juge {
 
     /** Consignes du juge ({@code src/test/resources/prompts/juge.md}) et leur version, pour l'historique. */
     static final String CONSIGNES = Consignes.lire("juge");
-    static final String VERSION = Consignes.version(CONSIGNES);
+    static final String VERSION = Prompts.version(CONSIGNES);
 
     private final String modele;
     private final Supplier<AnthropicClient> fabrique;

@@ -60,7 +60,7 @@ class DepensesJournalieresTest {
 
     @Test
     void sans_budget_jamais_refuse() {
-        DepensesJournalieres libre = DepensesJournalieres.sansBudget(new MetriquesQuestions(new SimpleMeterRegistry()));
+        DepensesJournalieres libre = DepensesJournalieres.sansBudget();
         libre.ajouter(1_000_000);
 
         libre.verifier();
@@ -69,7 +69,7 @@ class DepensesJournalieresTest {
 
     @Test
     void prix_des_modeles() {
-        assertThat(PrixModeles.cout("claude-haiku-5-5", 1_000_000, 1_000_000)).isEqualTo(0.60);
-        assertThat(PrixModeles.cout("modele-inconnu", 10, 10)).isNaN();
+        assertThat(AssistantClaude.PRIX.cost("claude-haiku-5-5", 1_000_000, 1_000_000)).isEqualTo(0.60);
+        assertThat(AssistantClaude.PRIX.cost("modele-inconnu", 10, 10)).isNaN();
     }
 }

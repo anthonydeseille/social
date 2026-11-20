@@ -20,7 +20,7 @@ Batch, moitié prix), soit 5 à 6 $ par mois pour le seul passage hebdomadaire.
 
 - Un **commentaire dans la PR** (et le résumé du job) : écart par indicateur à la référence, versions
   des consignes, coût, décision.
-- L'**échec du job sur une baisse nette** (seuils dans `ComparaisonEvaluation`) : plus de 5 points de
+- L'**échec du job sur une baisse nette** (seuils dans `ComparaisonEvaluation`, calcul par `RegressionCheck` de llmeval4j) : plus de 5 points de
   recherche, d'articles cités ou de qualité, plus d'une erreur à éviter de plus, plus de 2 points de
   citations vérifiées. Les écarts plus petits sont le bruit d'un passage à l'autre. Tant que `main`
   n'est pas protégée (voir la feuille de route), le blocage est un signal : la fusion reste possible,

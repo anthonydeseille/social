@@ -29,7 +29,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `ingestion` : job Spring Batch, un step par source, sources épinglées sur un commit dans `application.yaml`. La classification des changements se fait dans `CorpusWriter`, dans l'ordre du document, pour ne pas dépendre du découpage en chunks.
 - `consultation` : API en lecture seule (textes, sommaire, articles, historique).
 - `profil` : contexte d'un profil salarié. **Le profil n'est jamais stocké ni journalisé** (données sensibles RGPD : grossesse, santé).
-- `questions` : trajet d'une question (reformulation, recherche, rédaction). Consignes du modèle dans `src/main/resources/prompts/` (juge : `src/test/resources/prompts/`), versionnées par l'empreinte de leur texte (`Consignes`) : les modifier là, jamais dans le code ; une retouche de la reformulation périme `requetes.yaml`.
+- `questions` : trajet d'une question (reformulation, recherche, rédaction). Consignes du modèle dans `src/main/resources/prompts/` (juge : `src/test/resources/prompts/`), versionnées par l'empreinte de leur texte (`Consignes`, sur `Prompts` de llmeval4j) : les modifier là, jamais dans le code ; une retouche de la reformulation périme `requetes.yaml`.
 - `recherche` : recherche plein texte PostgreSQL (configuration `francais`, sans accents) sur le numéro, les titres de section (`article.titres_section`, recalculés par `TitresSection` en fin de step d'ingestion) et le texte.
 
 ## Pièges connus
@@ -57,3 +57,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
   `./mvnw verify -Dit.test=RechercheEvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false -Devaluation.recherche=true` (`-Devaluation.recherche.reference=ecrire` pour réécrire la référence après une amélioration ou pour accepter un compromis, refusé si le total baisse ; `forcer` pour l'imposer).
 - Toute évaluation réelle est historisée dans `docs/evaluations/` (rapport brut daté, analyse, ligne dans `README.md` et `historique.csv`) : voir `docs/evaluations/README.md`.
 - Feuille de route : `FEUILLE_DE_ROUTE.md`.
+
+## llmeval4j
+
+Prix des modèles, version des consignes, budget journalier, historique CSV et comparaison des évaluations viennent de la librairie publique [llmeval4j](https://github.com/anthonydeseille/llmeval4j) (`~/appli/llmeval4j`, code en anglais), épinglée dans le `pom.xml` (JitPack, sur un commit en attendant la 0.1.0). Ce qui est générique s'y corrige, puis social monte de version ; rien de propre au métier n'y va (questions, juge, citations, recherche).

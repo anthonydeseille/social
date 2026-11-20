@@ -203,7 +203,7 @@ class AssistantClaudeTest {
         SimpleMeterRegistry registre = new SimpleMeterRegistry();
 
         MetriquesQuestions metriques = new MetriquesQuestions(registre);
-        DepensesJournalieres depenses = DepensesJournalieres.sansBudget(metriques);
+        DepensesJournalieres depenses = DepensesJournalieres.sansBudget();
         AssistantClaude assistant = new AssistantClaude(PROPRIETES, () -> client, metriques, depenses);
         assistant.rediger("question", CONTEXTE, List.of(L1221_19));
 

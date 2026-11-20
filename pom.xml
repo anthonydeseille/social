@@ -29,7 +29,16 @@
 	<properties>
 		<java.version>25</java.version>
 		<spring-ai.version>2.0.1</spring-ai.version>
+		<!-- Commit de la librairie, en attendant la 0.1.0 (JitPack la construit à la demande) -->
+		<llmeval4j.version>90055bc427</llmeval4j.version>
 	</properties>
+	<repositories>
+		<!-- llmeval4j, publiée par JitPack depuis https://github.com/anthonydeseille/llmeval4j -->
+		<repository>
+			<id>jitpack</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
 	<dependencyManagement>
 		<dependencies>
 			<!-- Le SDK Anthropic (sorties structurées) exige victools 4 (Jackson 2) ; Spring AI tire la 5
@@ -85,6 +94,12 @@
 			<groupId>com.anthropic</groupId>
 			<artifactId>anthropic-java</artifactId>
 			<version>3.2.0</version>
+		</dependency>
+		<!-- Prix des modèles, version des consignes, budget journalier, historique et comparaison des évaluations -->
+		<dependency>
+			<groupId>com.github.anthonydeseille</groupId>
+			<artifactId>llmeval4j</artifactId>
+			<version>${llmeval4j.version}</version>
 		</dependency>
 
 		<dependency>

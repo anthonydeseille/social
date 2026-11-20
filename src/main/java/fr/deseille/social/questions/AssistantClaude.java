@@ -21,6 +21,8 @@ import com.anthropic.models.messages.Usage;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.consultation.VuesConsultation.SectionResume;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
+import io.github.anthonydeseille.llmeval4j.pricing.PriceTable;
+import io.github.anthonydeseille.llmeval4j.prompts.Prompts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -58,12 +60,19 @@ public class AssistantClaude implements Assistant {
     private static final int REQUETES_MAX = 4;
     private static final String BETA_REPLI = "server-side-fallback-2026-07-01";
 
+    /**
+     * Prix des modèles (llmeval4j, valeurs datées de {@link PriceTable#DEFAULTS_AS_OF}) : coût de chaque
+     * appel, budget journalier et coût des évaluations. Un modèle absent a un coût inconnu
+     * ({@code NaN}), jamais un coût faux ; ajouter son prix ici ({@link PriceTable#with}).
+     */
+    public static final PriceTable PRIX = PriceTable.defaults();
+
     static final String CONSIGNES_REFORMULATION = Consignes.lire("reformulation");
     static final String CONSIGNES_REDACTION = Consignes.lire("redaction");
 
     /** Versions des consignes de Claude, pour l'évaluation de la recherche (requêtes figées périmées). */
     public static final VersionsConsignes CONSIGNES = new VersionsConsignes(
-            Consignes.version(CONSIGNES_REFORMULATION), Consignes.version(CONSIGNES_REDACTION));
+            Prompts.version(CONSIGNES_REFORMULATION), Prompts.version(CONSIGNES_REDACTION));
 
     private final ClaudeProperties properties;
     private final Supplier<AnthropicClient> fabrique;
@@ -92,7 +101,7 @@ public class AssistantClaude implements Assistant {
 
     /** Hors application (outils, tests) : dépense suivie, sans budget. */
     public AssistantClaude(ClaudeProperties properties, MetriquesQuestions metriques) {
-        this(properties, metriques, DepensesJournalieres.sansBudget(metriques));
+        this(properties, metriques, DepensesJournalieres.sansBudget());
     }
 
     @Override
@@ -112,7 +121,7 @@ public class AssistantClaude implements Assistant {
 
     /** Pour les tests : client fourni (simulé). */
     AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique, MetriquesQuestions metriques) {
-        this(properties, fabrique, metriques, DepensesJournalieres.sansBudget(metriques));
+        this(properties, fabrique, metriques, DepensesJournalieres.sansBudget());
     }
 
     AssistantClaude(ClaudeProperties properties, Supplier<AnthropicClient> fabrique, MetriquesQuestions metriques,
@@ -131,8 +140,8 @@ public class AssistantClaude implements Assistant {
      * modèle avant d'en saisir le prix.
      */
     private void signalerSansPrix(String modele) {
-        if (PrixModeles.pour(modele).isEmpty() && sansPrix.add(modele)) {
-            log.warn("Modèle {} absent de PrixModeles : coût inconnu, ses appels ne comptent pas dans le budget "
+        if (PRIX.find(modele).isEmpty() && sansPrix.add(modele)) {
+            log.warn("Modèle {} sans prix (AssistantClaude.PRIX) : coût inconnu, ses appels ne comptent pas dans le budget "
                     + "journalier ; ajouter son prix", modele);
         }
     }
@@ -307,7 +316,7 @@ public class AssistantClaude implements Assistant {
         jetonsSortie.addAndGet(usage.outputTokens());
         metriques.jetons(FOURNISSEUR, etape, usage.inputTokens(), usage.outputTokens());
         signalerSansPrix(modele);
-        double dollars = PrixModeles.cout(modele, usage.inputTokens(), usage.outputTokens());
+        double dollars = PRIX.cost(modele, usage.inputTokens(), usage.outputTokens());
         cout.add(dollars);
         metriques.cout(FOURNISSEUR, etape, dollars);
         depenses.ajouter(dollars);
