@@ -60,4 +60,4 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 
 ## llmeval4j
 
-Prix des modèles, version des consignes, budget journalier, historique CSV et comparaison des évaluations viennent de la librairie publique [llmeval4j](https://github.com/anthonydeseille/llmeval4j) (`~/appli/llmeval4j`, code en anglais), épinglée dans le `pom.xml` (JitPack, sur un commit en attendant la 0.1.0). Ce qui est générique s'y corrige, puis social monte de version ; rien de propre au métier n'y va (questions, juge, citations, recherche).
+Prix des modèles, version des consignes, budget journalier, historique CSV et comparaison des évaluations viennent de la librairie publique [llmeval4j](https://github.com/anthonydeseille/llmeval4j) (`~/appli/llmeval4j`, code en anglais), version fixée dans le `pom.xml` (JitPack, en attendant Maven Central). Ce qui est générique s'y corrige, puis social monte de version ; rien de propre au métier n'y va (questions, juge, citations, recherche).
