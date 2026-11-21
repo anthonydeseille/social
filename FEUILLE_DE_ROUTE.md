@@ -65,8 +65,9 @@ But : montrer une application LLMOps de bout en bout. La librairie montre la mé
    - Nom : `llmeval4j` (`io.github.anthonydeseille:llmeval4j`), code en anglais.
    - Dépôt public avec CI (Java 17 et 25) et exemple minimal ✅ ([github.com/anthonydeseille/llmeval4j](https://github.com/anthonydeseille/llmeval4j)).
    - Extraction du code ✅ : prix, versions des consignes, budget journalier, historique CSV, contrôle de régression.
-   - Social consomme la librairie ✅ (PR #34, JitPack épinglé sur un commit).
-   - À faire : 0.1.0 (tag, JitPack), social passe sur cette version ; puis Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
+   - Social consomme la librairie ✅ (PR #34).
+   - 0.1.0 publiée ✅ ([release](https://github.com/anthonydeseille/llmeval4j/releases/tag/0.1.0), JitPack), utilisée par social.
+   - À faire : Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
 2. **Passer social en public** :
    - Claude ne répond qu'au propriétaire et aux collaborateurs (`claude.yml`) ✅ (PR #32).
    - Permet aussi la protection de `main` (voir « En suspens »).
