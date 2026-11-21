@@ -63,7 +63,10 @@ But : montrer une application LLMOps de bout en bout. La librairie montre la mé
 
 1. **Librairie publique d'évaluation de LLM pour Java, avec suivi des coûts** (dépôt séparé, intégrée à JUnit 5 et Maven, sans dépendance à Spring, licence Apache 2.0). Contenu extrait de social : prix des modèles (table surchargeable, valeurs par défaut), coût de chaque appel et budget journalier (alertes, refus), version des consignes par empreinte, historique CSV et comparaison avec seuils de bruit, rapport d'évaluation (tarif direct ou par lots). Rien de propre au métier : questions validées, historique, vérification des citations et des chiffres, consignes du juge et recherche restent dans social.
    - Nom : `llmeval4j` (`io.github.anthonydeseille:llmeval4j`), code en anglais.
-   - Étapes : dépôt public avec CI et exemple minimal ; extraction du code ; social consomme la librairie ; 0.1.0 sur JitPack, puis Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
+   - Dépôt public avec CI (Java 17 et 25) et exemple minimal ✅ ([github.com/anthonydeseille/llmeval4j](https://github.com/anthonydeseille/llmeval4j)).
+   - Extraction du code ✅ : prix, versions des consignes, budget journalier, historique CSV, contrôle de régression.
+   - Social consomme la librairie ✅ (PR #34, JitPack épinglé sur un commit).
+   - À faire : 0.1.0 (tag, JitPack), social passe sur cette version ; puis Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
 2. **Passer social en public** :
    - Claude ne répond qu'au propriétaire et aux collaborateurs (`claude.yml`) ✅ (PR #32).
    - Permet aussi la protection de `main` (voir « En suspens »).
