@@ -9,10 +9,10 @@ une évaluation.
 
 | Outil | Rôle |
 |---|---|
-| `PrixModeles` | prix de chaque modèle (dollars par million de jetons), seule table à tenir à jour ; un modèle absent a un coût inconnu, jamais faux |
+| `AssistantClaude.PRIX` | prix de chaque modèle (dollars par million de jetons), seule table à tenir à jour : celle de [llmeval4j](https://github.com/anthonydeseille/llmeval4j) (`PriceTable`), à compléter là par `with` pour un modèle absent ; un modèle absent a un coût inconnu, jamais faux |
 | `droits.assistant.cout_usd` (fournisseur, etape) | coût de chaque appel, au prix du modèle de l'étape |
 | `droits.assistant.depense_jour_usd` | dépense du jour, pour alerter dans un tableau de bord |
-| Budget journalier (`droits.questions.budget-journalier-usd`, 10 $ par défaut) | au-delà, questions refusées (429) jusqu'au lendemain ; alerte dans le journal à 80 % et à 100 %. Complète le quota (200 questions) : un modèle plus cher ou des rédactions longues épuisent le budget avant le quota. Approximatif : la dépense est constatée après chaque appel, des questions simultanées peuvent le dépasser de quelques dixièmes de dollar. Un modèle absent de `PrixModeles` y échappe (signalé dans le journal) |
+| Budget journalier (`droits.questions.budget-journalier-usd`, 10 $ par défaut) | au-delà, questions refusées (429) jusqu'au lendemain ; alerte dans le journal à 80 % et à 100 %. Complète le quota (200 questions) : un modèle plus cher ou des rédactions longues épuisent le budget avant le quota. Approximatif : la dépense est constatée après chaque appel, des questions simultanées peuvent le dépasser de quelques dixièmes de dollar. Décompte par `DailyBudget` (llmeval4j). Un modèle sans prix y échappe (signalé dans le journal) |
 | `droits.claude.modele-reformulation` | modèle de la reformulation, s'il diffère de celui de la rédaction (`droits.claude.modele`) |
 | Évaluation de la reformulation seule | `-Devaluation.etape=reformulation` : reformulation et recherche, ni rédaction ni juge ; quelques centimes |
 | Évaluation complète d'un autre modèle | `workflow_dispatch` du workflow « Évaluation complète » (champs `modele`, `modele_reformulation`), comparée au modèle actuel tant que le nouveau n'a pas d'historique |
@@ -45,7 +45,7 @@ fixer sur l'espace de travail de l'application et sur celui du compte de service
 
 Chaque nouveau modèle publié par Anthropic passe par les mêmes étapes avant d'être adopté.
 
-Ordre de grandeur des prix (octobre 2026, `PrixModeles`) : Opus 5.5 4 $ / 20 $ par million de jetons
+Ordre de grandeur des prix (octobre 2026, `PriceTable` de llmeval4j) : Opus 5.5 4 $ / 20 $ par million de jetons
 (entrée / sortie), Sonnet 5.5 2 $ / 10 $, Haiku 5.5 0,10 $ / 0,50 $. La reformulation représente
 moins d'un centime par question avec Opus : la passer à Haiku économise peu en valeur absolue ; la
 rédaction est le vrai levier, et le plus risqué pour la qualité.

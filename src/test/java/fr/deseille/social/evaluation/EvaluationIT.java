@@ -18,10 +18,11 @@ import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.AssistantOllama;
 import fr.deseille.social.questions.ClaudeProperties;
 import fr.deseille.social.questions.MetriquesQuestions;
-import fr.deseille.social.questions.PrixModeles;
 import fr.deseille.social.questions.QuestionService;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.recherche.RechercheService;
+import io.github.anthonydeseille.llmeval4j.history.EvalHistory;
+import io.github.anthonydeseille.llmeval4j.regression.Comparison;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -189,18 +190,18 @@ class EvaluationIT {
                 JsonMapper.builder().build().writerWithDefaultPrettyPrinter()
                         .writeValueAsString(synthese), StandardCharsets.UTF_8);
         Files.writeString(rapport.resolveSibling("historique-" + base + ".csv"),
-                RapportEvaluation.ENTETE_HISTORIQUE + "\n" + RapportEvaluation.ligneHistorique(synthese) + "\n",
+                RapportEvaluation.ENTETE_HISTORIQUE + "\n" + EvalHistory.line(synthese) + "\n",
                 StandardCharsets.UTF_8);
         System.out.println("Requêtes, résumé et ligne d'historique écrits à côté du rapport (" + base + ")");
 
         // Dans la CI : comparaison à la dernière évaluation de l'historique, échec sur une baisse nette
         if (Boolean.getBoolean("evaluation.comparer")) {
-            ComparaisonEvaluation.Resultat comparaison = ComparaisonEvaluation.comparer(
+            Comparison comparaison = ComparaisonEvaluation.comparer(
                     Files.readString(Path.of("docs/evaluations/historique.csv"), StandardCharsets.UTF_8), synthese,
                     System.getProperty("evaluation.reference.modele"));
             Path fichier = rapport.resolveSibling("comparaison-" + base + ".md");
             Files.writeString(fichier, ComparaisonEvaluation.markdown(comparaison, synthese), StandardCharsets.UTF_8);
-            assertThat(comparaison.bloquant()).as("baisse nette par rapport à l'historique (détail : %s)", fichier)
+            assertThat(comparaison.regression()).as("baisse nette par rapport à l'historique (détail : %s)", fichier)
                     .isFalse();
         }
     }
@@ -325,7 +326,7 @@ class EvaluationIT {
     /** Coût d'un résultat de lot : moitié du prix du modèle ; 0 sans message (rien de facturé). */
     private static double coutLot(String modele, LotClaude.Resultat resultat) {
         return resultat == null || resultat.message() == null ? 0
-                : PrixModeles.cout(modele, resultat.message().usage().inputTokens(),
+                : AssistantClaude.PRIX.cost(modele, resultat.message().usage().inputTokens(),
                         resultat.message().usage().outputTokens()) / 2;
     }
 

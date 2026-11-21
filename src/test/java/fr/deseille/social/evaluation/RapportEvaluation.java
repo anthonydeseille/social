@@ -7,6 +7,7 @@ import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
+import io.github.anthonydeseille.llmeval4j.pricing.Dollars;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -240,7 +241,7 @@ final class RapportEvaluation {
         return md.toString();
     }
 
-    /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des valeurs de {@link #ligneHistorique}. */
+    /** En-tête de {@code docs/evaluations/historique.csv}, dans l'ordre des clés de {@link #synthese}. */
     static final String ENTETE_HISTORIQUE = "date,commit,changement,mode,modele,consignes_reformulation,consignes_redaction,consignes_juge,questions,validees,recherche_pct,"
             + "articles_transmis,articles_attendus,articles_cites_pct,citations_verifiees,citations_total,qualite_pct,erreurs,"
             + "jetons_entree,jetons_sortie,cout_questions_usd,cout_juge_usd,analyse";
@@ -278,8 +279,8 @@ final class RapportEvaluation {
         s.put("erreurs", juges.isEmpty() ? null : juges.stream().mapToLong(r -> r.verdict().erreursCommises().size()).sum());
         s.put("jetons_entree", entree);
         s.put("jetons_sortie", sortie);
-        s.put("cout_questions_usd", arrondi(resultats.stream().mapToDouble(r -> r.cout(tarif)).sum()));
-        s.put("cout_juge_usd", arrondi(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie)));
+        s.put("cout_questions_usd", Dollars.roundToCents(resultats.stream().mapToDouble(r -> r.cout(tarif)).sum()));
+        s.put("cout_juge_usd", Dollars.roundToCents(tarifJuge.cout(jetonsJugeEntree, jetonsJugeSortie)));
         s.put("analyse", "");
         return s;
     }
@@ -293,20 +294,9 @@ final class RapportEvaluation {
                 .findFirst().orElse(null);
     }
 
-    /** Ligne CSV de {@code historique.csv} ; une valeur inconnue est laissée vide. */
-    static String ligneHistorique(Map<String, Object> synthese) {
-        return synthese.values().stream()
-                .map(v -> v == null ? "" : v.toString().contains(",") ? "\"" + v.toString().replace("\"", "\"\"") + "\"" : v.toString())
-                .collect(Collectors.joining(","));
-    }
-
     private static Long pourcentage(List<Resultat> resultats, Function<Resultat, Double> score) {
         return resultats.stream().map(score).filter(Objects::nonNull).mapToDouble(Double::doubleValue).average()
                 .stream().mapToObj(m -> Math.round(100 * m)).findFirst().orElse(null);
-    }
-
-    private static Double arrondi(double dollars) {
-        return Double.isNaN(dollars) ? null : Math.round(dollars * 100) / 100.0;
     }
 
     /** Moyenne des scores définis, en pourcentage ; les questions sans article attendu sont exclues. */

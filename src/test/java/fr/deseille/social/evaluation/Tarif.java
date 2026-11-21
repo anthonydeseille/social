@@ -1,6 +1,6 @@
 package fr.deseille.social.evaluation;
 
-import fr.deseille.social.questions.PrixModeles;
+import fr.deseille.social.questions.AssistantClaude;
 import java.util.Locale;
 
 /**
@@ -11,9 +11,9 @@ import java.util.Locale;
  */
 record Tarif(String modele, double entree, double sortie) {
 
-    /** Prix de l'application ({@link PrixModeles}), seule table à tenir à jour. */
+    /** Prix de l'application ({@link AssistantClaude#PRIX}), seule table à tenir à jour. */
     static Tarif pour(String modele) {
-        return PrixModeles.pour(modele).map(p -> new Tarif(modele, p.entree(), p.sortie()))
+        return AssistantClaude.PRIX.find(modele).map(p -> new Tarif(modele, p.inputPerMillion(), p.outputPerMillion()))
                 .orElse(new Tarif(modele, Double.NaN, Double.NaN));
     }
 

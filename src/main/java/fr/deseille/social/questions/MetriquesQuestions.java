@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *       illisible, erreur ;</li>
  *   <li>{@code droits.assistant.jetons} (fournisseur, etape, sens) : jetons en entrée et en sortie ;</li>
  *   <li>{@code droits.assistant.cout_usd} (fournisseur, etape) : coût des appels, en dollars
- *       ({@link PrixModeles}) ; {@code droits.assistant.depense_jour_usd} : dépense du jour ;
+ *       ({@link AssistantClaude#PRIX}) ; {@code droits.assistant.depense_jour_usd} : dépense du jour ;
  *       {@code droits.questions.budget_atteint} : questions refusées par le budget journalier ;</li>
  *   <li>{@code droits.citations} (verification) : verifiee, non_verifiee ;</li>
  *   <li>{@code droits.chiffres_non_retrouves} : chiffres des réponses absents des sources ;</li>
@@ -90,7 +90,7 @@ public class MetriquesQuestions {
                 .tag("type", type).register(registre).increment(nombre);
     }
 
-    /** @param dollars coût d'un appel ({@link PrixModeles}) ; ignoré s'il est inconnu */
+    /** @param dollars coût d'un appel ({@link AssistantClaude#PRIX}) ; ignoré s'il est inconnu */
     public void cout(String fournisseur, String etape, double dollars) {
         if (!Double.isNaN(dollars)) {
             Counter.builder("droits.assistant.cout_usd").description("Coût des appels au modèle (dollars)")

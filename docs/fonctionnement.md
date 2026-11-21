@@ -125,7 +125,7 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 | `droits.assistant.jetons` | fournisseur, etape, sens : entree, sortie | jetons consommés (le coût, pour Claude) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
 | `droits.questions.quota_atteint` | | questions refusées par le quota |
-| `droits.assistant.cout_usd` | fournisseur, etape | coût des appels en dollars, au prix du modèle de chaque étape (`PrixModeles`) |
+| `droits.assistant.cout_usd` | fournisseur, etape | coût des appels en dollars, au prix du modèle de chaque étape (`AssistantClaude.PRIX`, table de llmeval4j) |
 | `droits.assistant.depense_jour_usd` | | dépense du jour (jauge), pour alerter |
 | `droits.questions.budget_atteint` | | questions refusées par le budget journalier |
 | `droits.garde_fous` | type : injection, donnees_personnelles (une par donnée retirée), profil_incoherent | interventions des garde-fous d'entrée |

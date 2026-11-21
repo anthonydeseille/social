@@ -12,6 +12,7 @@ import fr.deseille.social.questions.Assistant.Passage;
 import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.QuestionService.ReponseQuestion;
 import fr.deseille.social.questions.QuestionService.Source;
+import io.github.anthonydeseille.llmeval4j.history.EvalHistory;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ class JeuEvaluationTest {
 
         Map<String, Object> synthese = RapportEvaluation.synthese(List.of(r), "2026-10-31", "abc1234", "lots",
                 Tarif.pour("claude-opus-5-5").lots(), Tarif.pour("claude-opus-5-5").lots(), 1_000, 500);
-        String ligne = RapportEvaluation.ligneHistorique(synthese);
+        String ligne = EvalHistory.line(synthese);
 
         assertThat(synthese.keySet()).containsExactly(RapportEvaluation.ENTETE_HISTORIQUE.split(","));
         assertThat(ligne).isEqualTo("2026-10-31,abc1234,,lots,claude-opus-5-5,aaaa1111,bbbb2222,,1,1,50,1,2,50,1,1,,,5000,2000,0.03,0.01,");

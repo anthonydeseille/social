@@ -3,6 +3,7 @@ package fr.deseille.social.questions;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.AssistantClaude.Requetes;
+import io.github.anthonydeseille.llmeval4j.prompts.Prompts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,7 +62,7 @@ public class AssistantOllama implements Assistant {
             + Consignes.lire("ollama-exemples-reformulation");
     static final String SYSTEME_REDACTION = AssistantClaude.CONSIGNES_REDACTION + "\n\n" + Consignes.lire("ollama-citations");
     private static final VersionsConsignes CONSIGNES = new VersionsConsignes(
-            Consignes.version(SYSTEME_REFORMULATION), Consignes.version(SYSTEME_REDACTION));
+            Prompts.version(SYSTEME_REFORMULATION), Prompts.version(SYSTEME_REDACTION));
 
     /** Mots vides, toujours retirés des requêtes : la recherche les exigerait. */
     private static final Set<String> MOTS_VIDES = Set.of(
