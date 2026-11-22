@@ -140,6 +140,19 @@ class QuestionServiceTest {
     }
 
     @Test
+    void sans_article_le_calcul_garde_son_avertissement() {
+        ProfilSalarie profil = new ProfilSalarie(null, LocalDate.of(2016, 12, 31), null, null, null, null, false, null, DATE);
+        ContexteProfil contexte = new ContexteProfil(profil, null, List.of(CODE), false, List.of());
+        when(profilService.contexte(profil)).thenReturn(contexte);
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+
+        ReponseQuestion reponse = service.repondre("Quelle indemnité de licenciement ?", profil);
+
+        assertThat(reponse.calcul()).isNotNull();
+        assertThat(reponse.avertissements()).anyMatch(a -> a.contains("viennent du calculateur"));
+    }
+
+    @Test
     void erreur_imprevue_ou_requete_invalide_comptees_puis_propagees() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenThrow(new IllegalStateException("base indisponible"));

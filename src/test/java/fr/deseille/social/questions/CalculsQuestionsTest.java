@@ -47,6 +47,17 @@ class CalculsQuestionsTest {
                 .as("indemnité sans licenciement").isEmpty();
         assertThat(calculs.pour("Mon licenciement est-il valable ?", contexte(CADRE_SYNTEC)))
                 .as("licenciement sans indemnité").isEmpty();
+        assertThat(calculs.pour("Licencié pendant mon arrêt maladie, ai-je droit aux indemnités journalières ?",
+                contexte(CADRE_SYNTEC))).as("autre indemnité nommée").isEmpty();
+        assertThat(calculs.pour("Après mon licenciement, ai-je droit à une indemnité compensatrice de préavis ?",
+                contexte(CADRE_SYNTEC))).as("autre indemnité nommée").isEmpty();
+    }
+
+    @Test
+    void indemnite_de_licenciement_nommee_calculee_meme_avec_une_autre_indemnite() {
+        assertThat(calculs.pour("Indemnité de licenciement et indemnité de préavis : combien ?", contexte(CADRE_SYNTEC)))
+                .isPresent();
+        assertThat(calculs.pour("Quelle indemnité légale de licenciement ?", contexte(CADRE_SYNTEC))).isPresent();
     }
 
     @Test
@@ -60,8 +71,11 @@ class CalculsQuestionsTest {
         assertThat(r.moisRetenus()).isEqualByComparingTo(new BigDecimal("2.36"));
         assertThat(r.legale().mois()).isEqualByComparingTo(new BigDecimal("1.77"));
         assertThat(r.hypotheses().getFirst()).contains("date de référence du profil (2026-11-01)");
-        assertThat(r.hypotheses()).as("motif lu dans la question").noneMatch(h -> h.contains("motif personnel"))
+        assertThat(r.hypotheses()).as("motif lu dans la question, signalé").noneMatch(h -> h.startsWith("Licenciement supposé"))
+                .contains("Motif lu dans la question : licenciement économique (même indemnité qu'un licenciement pour "
+                        + "motif personnel).")
                 .anyMatch(h -> h.contains("en mois de salaire"));
+        assertThat(calcul.chiffres()).as("sans les dates des hypothèses").contains("2,36").doesNotContain("2026");
         assertThat(r.avertissements()).contains("Règles de calcul en cours de validation juridique.");
 
         assertThat(calcul.description()).contains("reprends ces chiffres tels quels", "2,36 mois de salaire",
@@ -75,6 +89,11 @@ class CalculsQuestionsTest {
         assertThat(CalculsQuestions.motif("licencie, sans faute grave")).isEqualTo(Motif.LICENCIEMENT_PERSONNEL);
         assertThat(CalculsQuestions.motif("licencie mais pas pour une faute grave"))
                 .isEqualTo(Motif.LICENCIEMENT_PERSONNEL);
+        assertThat(CalculsQuestions.motif("licencie, je n'ai pas commis de faute lourde"))
+                .isEqualTo(Motif.LICENCIEMENT_PERSONNEL);
+        assertThat(CalculsQuestions.motif("licencie sans preavis pour faute grave"))
+                .as("« sans » porte sur le préavis").isEqualTo(Motif.FAUTE_GRAVE);
+        assertThat(CalculsQuestions.motif("je n'ai pas ete paye, faute grave invoquee")).isEqualTo(Motif.FAUTE_GRAVE);
         assertThat(CalculsQuestions.motif("licenciement economique")).isEqualTo(Motif.LICENCIEMENT_ECONOMIQUE);
         assertThat(CalculsQuestions.motif("je suis licencie")).isEqualTo(Motif.LICENCIEMENT_PERSONNEL);
     }
@@ -103,6 +122,8 @@ class CalculsQuestionsTest {
         CalculQuestion calcul = calculs.pour("Quelle indemnité de licenciement ?", contexte(sansEntree)).orElseThrow();
 
         assertThat(calcul.resultat()).isNull();
-        assertThat(calcul.description()).contains("impossible", "date d'entrée", "sans faire le calcul toi-même");
+        assertThat(calcul.description()).contains("impossible (la date d'entrée dans l'entreprise n'est pas renseignée "
+                + "dans le profil). Explique", "sans faire le calcul toi-même");
+        assertThat(calcul.chiffres()).isEmpty();
     }
 }

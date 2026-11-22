@@ -72,7 +72,7 @@ public final class VerificationChiffres {
         connus.addAll(nombres(question));
         connus.addAll(profil(contexte));
         if (calcul != null) {
-            connus.addAll(nombres(calcul.description()));
+            connus.addAll(nombres(calcul.chiffres()));
         }
         Set<String> absents = new LinkedHashSet<>();
         for (Passage p : passages) {

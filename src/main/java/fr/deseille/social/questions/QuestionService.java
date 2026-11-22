@@ -158,6 +158,9 @@ public class QuestionService {
         metriques.question("aucun_article");
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
+        if (CalculQuestion.avertissement(calcul) != null) {
+            avertissements.add(CalculQuestion.avertissement(calcul));
+        }
         return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of(),
                 List.of(), assistant.consignes(), calcul);
     }
@@ -169,9 +172,8 @@ public class QuestionService {
     public ReponseQuestion assembler(String question, ContexteProfil contexte, List<String> requetes,
                                      List<ArticleDetail> articles, Assistant.Reponse reponse, CalculQuestion calcul) {
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
-        if (calcul != null && calcul.resultat() != null) {
-            avertissements.add("Les chiffres de l'" + calcul.intitule() + " viennent du calculateur de l'application, "
-                    + "selon des règles en cours de validation juridique (détail et hypothèses dans le calcul).");
+        if (CalculQuestion.avertissement(calcul) != null) {
+            avertissements.add(CalculQuestion.avertissement(calcul));
         }
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
