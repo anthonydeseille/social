@@ -20,7 +20,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
    - Deuxième évaluation ✅ ([`docs/evaluations/2026-10-31-titres-section.md`](docs/evaluations/2026-10-31-titres-section.md)) : recherche 58 % (Code retrouvé), qualité 71 % ; la convention est désormais évincée par les sections du Code. Suite : sélection équilibrée (places réservées à la convention, plafond par section), mesurée par l'évaluation gratuite de la recherche ; historique : [`docs/evaluations/`](docs/evaluations/README.md).
 2. **Calculateur d'indemnité de licenciement** : légale et Syntec, application de la plus favorable, montants calculés par le code (jamais par le modèle), expliqués par Claude.
    - Calcul et API ✅ (`docs/regles-indemnite-licenciement.md`) ; règles en cours de validation juridique.
-   - Branché sur le trajet des questions ✅ : une question sur l'indemnité de licenciement déclenche le calcul, dont Claude reprend les chiffres sans les recalculer (`CalculsQuestions`). À faire : l'afficher dans la page web, mesurer l'effet sur les deux questions d'indemnité de l'évaluation.
+   - Branché sur le trajet des questions ✅ : une question sur l'indemnité de licenciement déclenche le calcul, dont Claude reprend les chiffres sans les recalculer (`CalculsQuestions`). À faire : l'afficher dans la page web, lire un salaire donné dans la question (montant en euros), mesurer l'effet sur les deux questions d'indemnité de l'évaluation.
 3. **Recherche sémantique** (embeddings) : seulement si l'évaluation montre des articles pertinents introuvables.
    - Justifiée par la première évaluation : L1226-1 (« indemnité complémentaire », cherché comme « maintien de salaire ») et L1237-1 sont introuvables par mots-clés.
 
