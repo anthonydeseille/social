@@ -176,10 +176,11 @@ public class AssistantOllama implements Assistant {
     }
 
     @Override
-    public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+    public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                           CalculQuestion calcul) {
         ChatResponse reponse;
         try {
-            reponse = modele.call(prompt(question, contexte, articles));
+            reponse = modele.call(prompt(question, contexte, articles, calcul));
         } catch (RuntimeException e) {
             metriques.appelModele(FOURNISSEUR, "redaction", "erreur");
             log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
@@ -235,7 +236,7 @@ public class AssistantOllama implements Assistant {
      * Consignes de Claude complétées du format de citation ; chaque article est un document
      * numéroté, avec son emplacement dans le texte, puis viennent le profil et la question.
      */
-    Prompt prompt(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+    Prompt prompt(String question, ContexteProfil contexte, List<ArticleDetail> articles, CalculQuestion calcul) {
         StringBuilder documents = new StringBuilder();
         for (int i = 0; i < articles.size(); i++) {
             ArticleDetail a = articles.get(i);
@@ -246,7 +247,8 @@ public class AssistantOllama implements Assistant {
         }
         return new Prompt(List.of(
                 new SystemMessage(SYSTEME_REDACTION),
-                new UserMessage(documents + DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question)),
+                new UserMessage(documents + DescriptionProfil.decrire(contexte) + CalculQuestion.bloc(calcul)
+                        + "\n\nQuestion du salarié : " + question)),
                 options(SCHEMA_REDACTION));
     }
 

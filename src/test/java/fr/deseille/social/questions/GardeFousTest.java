@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import fr.deseille.social.calcul.CalculIndemniteService;
 import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.corpus.TexteRepository;
 import fr.deseille.social.profil.ProfilSalarie;
@@ -63,7 +64,8 @@ class GardeFousTest {
         RechercheService recherche = mock(RechercheService.class);
         SimpleMeterRegistry registre = new SimpleMeterRegistry();
         QuestionService service = new QuestionService(new ProfilService(textes, HORLOGE), recherche,
-                mock(ConsultationService.class), assistant, new MetriquesQuestions(registre));
+                mock(ConsultationService.class), assistant, new MetriquesQuestions(registre),
+                new CalculsQuestions(new CalculIndemniteService(List.of())));
 
         String question = (String) cas.get("question");
         ProfilSalarie profil = new ProfilSalarie(null, date(cas.get("dateEntree")), (Integer) cas.get("age"), null,

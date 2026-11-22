@@ -205,10 +205,11 @@ public class AssistantClaude implements Assistant {
     }
 
     @Override
-    public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+    public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                           CalculQuestion calcul) {
         Message message;
         try {
-            message = client().messages().create(parametresRedaction(question, contexte, articles));
+            message = client().messages().create(parametresRedaction(question, contexte, articles, calcul));
         } catch (AnthropicException e) {
             metriques.appelModele(FOURNISSEUR, "redaction", "erreur");
             log.error("Rédaction impossible : {}", e.getClass().getSimpleName());
@@ -233,8 +234,13 @@ public class AssistantClaude implements Assistant {
                 .build();
     }
 
-    /** Requête de rédaction : un document par article, dans l'ordre, puis le profil et la question. Publique pour les lots. */
-    public MessageCreateParams parametresRedaction(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+    /**
+     * Requête de rédaction : un document par article, dans l'ordre, puis le profil, le calcul éventuel et
+     * la question. Le calcul est du texte, pas un document : il ne se cite pas, et l'index des documents
+     * reste celui des articles. Publique pour les lots.
+     */
+    public MessageCreateParams parametresRedaction(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                                                   CalculQuestion calcul) {
         List<ContentBlockParam> blocs = new ArrayList<>();
         for (ArticleDetail a : articles) {
             blocs.add(ContentBlockParam.ofDocument(DocumentBlockParam.builder()
@@ -244,7 +250,8 @@ public class AssistantClaude implements Assistant {
                     .citations(CitationsConfigParam.builder().enabled(true).build())
                     .build()));
         }
-        blocs.add(ContentBlockParam.ofText(DescriptionProfil.decrire(contexte) + "\n\nQuestion du salarié : " + question));
+        blocs.add(ContentBlockParam.ofText(DescriptionProfil.decrire(contexte) + CalculQuestion.bloc(calcul)
+                + "\n\nQuestion du salarié : " + question));
         return MessageCreateParams.builder()
                 .model(properties.modele())
                 .maxTokens(MAX_TOKENS)

@@ -33,7 +33,7 @@ class VerificationChiffresTest {
     private static List<String> verifier(String... passages) {
         return VerificationChiffres.nonRetrouves(
                 java.util.Arrays.stream(passages).map(t -> new Passage(t, List.of())).toList(),
-                List.of(L1234_9, CONVENTION), CONTEXTE, "Quelle indemnité après mon licenciement ?");
+                List.of(L1234_9, CONVENTION), CONTEXTE, "Quelle indemnité après mon licenciement ?", null);
     }
 
     @Test

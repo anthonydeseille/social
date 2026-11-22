@@ -20,9 +20,11 @@ public interface Assistant {
     /**
      * Rédige la réponse à partir des seuls articles fournis, chaque affirmation citant sa source.
      *
+     * @param calcul calcul fait par le code pour la question ({@link CalculsQuestions}), que le modèle
+     *               explique sans le refaire ; {@code null} pour une question sans calcul
      * @throws AssistantIndisponibleException si le service du modèle ne répond pas
      */
-    Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles);
+    Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles, CalculQuestion calcul);
 
     /**
      * Articles transmis à la rédaction au plus : 8 par défaut, assez pour couvrir Code et convention

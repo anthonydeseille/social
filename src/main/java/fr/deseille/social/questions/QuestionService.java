@@ -25,8 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Répond à la question d'un salarié : garde-fous d'entrée (injection refusée, données personnelles
  * retirées), contexte du profil, reformulation en requêtes, recherche dans le Code et la convention,
- * rédaction à partir des articles retenus, avec citations, puis contrôles de sortie (citations,
- * chiffres, troncature).
+ * calcul par le code quand la question en appelle un (indemnité de licenciement), rédaction à partir
+ * des articles retenus et du calcul, avec citations, puis contrôles de sortie (citations, chiffres,
+ * troncature).
  */
 @Service
 public class QuestionService {
@@ -38,15 +39,17 @@ public class QuestionService {
     private final ConsultationService consultationService;
     private final Assistant assistant;
     private final MetriquesQuestions metriques;
+    private final CalculsQuestions calculs;
 
     public QuestionService(ProfilService profilService, RechercheService rechercheService,
                            ConsultationService consultationService, Assistant assistant,
-                           MetriquesQuestions metriques) {
+                           MetriquesQuestions metriques, CalculsQuestions calculs) {
         this.profilService = profilService;
         this.rechercheService = rechercheService;
         this.consultationService = consultationService;
         this.assistant = assistant;
         this.metriques = metriques;
+        this.calculs = calculs;
         metriques.consignes(assistant.modele(), assistant.consignes());
     }
 
@@ -90,12 +93,14 @@ public class QuestionService {
         List<String> requetes = metriques.chronometrer("reformulation", () -> assistant.reformuler(question, contexte));
 
         List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> articles(requetes, profil.idcc(), date));
+        CalculQuestion calcul = calcul(question, contexte);
         if (articles.isEmpty()) {
-            return sansArticle(question, contexte, requetes);
+            return sansArticle(question, contexte, requetes, calcul);
         }
 
-        Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> assistant.rediger(question, contexte, articles));
-        return assembler(question, contexte, requetes, articles, reponse);
+        Assistant.Reponse reponse = metriques.chronometrer("redaction",
+                () -> assistant.rediger(question, contexte, articles, calcul));
+        return assembler(question, contexte, requetes, articles, reponse, calcul);
     }
 
     private void refuserInjection(String texte) {
@@ -135,13 +140,26 @@ public class QuestionService {
                 .toList();
     }
 
+    /**
+     * Calcul fait par le code pour la question (gratuit), {@code null} si elle n'en appelle aucun.
+     * Étape publique pour l'évaluation par lots.
+     */
+    public CalculQuestion calcul(String question, ContexteProfil contexte) {
+        CalculQuestion calcul = calculs.pour(question, contexte).orElse(null);
+        if (calcul != null) {
+            metriques.calcul(calcul.resultat() == null ? "impossible" : "fait");
+        }
+        return calcul;
+    }
+
     /** Réponse quand aucun article n'a été trouvé : pas de rédaction. */
-    public ReponseQuestion sansArticle(String question, ContexteProfil contexte, List<String> requetes) {
+    public ReponseQuestion sansArticle(String question, ContexteProfil contexte, List<String> requetes,
+                                       CalculQuestion calcul) {
         metriques.question("aucun_article");
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
         avertissements.add("Aucun article pertinent n'a été trouvé : reformulez la question ou précisez le profil.");
         return new ReponseQuestion(question, contexte, requetes, List.of(), List.of(), false, avertissements, List.of(),
-                List.of(), assistant.consignes());
+                List.of(), assistant.consignes(), calcul);
     }
 
     /**
@@ -149,8 +167,12 @@ public class QuestionService {
      * avertissements et métriques. Étape publique pour l'évaluation par lots.
      */
     public ReponseQuestion assembler(String question, ContexteProfil contexte, List<String> requetes,
-                                     List<ArticleDetail> articles, Assistant.Reponse reponse) {
+                                     List<ArticleDetail> articles, Assistant.Reponse reponse, CalculQuestion calcul) {
         List<String> avertissements = new ArrayList<>(contexte.avertissements());
+        if (calcul != null && calcul.resultat() != null) {
+            avertissements.add("Les chiffres de l'" + calcul.intitule() + " viennent du calculateur de l'application, "
+                    + "selon des règles en cours de validation juridique (détail et hypothèses dans le calcul).");
+        }
         if (reponse.refus()) {
             avertissements.add("La question n'a pas pu être traitée automatiquement.");
         }
@@ -158,7 +180,7 @@ public class QuestionService {
         if (!nonVerifiees.isEmpty()) {
             avertissements.add(nonVerifiees.size() + " extrait(s) cité(s) introuvable(s) dans les articles : à vérifier.");
         }
-        List<String> chiffres = VerificationChiffres.nonRetrouves(reponse.passages(), articles, contexte, question);
+        List<String> chiffres = VerificationChiffres.nonRetrouves(reponse.passages(), articles, contexte, question, calcul);
         if (!chiffres.isEmpty()) {
             avertissements.add(chiffres.size() + " chiffre(s) absent(s) des articles transmis et du profil ("
                     + String.join(", ", chiffres) + ") : calculs ou chiffres à vérifier.");
@@ -172,7 +194,7 @@ public class QuestionService {
         metriques.chiffresNonRetrouves(chiffres.size());
         return new ReponseQuestion(question, contexte, requetes, reponse.passages(),
                 articles.stream().map(Source::de).toList(), reponse.refus(), avertissements, nonVerifiees, chiffres,
-                assistant.consignes());
+                assistant.consignes(), calcul);
     }
 
     /**
@@ -211,10 +233,13 @@ public class QuestionService {
      *                  la question ({@link VerificationChiffres}) : à vérifier, sans les retirer
      * @param consignes versions des consignes envoyées au modèle ({@link Consignes}), pour relier
      *                  une réponse aux consignes qui l'ont produite
+     * @param calcul    calcul fait par le code pour la question (montants, détail, hypothèses), que la
+     *                  réponse explique ; {@code null} pour une question sans calcul
      */
     public record ReponseQuestion(String question, ContexteProfil contexte, List<String> requetes,
                                   List<Passage> passages, List<Source> sources, boolean refus,
                                   List<String> avertissements, List<Citation> citationsNonVerifiees,
-                                  List<String> chiffresNonRetrouves, Assistant.VersionsConsignes consignes) {
+                                  List<String> chiffresNonRetrouves, Assistant.VersionsConsignes consignes,
+                                  CalculQuestion calcul) {
     }
 }

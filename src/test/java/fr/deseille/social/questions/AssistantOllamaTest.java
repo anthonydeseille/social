@@ -82,7 +82,7 @@ class AssistantOllamaTest {
     void redaction_documents_numerotes_et_sortie_imposee_par_un_schema() {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("{\"passages\": []}", "stop"));
 
-        assistant.rediger("Combien dure ma période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4));
+        assistant.rediger("Combien dure ma période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4), null);
 
         ArgumentCaptor<Prompt> prompt = ArgumentCaptor.forClass(Prompt.class);
         verify(modele).call(prompt.capture());
@@ -113,7 +113,7 @@ class AssistantOllamaTest {
                   {"texte": "  ", "citations": []}
                 ]}""", "stop"));
 
-        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4));
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4), null);
 
         assertThat(reponse.refus()).isFalse();
         assertThat(reponse.tronquee()).isFalse();
@@ -137,7 +137,7 @@ class AssistantOllamaTest {
                 {"passages": [{"texte": "Quatre mois.", "citations": [{"document": 2, "extrait": "L'essai dure quatre mois."}]}]}""",
                 "stop"));
 
-        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4));
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19, SYNTEC_3_4), null);
 
         assertThat(VerificationCitations.nonVerifiees(reponse.passages(), List.of(L1221_19, SYNTEC_3_4)))
                 .extracting(Citation::texteCite).containsExactly("L'essai dure quatre mois.");
@@ -147,7 +147,7 @@ class AssistantOllamaTest {
     void json_coupe_par_la_limite_de_jetons_reponse_tronquee() {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("{\"passages\": [{\"texte\": \"Votre pér", "length"));
 
-        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null);
 
         assertThat(reponse.tronquee()).isTrue();
         assertThat(reponse.passages()).isEmpty();
@@ -160,7 +160,7 @@ class AssistantOllamaTest {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("""
                 {"passages": [{"texte": "Le Code la permet.", "citations": []}]}""", "length"));
 
-        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null);
 
         assertThat(reponse.tronquee()).isTrue();
         assertThat(reponse.passages()).containsExactly(new Passage("Le Code la permet. ", List.of()));
@@ -174,7 +174,7 @@ class AssistantOllamaTest {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("""
                 {"passages": [{"texte": "Oui.", "citations": [{"document": 1}]}]}""", "stop"));
 
-        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+        Reponse reponse = assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null);
 
         assertThat(reponse.passages()).containsExactly(new Passage("Oui. ",
                 List.of(new Citation("LEGIARTI000019071113", "L1221-19", null))));
@@ -185,7 +185,7 @@ class AssistantOllamaTest {
     void reponse_illisible_sans_troncature_service_indisponible() {
         when(modele.call(any(Prompt.class))).thenReturn(reponse("Votre période d'essai est de 4 mois.", "stop"));
 
-        assertThatThrownBy(() -> assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19)))
+        assertThatThrownBy(() -> assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null))
                 .isInstanceOf(AssistantIndisponibleException.class);
         assertThat(registre.counter("droits.assistant.appels", "fournisseur", "ollama", "etape", "redaction",
                 "issue", "illisible").count()).isEqualTo(1.0);
@@ -195,7 +195,7 @@ class AssistantOllamaTest {
     void ollama_injoignable_redaction_indisponible() {
         when(modele.call(any(Prompt.class))).thenThrow(new ResourceAccessException("Connection refused"));
 
-        assertThatThrownBy(() -> assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19)))
+        assertThatThrownBy(() -> assistant.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null))
                 .isInstanceOf(AssistantIndisponibleException.class);
         assertThat(registre.counter("droits.assistant.appels", "fournisseur", "ollama", "etape", "redaction",
                 "issue", "erreur").count()).isEqualTo(1.0);
@@ -218,7 +218,8 @@ class AssistantOllamaTest {
                 return List.of();
             }
 
-            public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+            public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                               CalculQuestion calcul) {
                 return null;
             }
         }.articlesMax()).isEqualTo(8);
@@ -306,7 +307,7 @@ class AssistantOllamaTest {
                     .build();
             AssistantOllama reel = new AssistantOllama(client, new MetriquesQuestions(registre));
 
-            Reponse reponse = reel.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19));
+            Reponse reponse = reel.rediger("Période d'essai ?", CONTEXTE, List.of(L1221_19), null);
 
             assertThat(reponse.passages()).containsExactly(new Passage("Oui. ",
                     List.of(new Citation("LEGIARTI000019071113", "L1221-19", "peut comporter"))));

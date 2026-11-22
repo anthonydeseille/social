@@ -11,6 +11,7 @@ import fr.deseille.social.evaluation.JeuEvaluation.Question;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
+import fr.deseille.social.questions.CalculQuestion;
 import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.MetriquesQuestions;
 import fr.deseille.social.questions.QuestionService;
@@ -68,7 +69,8 @@ class RechercheEvaluationIT {
         }
 
         @Override
-        public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+        public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                               CalculQuestion calcul) {
             throw new UnsupportedOperationException("pas de rédaction");
         }
     };
@@ -113,7 +115,7 @@ class RechercheEvaluationIT {
                 .as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
 
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, SANS_MODELE,
-                metriques);
+                metriques, null);
         Map<String, MesureQuestion> parQuestion = new LinkedHashMap<>();
         for (Question q : questions) {
             ContexteProfil contexte = profilService.contexte(q.profil());

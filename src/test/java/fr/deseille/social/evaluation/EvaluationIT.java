@@ -13,6 +13,8 @@ import fr.deseille.social.evaluation.RapportEvaluation.Resultat;
 import fr.deseille.social.profil.ProfilService;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
 import fr.deseille.social.questions.Assistant;
+import fr.deseille.social.questions.CalculQuestion;
+import fr.deseille.social.questions.CalculsQuestions;
 import fr.deseille.social.questions.Assistant.VersionsConsignes;
 import fr.deseille.social.questions.AssistantClaude;
 import fr.deseille.social.questions.AssistantOllama;
@@ -96,6 +98,8 @@ class EvaluationIT {
     @Autowired
     private MetriquesQuestions metriques;
     @Autowired
+    private CalculsQuestions calculs;
+    @Autowired
     private ArticleRepository articleRepository;
 
     @Test
@@ -111,7 +115,7 @@ class EvaluationIT {
 
         Assistant assistant = simulee ? new AssistantSimule() : assistantConfigure;
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, assistant,
-                metriques);
+                metriques, calculs);
         JugeClaude juge = simulee || !Boolean.parseBoolean(System.getProperty("evaluation.juge", "true")) ? null
                 : new JugeClaude(System.getProperty("evaluation.juge.modele", claudeProperties.modele()), claudeProperties);
 
@@ -261,15 +265,18 @@ class EvaluationIT {
         Map<String, MessageCreateParams> redactions = new LinkedHashMap<>();
         Map<String, ReponseQuestion> reponses = new HashMap<>();
         Map<String, String> erreurs = new HashMap<>();
+        Map<String, CalculQuestion> calculsParQuestion = new HashMap<>();
         for (Question q : questions) {
             ContexteProfil contexte = contextes.get(q.id());
+            calculsParQuestion.put(q.id(), service.calcul(q.question(), contexte));
             List<ArticleDetail> trouves = service.articles(requetes.get(q.id()), q.profil().idcc(),
                     contexte.profil().dateReference());
             articles.put(q.id(), trouves);
             if (trouves.isEmpty()) {
-                reponses.put(q.id(), service.sansArticle(q.question(), contexte, requetes.get(q.id())));
+                reponses.put(q.id(), service.sansArticle(q.question(), contexte, requetes.get(q.id()), calculsParQuestion.get(q.id())));
             } else {
-                redactions.put(q.id(), assistantClaude.parametresRedaction(q.question(), contexte, trouves));
+                redactions.put(q.id(), assistantClaude.parametresRedaction(q.question(), contexte, trouves,
+                        calculsParQuestion.get(q.id())));
             }
         }
         Map<String, LotClaude.Resultat> r2 = lot.executer("redactions", redactions);
@@ -282,7 +289,7 @@ class EvaluationIT {
                 erreurs.put(id, r == null ? "résultat absent du lot" : r.erreur());
             } else {
                 reponses.put(id, service.assembler(q.question(), contextes.get(id), requetes.get(id), articles.get(id),
-                        AssistantClaude.versReponse(r.message(), articles.get(id))));
+                        AssistantClaude.versReponse(r.message(), articles.get(id)), calculsParQuestion.get(id)));
             }
         }
 
@@ -436,7 +443,8 @@ class EvaluationIT {
         }
 
         @Override
-        public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+        public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                               CalculQuestion calcul) {
             return new Reponse(articles.stream()
                     .map(a -> new Passage("Simulé. ", List.of(new Citation(a.sourceId(), a.num(), debut(a))))).toList(),
                     false, false);

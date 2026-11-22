@@ -98,6 +98,12 @@ public class MetriquesQuestions {
         }
     }
 
+    /** @param issue « fait » ou « impossible » (donnée du profil manquante) */
+    public void calcul(String issue) {
+        Counter.builder("droits.questions.calculs").description("Calculs faits par le code pour une question")
+                .tag("issue", issue).register(registre).increment();
+    }
+
     public void budgetAtteint() {
         Counter.builder("droits.questions.budget_atteint").description("Questions refusées par le budget journalier")
                 .register(registre).increment();

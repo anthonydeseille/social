@@ -44,7 +44,7 @@ class JeuEvaluationTest {
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
                 List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec"),
                         new Source("LEGIARTI000019071113", "L1221-19", "LEGITEXT", "Code")),
-                false, List.of(), List.of(), List.of(), VersionsConsignes.INCONNUES);
+                false, List.of(), List.of(), List.of(), VersionsConsignes.INCONNUES, null);
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
         assertThat(r.scoreRecherche()).isEqualTo(1.0);
@@ -63,7 +63,7 @@ class JeuEvaluationTest {
         ReponseQuestion reponse = new ReponseQuestion(q.question(), contexte, List.of("période essai"),
                 List.of(new Passage("4 mois.", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois")))),
                 List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of(), List.of(),
-                new VersionsConsignes("aaaa1111", "bbbb2222"));
+                new VersionsConsignes("aaaa1111", "bbbb2222"), null);
         Resultat r = new Resultat(q, reponse, null, 5_000, 2_000, 1_500);
 
         Map<String, Object> synthese = RapportEvaluation.synthese(List.of(r), "2026-10-31", "abc1234", "lots",
@@ -113,7 +113,7 @@ class JeuEvaluationTest {
         Question sans = new Question("sans-article", "t", true, "q ?", avec.profil(), "r", List.of(), List.of(), List.of());
         ContexteProfil contexte = new ContexteProfil(avec.profil(), null, List.of(), true, List.of());
         ReponseQuestion vide = new ReponseQuestion("q", contexte, List.of(), List.of(), List.of(), false, List.of(), List.of(), List.of(),
-                VersionsConsignes.INCONNUES);
+                VersionsConsignes.INCONNUES, null);
 
         String md = RapportEvaluation.markdown(List.of(new Resultat(avec, vide, null, 0, 0, 0),
                 new Resultat(sans, vide, null, 0, 0, 0)), "claude-opus-5-5", false);

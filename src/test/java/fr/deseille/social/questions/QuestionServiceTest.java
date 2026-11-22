@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import fr.deseille.social.calcul.CalculIndemniteService;
 import fr.deseille.social.consultation.ConsultationService;
 import fr.deseille.social.consultation.VuesConsultation.ArticleDetail;
 import fr.deseille.social.consultation.VuesConsultation.TexteResume;
@@ -49,7 +50,7 @@ class QuestionServiceTest {
     private final Assistant assistant = assistant();
     private final SimpleMeterRegistry registre = new SimpleMeterRegistry();
     private final QuestionService service = new QuestionService(profilService, rechercheService, consultationService,
-            assistant, new MetriquesQuestions(registre));
+            assistant, new MetriquesQuestions(registre), new CalculsQuestions(new CalculIndemniteService(List.of())));
 
     @BeforeEach
     void preparer() {
@@ -83,14 +84,14 @@ class QuestionServiceTest {
                 .thenReturn(List.of(resultat("A", 0.2), resultat("B", 0.9)));
         when(rechercheService.rechercher("essai cadre", 1486, true, 10, DATE))
                 .thenReturn(List.of(resultat("A", 1.5), resultat("C", 0.1)));
-        when(assistant.rediger(eq("question"), eq(CONTEXTE), any()))
+        when(assistant.rediger(eq("question"), eq(CONTEXTE), any(), any()))
                 .thenReturn(new Reponse(List.of(new Passage("réponse", List.of())), false, false));
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ArticleDetail>> articles = ArgumentCaptor.forClass(List.class);
-        verify(assistant).rediger(eq("question"), eq(CONTEXTE), articles.capture());
+        verify(assistant).rediger(eq("question"), eq(CONTEXTE), articles.capture(), any());
         assertThat(articles.getValue()).extracting(ArticleDetail::sourceId).containsExactly("A", "B", "C");
         assertThat(reponse.requetes()).containsExactly("période essai", "essai cadre");
         assertThat(reponse.sources()).extracting(QuestionService.Source::articleSourceId).containsExactly("A", "B", "C");
@@ -101,6 +102,41 @@ class QuestionServiceTest {
         assertThat(registre.find("droits.questions.etape").timers()).extracting(t -> t.getId().getTag("etape"))
                 .containsExactlyInAnyOrder("reformulation", "recherche", "redaction");
         assertThat(registre.counter("droits.citations", "verification", "verifiee").count()).isZero();
+    }
+
+    @Test
+    void indemnite_de_licenciement_calculee_par_le_code_transmise_et_ses_chiffres_connus() {
+        ProfilSalarie profil = new ProfilSalarie(null, LocalDate.of(2016, 12, 31), null, null, null, null, false, null, DATE);
+        ContexteProfil contexte = new ContexteProfil(profil, null, List.of(CODE), false, List.of());
+        when(profilService.contexte(profil)).thenReturn(contexte);
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", null, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        // 7 ans : 7 × 1/4 = 1,75 mois au minimum légal, chiffre absent de l'article « texte »
+        when(assistant.rediger(anyString(), any(), any(), any()))
+                .thenReturn(new Reponse(List.of(new Passage("Environ 1,75 mois de salaire, voire 9 mois.", List.of())),
+                        false, false));
+
+        ReponseQuestion reponse = service.repondre("Quelle indemnité de licenciement ?", profil);
+
+        ArgumentCaptor<CalculQuestion> calcul = ArgumentCaptor.forClass(CalculQuestion.class);
+        verify(assistant).rediger(anyString(), any(), any(), calcul.capture());
+        assertThat(calcul.getValue().resultat().moisRetenus()).isEqualByComparingTo("1.75");
+        assertThat(reponse.calcul()).isEqualTo(calcul.getValue());
+        assertThat(reponse.chiffresNonRetrouves()).as("1,75 vient du calculateur, 9 de nulle part").containsExactly("9");
+        assertThat(reponse.avertissements()).anyMatch(a -> a.contains("viennent du calculateur"));
+        assertThat(registre.counter("droits.questions.calculs", "issue", "fait").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void question_sans_calcul_rien_de_transmis() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        ReponseQuestion reponse = service.repondre("Combien dure ma période d'essai ?", PROFIL);
+
+        verify(assistant).rediger(anyString(), any(), any(), eq(null));
+        assertThat(reponse.calcul()).isNull();
     }
 
     @Test
@@ -122,7 +158,7 @@ class QuestionServiceTest {
     void citations_reparties_entre_verifiees_et_non_verifiees() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
-        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(new Passage("…", List.of(
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(new Passage("…", List.of(
                 new fr.deseille.social.questions.Assistant.Citation("A", "NA", "texte"),
                 new fr.deseille.social.questions.Assistant.Citation("A", "NA", "extrait inventé")))), false, false));
 
@@ -136,7 +172,7 @@ class QuestionServiceTest {
     void modele_indisponible_compte_puis_propage() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
-        when(assistant.rediger(anyString(), any(), any()))
+        when(assistant.rediger(anyString(), any(), any(), any()))
                 .thenThrow(new AssistantIndisponibleException(new IllegalStateException("panne")));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.repondre("question", PROFIL))
@@ -149,7 +185,7 @@ class QuestionServiceTest {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE))
                 .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("A" + i, 10 - i)).toList());
-        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
 
         assertThat(service.repondre("question", PROFIL).sources()).hasSize(8);
         when(assistant.articlesMax()).thenReturn(4);
@@ -164,7 +200,7 @@ class QuestionServiceTest {
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 
-        verify(assistant, never()).rediger(anyString(), any(), any());
+        verify(assistant, never()).rediger(anyString(), any(), any(), any());
         assertThat(registre.counter("droits.questions", "issue", "aucun_article").count()).isEqualTo(1.0);
         assertThat(reponse.passages()).isEmpty();
         assertThat(reponse.avertissements()).last().asString().contains("Aucun article pertinent");
@@ -183,7 +219,7 @@ class QuestionServiceTest {
     void reponse_tronquee_signalee() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
-        when(assistant.rediger(anyString(), any(), any()))
+        when(assistant.rediger(anyString(), any(), any(), any()))
                 .thenReturn(new Reponse(List.of(new Passage("début", List.of())), false, true));
 
         assertThat(service.repondre("question", PROFIL).avertissements()).last().asString().contains("incomplète");
@@ -195,7 +231,7 @@ class QuestionServiceTest {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
         // L'article simulé contient « texte » : 4 200 n'a pas de source, 3 vient de la question
-        when(assistant.rediger(anyString(), any(), any()))
+        when(assistant.rediger(anyString(), any(), any(), any()))
                 .thenReturn(new Reponse(List.of(new Passage("Vous toucherez 4 200 € pour 3 ans.", List.of())), false, false));
 
         ReponseQuestion reponse = service.repondre("Que vais-je toucher après 3 ans ?", PROFIL);
@@ -210,7 +246,7 @@ class QuestionServiceTest {
     void refus_du_modele_signale() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
-        when(assistant.rediger(anyString(), any(), any())).thenReturn(new Reponse(List.of(), true, false));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), true, false));
 
         ReponseQuestion reponse = service.repondre("question", PROFIL);
 

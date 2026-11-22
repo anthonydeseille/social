@@ -67,7 +67,8 @@ class QuestionsIT {
                 }
 
                 @Override
-                public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles) {
+                public Reponse rediger(String question, ContexteProfil contexte, List<ArticleDetail> articles,
+                               CalculQuestion calcul) {
                     if (question.contains("panne")) {
                         throw new AssistantIndisponibleException(new IllegalStateException("panne simulée"));
                     }
