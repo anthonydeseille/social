@@ -8,6 +8,7 @@ import io.github.anthonydeseille.llmeval4j.regression.RegressionCheck;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Comparaison d'une évaluation à la dernière ligne de {@code docs/evaluations/historique.csv} faite
@@ -43,7 +44,7 @@ final class ComparaisonEvaluation {
     private static final String RECHERCHE = "Recherche (articles attendus transmis)";
     private static final String ARTICLES_CITES = "Articles attendus cités";
     /** Indicateurs affichés sans seuil : ils varient avec la reformulation. */
-    private static final java.util.Set<String> INDICATIFS = java.util.Set.of(RECHERCHE, ARTICLES_CITES);
+    private static final Set<String> INDICATIFS = Set.of(RECHERCHE, ARTICLES_CITES);
 
     private static final RegressionCheck CONTROLE = RegressionCheck.builder()
             .sameValuesOf("modele", "questions")
