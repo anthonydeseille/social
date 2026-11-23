@@ -146,4 +146,42 @@ class CalculsQuestionsTest {
                 + "dans le profil). Explique", "sans faire le calcul toi-même");
         assertThat(calcul.chiffres()).isEmpty();
     }
+
+    @Test
+    void salaire_mensuel_brut_lu_dans_la_question_donne_un_montant_en_euros() {
+        CalculQuestion calcul = calculs.pour("Je suis cadre, je gagne 3 000 € brut par mois et je suis licencié pour "
+                + "motif économique : quelle indemnité de licenciement ?", contexte(CADRE_SYNTEC)).orElseThrow();
+
+        assertThat(calcul.resultat().montantBrut()).isEqualByComparingTo(new BigDecimal("7083.33"));
+        assertThat(calcul.resultat().hypotheses()).anyMatch(h -> h.startsWith("Salaire mensuel brut de 3 000 € lu dans "
+                + "la question")).noneMatch(h -> h.startsWith("Montant exprimé en mois"));
+        assertThat(calcul.chiffres()).contains("Soit 7083,33 € brut");
+    }
+
+    @Test
+    void salaire_lu_selon_le_contexte_du_montant() {
+        assertThat(CalculsQuestions.salaire(CalculsQuestions.normaliser("Mon salaire est de 2 850,50 euros"))
+                .mensuel()).isEqualByComparingTo("2850.50");
+        assertThat(CalculsQuestions.salaire("je touche 2500€ par mois").mensuel()).isEqualByComparingTo("2500");
+        assertThat(CalculsQuestions.salaire("payee 2.400 € brut").mensuel()).isEqualByComparingTo("2400");
+        assertThat(CalculsQuestions.salaire("salaire de 42 000 € brut par an").mensuel())
+                .as("annuel divisé par 12").isEqualByComparingTo("3500");
+        assertThat(CalculsQuestions.salaire("salaire de 42 000 € brut par an").hypothese())
+                .contains("salaire annuel divisé par 12");
+    }
+
+    @Test
+    void montant_qui_n_est_pas_un_salaire_brut_mensuel_ignore() {
+        assertThat(CalculsQuestions.salaire("on me propose 10 000 € pour partir").mensuel()).as("sans mot de salaire").isNull();
+        assertThat(CalculsQuestions.salaire("je touche une prime de 500 € brut").mensuel()).as("prime").isNull();
+        assertThat(CalculsQuestions.salaire("je touche 10 000 € d'indemnite").mensuel()).as("indemnité").isNull();
+        assertThat(CalculsQuestions.salaire("je gagne 2 000 € net").hypothese()).as("net")
+                .contains("salaire net, le calcul part du brut");
+        assertThat(CalculsQuestions.salaire("je gagne 2 000 € net").mensuel()).isNull();
+        assertThat(CalculsQuestions.salaire("je gagne 2 000 € brut, puis mon salaire est passe a 2 200 € brut")
+                .hypothese()).as("deux salaires").contains("plusieurs salaires");
+        assertThat(CalculsQuestions.salaire("je gagne 50 € brut de l'heure").mensuel()).as("hors bornes").isNull();
+        assertThat(CalculsQuestions.salaire("quelle indemnite ?").hypothese())
+                .isEqualTo("Montant exprimé en mois de salaire brut de référence : le salaire n'est pas donné dans la question.");
+    }
 }

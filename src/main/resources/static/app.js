@@ -115,6 +115,11 @@ function afficherReponse(donnees) {
     avertissements.hidden = false;
   }
 
+  // Calcul fait par l'application (indemnité de licenciement) : chiffres exacts, avant la réponse qui les explique
+  const calcul = document.getElementById("calcul");
+  calcul.replaceChildren();
+  calcul.hidden = !Calcul.construire(document, donnees.calcul, calcul);
+
   // Réponse en Markdown : passages mis bout à bout, chaque citation remplacée par un marqueur placé
   // avant les blancs de fin du passage (pour rester dans son paragraphe), puis analyse de l'ensemble
   const reponse = document.getElementById("reponse");
@@ -211,6 +216,7 @@ formulaire.addEventListener("submit", async e => {
   document.getElementById("erreur").hidden = true;
   document.getElementById("avertissements").hidden = true;
   document.getElementById("sources").hidden = true;
+  document.getElementById("calcul").hidden = true;
   document.getElementById("reponse").replaceChildren();
   bouton.disabled = true;
   attente.hidden = false;
