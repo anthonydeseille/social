@@ -30,6 +30,8 @@ function effacerProfil() {
   try { localStorage.removeItem(CLE_PROFIL); } catch { /* rien à effacer */ }
   for (const champ of champs) document.getElementById(champ).value = "";
   formulaire.querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = false; });
+  document.getElementById("entreprise").value = "";
+  document.getElementById("entreprises").replaceChildren();
 }
 
 /** Garde dans la liste une convention mémorisée qui n'y figure pas (non intégrée ou liste indisponible). */
@@ -238,6 +240,61 @@ formulaire.addEventListener("submit", async e => {
   } finally {
     bouton.disabled = false;
     attente.hidden = true;
+  }
+});
+
+/** Choisit la convention dans la liste (en l'y ajoutant si elle n'y est pas) et referme la recherche. */
+function choisirConvention(idcc) {
+  conserverConvention(idcc);
+  document.getElementById("idcc").value = String(idcc);
+  document.querySelector("details.entreprise").open = false;
+  document.getElementById("idcc").focus();
+}
+
+async function chercherEntreprise() {
+  const champ = document.getElementById("entreprise");
+  const zone = document.getElementById("entreprises");
+  const recherche = champ.value.trim();
+  zone.replaceChildren();
+  if (recherche.length < 3) {
+    zone.append(element("p", "Saisissez au moins 3 caractères.", "aide"));
+    champ.focus();
+    return;
+  }
+  const bouton = document.getElementById("chercher-entreprise");
+  bouton.disabled = true;
+  try {
+    const reponse = await fetch("/api/entreprises?q=" + encodeURIComponent(recherche));
+    if (!reponse.ok) throw new Error();
+    const forme = Entreprises.mettreEnForme(await reponse.json());
+    if (forme.message) zone.append(element("p", forme.message, "aide"));
+    const liste = element("ul", undefined, "resultats-entreprise");
+    for (const r of forme.resultats) {
+      const item = element("li");
+      item.append(element("strong", r.titre));
+      if (r.detail) item.append(element("span", " " + r.detail, "aide"));
+      for (const c of r.conventions) {
+        const choix = element("button", c.libelle, "secondaire");
+        choix.type = "button";
+        choix.addEventListener("click", () => choisirConvention(c.idcc));
+        item.append(choix);
+      }
+      liste.append(item);
+    }
+    if (forme.resultats.length) zone.append(liste);
+  } catch {
+    zone.append(element("p", "La recherche d'entreprise est indisponible pour le moment. Réessayez plus tard.", "erreur"));
+  } finally {
+    bouton.disabled = false;
+  }
+}
+
+document.getElementById("chercher-entreprise").addEventListener("click", chercherEntreprise);
+document.getElementById("entreprise").addEventListener("keydown", e => {
+  // Entrée lance la recherche d'entreprise, pas l'envoi de la question
+  if (e.key === "Enter") {
+    e.preventDefault();
+    chercherEntreprise();
   }
 });
 

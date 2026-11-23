@@ -29,7 +29,7 @@ jobs:
 
       # Affichage Markdown et calcul de la page web (JavaScript sans dépendance, Node fourni par le runner)
       - name: Tests JavaScript
-        run: node src/test/js/markdown.test.js && node src/test/js/calcul.test.js
+        run: node src/test/js/markdown.test.js && node src/test/js/calcul.test.js && node src/test/js/entreprises.test.js
 
       # verify = tests unitaires (surefire) + tests d'intégration *IT (failsafe, Testcontainers)
       - name: Build et tests

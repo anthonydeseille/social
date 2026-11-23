@@ -7,7 +7,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 ## Commandes
 
 - `./mvnw verify` : tests unitaires (surefire) et d'intégration `*IT` (failsafe, Testcontainers : Docker requis). C'est ce que lance le CI.
-- `node src/test/js/markdown.test.js` et `node src/test/js/calcul.test.js` : tests de l'affichage Markdown et du calcul dans la page web (aussi lancés par le CI).
+- `node src/test/js/markdown.test.js`, `calcul.test.js` et `entreprises.test.js` : tests de l'affichage Markdown, du calcul et de la recherche d'entreprise dans la page web (aussi lancés par le CI).
 - `./mvnw test -Dtest=NomTest` : un test unitaire ; `./mvnw verify -Dit.test=NomIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false` : un test d'intégration.
 - Ingestion réelle (Postgres démarré via `compose.yaml`) :
   `./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.ingestion.run=true --spring.main.web-application-type=none"`

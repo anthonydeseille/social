@@ -57,6 +57,16 @@ HTML venu du modèle ; les passages sont assemblés avant la mise en forme, les 
 leur place. Le profil n'est gardé sur l'appareil que si la personne coche « Se
 souvenir de mes informations », et un bouton l'efface.
 
+Le salarié qui ne connaît pas sa convention collective peut chercher son entreprise par son nom, son
+SIREN ou son SIRET : `GET /api/entreprises?q=` interroge l'annuaire public des entreprises (API
+Recherche d'entreprises de l'État, gratuite, sans clé) et renvoie, pour au plus 5 entreprises, les
+conventions de l'entreprise (recherche par nom ou SIREN) ou de l'établissement (SIRET), sans l'IDCC 9999
+(« sans convention »), en disant si chacune est intégrée à l'application (`EntrepriseService`). Un clic
+sur une convention la choisit dans le profil. Un SIRET que l'annuaire ne renvoie pas donne les
+conventions de l'entreprise. La recherche n'est ni stockée ni journalisée ; si l'annuaire ne répond
+pas (délai de 10 s) ou répond de façon illisible, 503 et message dans la page. Pas de transaction
+pendant l'appel : la base n'est sollicitée qu'une fois, pour les titres des conventions.
+
 ## Les étapes
 
 | Étape | Rôle | Coût |
