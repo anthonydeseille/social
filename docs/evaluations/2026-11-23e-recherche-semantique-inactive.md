@@ -1,9 +1,9 @@
-# Septième évaluation : PR de la recherche sémantique, désactivée (24 novembre 2026)
+# Septième évaluation : PR de la recherche sémantique, désactivée (23 novembre 2026)
 
 Même jeu de 20 questions, lancée d'office par la CI sur la branche de la **PR #46** (commit `edb9850`).
 La recherche sémantique y est **désactivée par défaut** : rien ne change dans ce qui est envoyé au
 modèle. La PR touche `QuestionService`, donc l'évaluation a refait la reformulation (pas de requêtes
-figées). Rapport brut : [`2026-11-24-rapport-brut.md`](2026-11-24-rapport-brut.md).
+figées). Rapport brut : [`2026-11-23e-rapport-brut.md`](2026-11-23e-rapport-brut.md).
 
 | Indicateur | 6e évaluation | 7e évaluation |
 |---|---|---|

@@ -17,7 +17,7 @@ fichiers datés.
 | 2026-11-23 | `c58eb5c` | calcul dans la page, salaire lu dans la question (#38, branche) | 51 % | 195/195 | 70 % | 1 | 1,22 $ | [analyse](2026-11-23b-calcul-page-et-salaire.md) · [brut](2026-11-23b-rapport-brut.md) |
 | 2026-11-23 | `e7e67af` | places réservées à la convention (#39, branche) | **66 %** | 209/209 | **77 %** | 1 | 1,24 $ | [analyse](2026-11-23c-places-convention.md) · [brut](2026-11-23c-rapport-brut.md) |
 | 2026-11-23 | `3525001` | observabilité (#41, branche ; réponses inchangées : mesure du bruit) | 55 % | 204/204 | 71 % | 1 | 1,19 $ | [analyse](2026-11-23d-observabilite-bruit.md) · [brut](2026-11-23d-rapport-brut.md) |
-| 2026-11-24 | `edb9850` | recherche sémantique, désactivée (#46, branche ; réponses inchangées) | 60 % | 219/219 | 72 % | 1 | 1,29 $ | [analyse](2026-11-24-recherche-semantique-inactive.md) · [brut](2026-11-24-rapport-brut.md) |
+| 2026-11-23 | `edb9850` | recherche sémantique, désactivée (#46, branche ; réponses inchangées) | 60 % | 219/219 | 72 % | 1 | 1,29 $ | [analyse](2026-11-23e-recherche-semantique-inactive.md) · [brut](2026-11-23e-rapport-brut.md) |
 
 Recherche : articles attendus transmis à Claude ; qualité : points clés présents selon le juge ;
 moyennes par question. Tant que le jeu n'est pas validé par la juriste (`valide: false`), les notes
