@@ -283,6 +283,20 @@ class QuestionServiceTest {
     }
 
     @Test
+    void modele_d_embeddings_injoignable_les_articles_trouves_par_les_mots_suffisent() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.semantiqueActive()).thenReturn(true);
+        when(rechercheService.rechercherSemantique(anyString(), any(), org.mockito.ArgumentMatchers.anyInt(), any()))
+                .thenThrow(new IllegalStateException("Ollama injoignable"));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("Ma question ?", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .containsExactly("C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7");
+    }
+
+    @Test
     void sans_convention_pas_de_recherche_dans_la_convention() {
         ProfilSalarie profil = new ProfilSalarie(null, null, null, null, null, null, false, null, DATE);
         when(profilService.contexte(profil)).thenReturn(new ContexteProfil(profil, null, List.of(CODE), false, List.of()));

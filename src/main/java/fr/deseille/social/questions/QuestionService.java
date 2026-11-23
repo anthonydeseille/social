@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,6 +34,8 @@ import org.springframework.web.server.ResponseStatusException;
  */
 @Service
 public class QuestionService {
+
+    private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
 
     private static final int RESULTATS_PAR_REQUETE = 10;
     /**
@@ -293,16 +297,26 @@ public class QuestionService {
         }
         Set<String> deja = new HashSet<>();
         retenus.forEach(r -> deja.add(r.articleSourceId()));
-        List<Resultat> semantiques = rechercheService.rechercherSemantique(texte, idcc, RESULTATS_PAR_REQUETE, date)
-                .stream().filter(r -> r.pertinence() >= SIMILARITE_MIN && !deja.contains(r.articleSourceId()))
-                .limit(PLACES_SEMANTIQUE).toList();
+        List<Resultat> semantiques;
+        try {
+            semantiques = rechercheService.rechercherSemantique(texte, idcc, RESULTATS_PAR_REQUETE, date)
+                    .stream().filter(r -> r.pertinence() >= SIMILARITE_MIN && !deja.contains(r.articleSourceId()))
+                    .limit(PLACES_SEMANTIQUE).toList();
+        } catch (RuntimeException e) {
+            // Modèle d'embeddings injoignable : les articles trouvés par les mots suffisent (jamais la question au journal)
+            log.warn("Recherche sémantique indisponible ({}) : articles trouvés par les mots seulement",
+                    e.getClass().getSimpleName());
+            return retenus;
+        }
         if (semantiques.isEmpty()) {
             return retenus;
         }
         List<Resultat> resultat = new ArrayList<>(retenus);
         int aRetirer = Math.max(0, resultat.size() + semantiques.size() - assistant.articlesMax());
+        Set<String> reservees = new HashSet<>();
+        reserves.forEach(r -> reservees.add(r.articleSourceId()));
         for (int i = resultat.size() - 1; i >= 0 && aRetirer > 0; i--) {
-            if (!reserves.contains(resultat.get(i))) {
+            if (!reservees.contains(resultat.get(i).articleSourceId())) {
                 resultat.remove(i);
                 aRetirer--;
             }

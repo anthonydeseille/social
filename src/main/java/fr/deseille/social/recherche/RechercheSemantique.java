@@ -42,6 +42,8 @@ public class RechercheSemantique {
 
     private static final Logger log = LoggerFactory.getLogger(RechercheSemantique.class);
     private static final int LOT = 16;
+    /** Dimension des vecteurs (bge-m3), celle de la colonne {@code article_vecteur.vecteur} (changeset 009). */
+    static final int DIMENSION = 1024;
 
     private static final String REQUETE = """
             select a.source_id, a.num, a.section_id, a.etat, a.date_debut, a.date_fin, a.disparu_le,
@@ -190,13 +192,17 @@ public class RechercheSemantique {
         }
     }
 
-    private float[] lireCache(String empreinte) {
+    float[] lireCache(String empreinte) {
         Path f = cache.resolve(empreinte.substring(0, 2)).resolve(empreinte + ".f32");
         try {
             if (!Files.exists(f)) {
                 return null;
             }
-            ByteBuffer b = ByteBuffer.wrap(Files.readAllBytes(f)).order(ByteOrder.LITTLE_ENDIAN);
+            byte[] octets = Files.readAllBytes(f);
+            if (octets.length != DIMENSION * Float.BYTES) {
+                return null; // fichier tronqué ou d'un autre modèle : recalculé
+            }
+            ByteBuffer b = ByteBuffer.wrap(octets).order(ByteOrder.LITTLE_ENDIAN);
             float[] v = new float[b.remaining() / Float.BYTES];
             b.asFloatBuffer().get(v);
             return v;
@@ -205,13 +211,17 @@ public class RechercheSemantique {
         }
     }
 
-    private void ecrireCache(String empreinte, float[] vecteur) {
+    void ecrireCache(String empreinte, float[] vecteur) {
         Path f = cache.resolve(empreinte.substring(0, 2)).resolve(empreinte + ".f32");
         try {
             Files.createDirectories(f.getParent());
             ByteBuffer b = ByteBuffer.allocate(vecteur.length * Float.BYTES).order(ByteOrder.LITTLE_ENDIAN);
             b.asFloatBuffer().put(vecteur);
-            Files.write(f, b.array());
+            // Écrit à côté puis renommé : un arrêt en cours d'écriture ne laisse pas de fichier tronqué
+            Path temporaire = Files.createTempFile(f.getParent(), empreinte, ".tmp");
+            Files.write(temporaire, b.array());
+            Files.move(temporaire, f, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
             log.warn("Cache des vecteurs indisponible ({}) : le vecteur sera recalculé", e.getClass().getSimpleName());
         }
