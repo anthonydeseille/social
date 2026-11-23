@@ -80,6 +80,12 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .calcul summary { cursor: pointer; color: var(--accent); font-weight: 500; }
 .calcul h3 { font-size: .95rem; margin: 12px 0 4px; }
 .calcul ul { margin: 0; padding-left: 18px; font-size: .95rem; }
+details.entreprise summary { cursor: pointer; color: var(--accent); font-weight: 500; font-size: .95rem; }
+.recherche-entreprise { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin-top: 10px; }
+.recherche-entreprise label { flex: 1 1 240px; }
+.resultats-entreprise { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.resultats-entreprise li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.resultats-entreprise button { text-align: left; }
 .erreur { color: var(--erreur); font-weight: 500; }
 .sources h2 { font-size: 1rem; margin: 0 0 8px; }
 .sources ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }

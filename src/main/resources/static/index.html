@@ -46,6 +46,17 @@
             <input type="text" id="classification" name="classification" maxlength="80" placeholder="ex. ETAM coefficient 250">
           </label>
         </div>
+        <details class="entreprise">
+          <summary>Je ne connais pas ma convention collective</summary>
+          <div class="recherche-entreprise">
+            <label for="entreprise">Mon entreprise
+              <input type="text" id="entreprise" maxlength="100" placeholder="nom, SIREN ou SIRET" autocomplete="organization">
+            </label>
+            <button type="button" id="chercher-entreprise" class="secondaire">Chercher</button>
+          </div>
+          <p class="aide">La recherche est envoyée à l'annuaire public des entreprises (État) ; elle n'est pas conservée. Le SIRET figure sur votre fiche de paie.</p>
+          <div id="entreprises" aria-live="polite"></div>
+        </details>
         <div class="cases">
           <label><input type="checkbox" id="tempsPartiel" name="tempsPartiel"> Temps partiel</label>
           <label><input type="checkbox" name="situations" value="GROSSESSE"> Grossesse</label>
@@ -90,6 +101,7 @@
 
   <script src="markdown.js"></script>
   <script src="calcul.js"></script>
+  <script src="entreprises.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
