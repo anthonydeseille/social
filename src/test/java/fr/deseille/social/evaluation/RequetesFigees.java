@@ -48,6 +48,18 @@ record RequetesFigees(String origine, String consignes, Map<String, List<String>
                 racine.get("consignes") == null ? "inconnue" : String.valueOf(racine.get("consignes")), parQuestion);
     }
 
+    /**
+     * Raison pour laquelle ces requêtes ne peuvent pas remplacer la reformulation, {@code null} si elles
+     * le peuvent : produites par d'autres consignes de reformulation, ou questions sans requêtes.
+     */
+    String perimeesPour(String consignesEnService, List<String> questions) {
+        if (!consignes.equals(consignesEnService)) {
+            return "consignes " + consignes + ", en service " + consignesEnService;
+        }
+        List<String> manquantes = questions.stream().filter(id -> !parQuestion.containsKey(id)).toList();
+        return manquantes.isEmpty() ? null : "questions sans requêtes : " + manquantes;
+    }
+
     /** Fichier YAML, dans l'ordre des questions, prêt à remplacer {@code requetes.yaml}. */
     String yaml() {
         StringBuilder y = new StringBuilder("""

@@ -1,7 +1,8 @@
 name: Évaluation complète
 
 # Évaluation payante (Claude, API Batch : environ 1,10 à 1,40 $ par lancement), comparée à
-# docs/evaluations/historique.csv ; échoue sur une baisse nette (voir ComparaisonEvaluation).
+# docs/evaluations/historique.csv ; échoue sur une baisse nette (voir ComparaisonEvaluation). Sur une
+# PR qui ne touche pas la reformulation ni le modèle, les requêtes sont celles de requetes.yaml.
 # Lancement :
 #   - sur une PR, en posant l'étiquette « eval » (retirée en fin de lancement : la reposer relance) ;
 #   - d'office à l'ouverture d'une PR qui touche les consignes, la recherche ou le modèle ;
@@ -55,6 +56,7 @@ jobs:
       pull-requests: read
     outputs:
       lancer: ${{ steps.decision.outputs.lancer }}
+      figees: ${{ steps.decision.outputs.figees }}
     steps:
       - id: decision
         env:
@@ -83,6 +85,19 @@ jobs:
           fi
           echo "Lancer : $lancer"
           echo "lancer=$lancer" >> "$GITHUB_OUTPUT"
+          # Sur une PR (ouverte ou étiquetée « eval ») qui ne touche ni la reformulation (consignes,
+          # assistants, préparation de la question, contexte du profil) ni la configuration (modèle,
+          # dépendances) : requêtes figées, sans le hasard de la reformulation (voir
+          # docs/evaluations/2026-11-23d-observabilite-bruit.md). Le lundi et à la demande : tout le trajet.
+          figees=false
+          if [ "$EVENEMENT" = pull_request ] && [ "$lancer" = true ]; then
+            fichiers=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
+            if ! echo "$fichiers" | grep -qE '^src/main/resources/prompts/reformulation|^src/main/java/fr/deseille/social/questions/(Assistant[A-Za-z]*|QuestionService|DonneesPersonnelles)\.java$|^src/main/java/fr/deseille/social/profil/|^src/main/resources/application\.yaml$|^pom\.xml$|^src/test/resources/evaluation/requetes\.yaml$'; then
+              figees=true
+            fi
+          fi
+          echo "Requêtes figées : $figees"
+          echo "figees=$figees" >> "$GITHUB_OUTPUT"
 
   evaluer:
     name: Évaluation complète
@@ -156,6 +171,7 @@ jobs:
           MODELE: ${{ inputs.modele }}
           MODELE_REFORMULATION: ${{ inputs.modele_reformulation }}
           REFERENCE: ${{ inputs.reference || 'claude-opus-5-5' }}
+          FIGEES: ${{ needs.decider.outputs.figees }}
         run: |
           options=(-Devaluation=true -Devaluation.toutes=true -Ddroits.ingestion.cache-dir=$HOME/.cache/droits-corpus)
           if [ -n "$MODELE" ]; then options+=("-Ddroits.claude.modele=$MODELE"); fi
@@ -165,6 +181,7 @@ jobs:
           else
             options+=(-Devaluation.lots=true -Devaluation.lots.heures=2 -Devaluation.comparer=true
               "-Devaluation.reference.modele=$REFERENCE")
+            if [ "$FIGEES" = true ]; then options+=(-Devaluation.requetes=figees); fi
           fi
           ./mvnw -B -ntp verify -Dit.test=EvaluationIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false "${options[@]}"
 

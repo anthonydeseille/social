@@ -26,6 +26,7 @@ import fr.deseille.social.recherche.RechercheService;
 import io.github.anthonydeseille.llmeval4j.history.EvalHistory;
 import io.github.anthonydeseille.llmeval4j.regression.Comparison;
 import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -175,6 +176,26 @@ class EvaluationIT {
     }
 
     /**
+     * Requêtes figées à utiliser au lieu de la reformulation ({@code -Devaluation.requetes=figees}), ou
+     * {@code null} : option absente, ou requêtes périmées (autres consignes de reformulation, question
+     * sans requêtes), auquel cas la reformulation a lieu, et le journal le dit.
+     */
+    private static RequetesFigees figees(List<Question> questions, AssistantClaude assistant) throws IOException {
+        if (!"figees".equals(System.getProperty("evaluation.requetes"))) {
+            return null;
+        }
+        RequetesFigees figees = RequetesFigees.lireRessource("/evaluation/requetes.yaml");
+        String perimees = figees.perimeesPour(assistant.consignes().reformulation(),
+                questions.stream().map(Question::id).toList());
+        if (perimees != null) {
+            System.out.println("Requêtes figées périmées (" + perimees + ") : reformulation");
+            return null;
+        }
+        System.out.println("Requêtes figées (" + figees.origine() + ") : pas de reformulation");
+        return figees;
+    }
+
+    /**
      * À côté du rapport : requêtes de reformulation (à recopier dans {@code requetes.yaml} pour
      * l'évaluation de la recherche), résumé JSON et ligne prête pour {@code historique.csv}.
      */
@@ -240,14 +261,25 @@ class EvaluationIT {
             jetons.put(q.id(), new long[2]);
         }
 
-        // 1. Reformulations
+        // 1. Reformulations, ou requêtes figées (requetes.yaml) : sans le hasard de la reformulation, la
+        // qualité ne mesure plus que la recherche et la rédaction (PR qui ne touchent ni l'une ni le modèle)
+        Map<String, List<String>> requetes = new HashMap<>();
+        RequetesFigees figees = figees(questions, assistantClaude);
+        if (figees != null) {
+            questions.forEach(q -> requetes.put(q.id(), figees.parQuestion().get(q.id())));
+        }
         Map<String, MessageCreateParams> reformulations = new LinkedHashMap<>();
         for (Question q : questions) {
-            reformulations.put(q.id(), assistantClaude.parametresReformulation(q.question(), contextes.get(q.id())).rawParams());
+            if (figees == null) {
+                reformulations.put(q.id(), assistantClaude.parametresReformulation(q.question(), contextes.get(q.id())).rawParams());
+            }
         }
-        Map<String, LotClaude.Resultat> r1 = lot.executer("reformulations", reformulations);
-        Map<String, List<String>> requetes = new HashMap<>();
+        Map<String, LotClaude.Resultat> r1 = reformulations.isEmpty() ? Map.of()
+                : lot.executer("reformulations", reformulations);
         for (Question q : questions) {
+            if (figees != null) {
+                continue;
+            }
             LotClaude.Resultat r = r1.get(q.id());
             if (r == null || r.message() == null) {
                 // Comme en mode normal, repli sur la question brute ; signalé pour lire les scores de recherche
@@ -326,7 +358,8 @@ class EvaluationIT {
         }
         Files.writeString(rapport, RapportEvaluation.markdown(resultats, tarif.lots(), false, tarifJuge.lots(),
                 jetonsJuge[0], jetonsJuge[1], questions.size()), StandardCharsets.UTF_8);
-        ecrireSorties(rapport, resultats, assistantClaude.modele(), "lots", tarif.lots(), tarifJuge.lots(),
+        ecrireSorties(rapport, resultats, assistantClaude.modele(), figees != null ? "lots-figees" : "lots",
+                tarif.lots(), tarifJuge.lots(),
                 jetonsJuge[0], jetonsJuge[1]);
     }
 
