@@ -54,6 +54,16 @@ class CalculsQuestionsTest {
     }
 
     @Test
+    void preavis_demande_a_cote_de_l_indemnite_n_exclut_pas_le_calcul() {
+        assertThat(calculs.pour("Je suis employé (ETAM) chez un employeur Syntec depuis 6 mois et on me licencie. "
+                + "Ai-je droit à une indemnité et à un préavis ?", contexte(CADRE_SYNTEC))).isPresent();
+        assertThat(calculs.pour("Licencié, ai-je droit à une indemnité de préavis ?", contexte(CADRE_SYNTEC)))
+                .as("indemnité de préavis nommée").isEmpty();
+        assertThat(calculs.pour("Licencié, ai-je droit à une indemnité de congés payés ?", contexte(CADRE_SYNTEC)))
+                .as("indemnité de congés nommée").isEmpty();
+    }
+
+    @Test
     void indemnite_de_licenciement_nommee_calculee_meme_avec_une_autre_indemnite() {
         assertThat(calculs.pour("Indemnité de licenciement et indemnité de préavis : combien ?", contexte(CADRE_SYNTEC)))
                 .isPresent();

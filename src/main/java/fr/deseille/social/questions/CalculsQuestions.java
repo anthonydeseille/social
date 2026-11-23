@@ -34,9 +34,14 @@ public class CalculsQuestions {
     private static final Pattern LICENCIEMENT = Pattern.compile("\\blicenci");
     private static final Pattern INDEMNITE_DE_LICENCIEMENT =
             Pattern.compile("\\bindemnit\\w*\\s+(?:legale\\s+|conventionnelle\\s+)?de\\s+licenci");
-    /** Une autre indemnité nommée : la question ne porte pas sur l'indemnité de licenciement. */
-    private static final Pattern AUTRE_INDEMNITE = Pattern.compile("\\b(?:journalier|chomage|compensatrice|preavis|"
-            + "conges|rupture conventionnelle|fin de contrat|precarite|transactionnel|prud)");
+    /**
+     * Une autre indemnité nommée : la question ne porte pas sur l'indemnité de licenciement. Le préavis
+     * et les congés n'excluent que nommés comme indemnité (« indemnité de préavis ») : « ai-je droit à
+     * une indemnité et à un préavis ? » porte bien sur l'indemnité de licenciement.
+     */
+    private static final Pattern AUTRE_INDEMNITE = Pattern.compile("\\b(?:journalier|chomage|compensatrice|"
+            + "indemnit\\w*\\s+(?:de\\s+|d')(?:preavis|conges)|rupture conventionnelle|fin de contrat|precarite|"
+            + "transactionnel|prud)");
     /**
      * « faute grave » niée : « sans faute grave », « pas pour une faute grave », « pas commis de faute
      * lourde ». Seuls quelques petits mots peuvent s'intercaler, pour ne pas lire « sans préavis pour
