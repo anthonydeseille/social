@@ -71,10 +71,18 @@ class ComparaisonEvaluationTest {
         Comparison r = ComparaisonEvaluation.comparer(HISTORIQUE, synthese(53L, 53L, 66L, 2L, 196, 200));
 
         assertThat(r.changes()).noneMatch(Change::regression);
-        assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, synthese(52L, 58L, 71L, 1L, 197, 197)).regression())
-                .as("6 points de recherche").isTrue();
         assertThat(ComparaisonEvaluation.comparer(HISTORIQUE, synthese(58L, 58L, 71L, 1L, 195, 200)).regression())
                 .as("2,5 points de citations vérifiées").isTrue();
+    }
+
+    @Test
+    void recherche_et_articles_cites_indicatifs_sans_blocage() {
+        Comparison r = ComparaisonEvaluation.comparer(HISTORIQUE, synthese(30L, 30L, 71L, 1L, 197, 197));
+
+        assertThat(r.regression()).as("28 points perdus par la reformulation, qualité intacte").isFalse();
+        assertThat(ComparaisonEvaluation.markdown(r, synthese(30L, 30L, 71L, 1L, 197, 197)))
+                .contains("| Recherche (articles attendus transmis) | 58% | 30% | -28 pts | indicatif |",
+                        "| Articles attendus cités | 58% | 30% | -28 pts | indicatif |", "Pas de baisse nette");
     }
 
     @Test
@@ -102,7 +110,7 @@ class ComparaisonEvaluationTest {
 
         Comparison parRepli = ComparaisonEvaluation.comparer(HISTORIQUE, s, "claude-opus-5-5");
         assertThat(parRepli.reference()).as("nouveau modèle comparé au modèle actuel").containsEntry("commit", "bbb2222");
-        assertThat(parRepli.regression()).isTrue();
+        assertThat(parRepli.regression()).as("qualité, erreurs et citations vérifiées en baisse").isTrue();
         assertThat(ComparaisonEvaluation.markdown(parRepli, s)).contains("Référence : le modèle actuel, claude-opus-5-5");
 
         s.put("modele", "claude-opus-5-5");
@@ -118,7 +126,7 @@ class ComparaisonEvaluationTest {
 
         assertThat(md).contains("Commit `ddd4444`", "Coût : 1,13 $", "du 2026-10-31 (`bbb2222`",
                 "| Qualité (juge) | 71% | 65% | -6 pts | ❌ baisse nette |",
-                "| Recherche (articles attendus transmis) | 58% | 58% | 0 pts | ✅ |",
+                "| Recherche (articles attendus transmis) | 58% | 58% | 0 pts | indicatif |",
                 "**Baisse nette : la PR est bloquée.**");
     }
 

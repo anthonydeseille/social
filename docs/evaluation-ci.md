@@ -21,8 +21,11 @@ Batch, moitié prix), soit 5 à 6 $ par mois pour le seul passage hebdomadaire.
 - Un **commentaire dans la PR** (et le résumé du job) : écart par indicateur à la référence, versions
   des consignes, coût, décision.
 - L'**échec du job sur une baisse nette** (seuils dans `ComparaisonEvaluation`, calcul par `RegressionCheck` de llmeval4j) : plus de 5 points de
-  recherche, d'articles cités ou de qualité, plus d'une erreur à éviter de plus, plus de 2 points de
-  citations vérifiées. Les écarts plus petits sont le bruit d'un passage à l'autre. Tant que `main`
+  qualité, plus d'une erreur à éviter de plus, plus de 2 points de citations vérifiées. Les écarts
+  plus petits sont le bruit d'un passage à l'autre. La recherche et les articles cités sont affichés
+  sans bloquer (« indicatif ») : ils dépendent des requêtes de la reformulation, qui changent d'un
+  lancement à l'autre avec les mêmes consignes ; la recherche est contrôlée sur requêtes figées par
+  `RechercheEvaluationIT`, dans chaque PR. Tant que `main`
   n'est pas protégée (voir la feuille de route), le blocage est un signal : la fusion reste possible,
   en l'expliquant dans la PR.
 - Un **artefact** (90 jours) : rapport, résumé JSON, ligne d'historique, requêtes de reformulation.

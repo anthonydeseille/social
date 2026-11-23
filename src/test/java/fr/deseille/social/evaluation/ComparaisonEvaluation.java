@@ -21,11 +21,17 @@ import java.util.Objects;
  * varier la qualité d'environ 2 points d'un passage à l'autre, sans aucun changement. Les seuils
  * laissent passer ce bruit :
  * <ul>
- *   <li>recherche, articles cités, qualité : baisse de plus de {@value #SEUIL_POINTS} points ;</li>
+ *   <li>qualité : baisse de plus de {@value #SEUIL_POINTS} points ;</li>
  *   <li>erreurs à éviter commises : plus de {@value #SEUIL_ERREURS} de plus ;</li>
  *   <li>citations vérifiées : part en baisse de plus de {@value #SEUIL_VERIFIEES_POINTS} points
  *       (un extrait introuvable dans l'article est une faute, pas du bruit).</li>
  * </ul>
+ * La recherche et les articles cités sont affichés sans bloquer : ils dépendent des requêtes que
+ * Claude écrit à la reformulation, qui changent d'un lancement à l'autre avec les mêmes consignes
+ * (6 points de recherche perdus ainsi le 23 novembre 2026, voir
+ * {@code docs/evaluations/2026-11-23-calcul-dans-questions.md}). La recherche elle-même est contrôlée
+ * sur des requêtes figées, dans chaque PR, par {@code RechercheEvaluationIT}.
+ * <p>
  * Un indicateur absent d'un côté (juge non lancé, colonne vide) n'est pas comparé.
  */
 final class ComparaisonEvaluation {
@@ -34,10 +40,15 @@ final class ComparaisonEvaluation {
     static final int SEUIL_ERREURS = 1;
     static final int SEUIL_VERIFIEES_POINTS = 2;
 
+    private static final String RECHERCHE = "Recherche (articles attendus transmis)";
+    private static final String ARTICLES_CITES = "Articles attendus cités";
+    /** Indicateurs affichés sans seuil : ils varient avec la reformulation. */
+    private static final java.util.Set<String> INDICATIFS = java.util.Set.of(RECHERCHE, ARTICLES_CITES);
+
     private static final RegressionCheck CONTROLE = RegressionCheck.builder()
             .sameValuesOf("modele", "questions")
-            .metric(Metric.percentage("recherche_pct", "Recherche (articles attendus transmis)", SEUIL_POINTS))
-            .metric(Metric.percentage("articles_cites_pct", "Articles attendus cités", SEUIL_POINTS))
+            .metric(Metric.percentage("recherche_pct", RECHERCHE, Double.POSITIVE_INFINITY))
+            .metric(Metric.percentage("articles_cites_pct", ARTICLES_CITES, Double.POSITIVE_INFINITY))
             .metric(Metric.percentage("qualite_pct", "Qualité (juge)", SEUIL_POINTS))
             .metric(Metric.lowerIsBetter("erreurs", "Erreurs à éviter commises", SEUIL_ERREURS))
             .metric(Metric.ratio("citations_verifiees", "citations_total", "Citations vérifiées", SEUIL_VERIFIEES_POINTS))
@@ -91,14 +102,16 @@ final class ComparaisonEvaluation {
         md.append("| Indicateur | Référence | Maintenant | Écart | |\n|---|---|---|---|---|\n");
         for (Change c : comparaison.changes()) {
             md.append("| ").append(c.metric()).append(" | ").append(c.reference()).append(" | ").append(c.current())
-                    .append(" | ").append(c.delta()).append(" | ").append(c.regression() ? "❌ baisse nette" : "✅")
+                    .append(" | ").append(c.delta()).append(" | ")
+                    .append(c.regression() ? "❌ baisse nette" : INDICATIFS.contains(c.metric()) ? "indicatif" : "✅")
                     .append(" |\n");
         }
         md.append('\n').append(comparaison.regression()
                 ? "**Baisse nette : la PR est bloquée.** Si le compromis est voulu, l'expliquer dans la PR ; "
                 + "la fusion reste possible en passant outre le contrôle."
-                : "Pas de baisse nette (seuils : " + SEUIL_POINTS + " points, " + SEUIL_ERREURS + " erreur, "
-                + SEUIL_VERIFIEES_POINTS + " points de citations vérifiées).").append('\n');
+                : "Pas de baisse nette (seuils : " + SEUIL_POINTS + " points de qualité, " + SEUIL_ERREURS
+                + " erreur, " + SEUIL_VERIFIEES_POINTS + " points de citations vérifiées ; recherche et articles "
+                + "cités indicatifs, car ils varient avec la reformulation).").append('\n');
         return md.toString();
     }
 

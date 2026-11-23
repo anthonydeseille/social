@@ -167,7 +167,8 @@ d'une PR, d'office à l'ouverture d'une PR qui touche les consignes, la recherch
 ou `application.yaml` (les commits suivants ne relancent pas : reposer l'étiquette), et chaque lundi sur
 `main`. Le résultat est comparé à la dernière ligne de l'historique faite avec le même modèle et le même
 nombre de questions, commenté
-dans la PR, et le job échoue sur une baisse nette. Authentification par fédération d'identité, sans clé
+dans la PR, et le job échoue sur une baisse nette de qualité, d'erreurs ou de citations vérifiées (la
+recherche, qui varie avec la reformulation, y est indicative : elle est contrôlée sur requêtes figées). Authentification par fédération d'identité, sans clé
 stockée : voir [`evaluation-ci.md`](evaluation-ci.md).
 
 **Évaluation de la recherche, gratuite, dans chaque PR** (job CI « Évaluation de la recherche ») : les
