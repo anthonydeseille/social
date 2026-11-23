@@ -55,7 +55,7 @@ class LotClaudeTest {
     @Test
     void requete_de_redaction_convertie_avec_documents_citations_et_effort_sans_repli() throws Exception {
         BatchCreateParams.Request.Params params = LotClaude.versParams(
-                ASSISTANT.parametresRedaction("Ma période d'essai ?", CONTEXTE, List.of(ARTICLE)));
+                ASSISTANT.parametresRedaction("Ma période d'essai ?", CONTEXTE, List.of(ARTICLE), null));
         JsonNode corps = json(params);
 
         assertThat(corps.path("model").asText()).isEqualTo("claude-opus-5-5");
@@ -127,8 +127,8 @@ class LotClaudeTest {
         LotClaude lots = new LotClaude(() -> client, Duration.ofMinutes(1), Duration.ofMillis(1));
 
         Map<String, LotClaude.Resultat> resultats = lots.executer("test", Map.of(
-                "q1", ASSISTANT.parametresRedaction("Q1 ?", CONTEXTE, List.of(ARTICLE)),
-                "q2", ASSISTANT.parametresRedaction("Q2 ?", CONTEXTE, List.of(ARTICLE))));
+                "q1", ASSISTANT.parametresRedaction("Q1 ?", CONTEXTE, List.of(ARTICLE), null),
+                "q2", ASSISTANT.parametresRedaction("Q2 ?", CONTEXTE, List.of(ARTICLE), null)));
 
         assertThat(resultats.get("q1").message().usage().inputTokens()).isEqualTo(10);
         assertThat(resultats.get("q2").message()).isNull();
@@ -141,7 +141,7 @@ class LotClaudeTest {
         LotClaude lots = new LotClaude(() -> client, Duration.ofMinutes(1), Duration.ofMillis(1));
 
         assertThatThrownBy(() -> lots.executer("test", Map.of("période-essai",
-                ASSISTANT.parametresRedaction("Q ?", CONTEXTE, List.of(ARTICLE)))))
+                ASSISTANT.parametresRedaction("Q ?", CONTEXTE, List.of(ARTICLE), null))))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("période-essai");
         org.mockito.Mockito.verifyNoInteractions(client);
     }
@@ -152,7 +152,7 @@ class LotClaudeTest {
         LotClaude lots = new LotClaude(() -> client, Duration.ZERO, Duration.ofMillis(1));
 
         assertThatThrownBy(() -> lots.executer("lent", Map.of("q1",
-                ASSISTANT.parametresRedaction("Q1 ?", CONTEXTE, List.of(ARTICLE)))))
+                ASSISTANT.parametresRedaction("Q1 ?", CONTEXTE, List.of(ARTICLE), null))))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("msgbatch_1");
     }
 

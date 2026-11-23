@@ -23,23 +23,26 @@ flowchart TD
 
     R3["3. Recherche (PostgreSQL)<br/>plein texte français, sans accents<br/>numéro, titres de section, texte<br/>Code + convention · articles applicables<br/>fusion → 8 meilleurs articles<br/>(4 avec Ollama)<br/>moins de 100 ms"]
     R3 -->|"aucun article"| VIDE["Réponse vide + avertissement<br/>(pas d'appel n° 2)"]
-    R3 --> C4
+    R3 --> K3
 
-    C4["🤖 4. Rédaction (Claude)<br/>8 articles (4 avec Ollama) transmis comme documents, citations activées<br/>+ profil + question + consignes<br/>≈ 4 à 7 centimes"]
+    K3["3 bis. Calcul par le code<br/>question sur l'indemnité de licenciement ?<br/>calculateur (légal + convention)<br/>sinon rien"]
+    K3 --> C4
+
+    C4["🤖 4. Rédaction (Claude)<br/>8 articles (4 avec Ollama) transmis comme documents, citations activées<br/>+ profil + calcul éventuel + question + consignes<br/>≈ 4 à 7 centimes"]
     C4 -->|"panne"| E503["503 Service indisponible"]
     C4 -.->|"refus des filtres :<br/>rejoué sur un autre modèle"| C4
     C4 --> V5
 
-    V5["5. Contrôles de sortie<br/>extraits cités présents dans les articles ?<br/>chiffres présents dans les sources ?<br/>réponse interrompue ?"]
+    V5["5. Contrôles de sortie<br/>extraits cités présents dans les articles ?<br/>chiffres présents dans les sources ou le calcul ?<br/>réponse interrompue ?"]
     V5 --> REP
 
-    REP(["📄 Réponse<br/>passages avec citations · sources<br/>requêtes · contexte · avertissements<br/>citations non vérifiées · chiffres non retrouvés<br/>versions des consignes"])
+    REP(["📄 Réponse<br/>passages avec citations · sources<br/>requêtes · contexte · avertissements<br/>citations non vérifiées · chiffres non retrouvés<br/>versions des consignes · calcul"])
 
     classDef claude fill:#fde7c8,stroke:#d97706,color:#000
     classDef gratuit fill:#e3f2e1,stroke:#2e7d32,color:#000
     classDef erreur fill:#fbe0e0,stroke:#c62828,color:#000
     class C2,C4 claude
-    class G0,P1,R3,V5 gratuit
+    class G0,P1,R3,K3,V5 gratuit
     class E400,E429,E503,VIDE erreur
 ```
 
@@ -62,8 +65,9 @@ souvenir de mes informations », et un bouton l'efface.
 | 1. Contexte du profil | Ancienneté à la date de référence (aujourd'hui par défaut), textes applicables à cette date (Code du travail, convention collective si intégrée), avertissements (convention non renseignée ou non intégrée). | gratuit |
 | 2. Reformulation | Claude (`droits.claude.modele-reformulation` s'il diffère du modèle de la rédaction, choisi par l'évaluation de la reformulation seule : [`couts-et-modeles.md`](couts-et-modeles.md)) transforme la question en 1 à 4 requêtes de mots-clés juridiques, tels qu'ils apparaissent dans les textes. S'il est indisponible ou refuse, la recherche se fait sur la question brute. Avec un modèle local, exemples et simplification des requêtes en plus (voir [Fournisseur local : Ollama](#fournisseur-local--ollama)). | ≈ 1 centime |
 | 3. Recherche | Recherche plein texte dans le Code et la convention, limitée aux articles applicables à la date de référence. Chaque article est indexé par son numéro et les titres de ses sections (poids fort), puis son texte : les mots d'un article de principe sont souvent dans le titre de sa section (« Congés payés ») plutôt que dans son texte. Puis fusion des résultats et sélection des 8 meilleurs (4 pour un modèle local). | gratuit |
-| 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. | ≈ 4 à 7 centimes |
-| 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; chiffres de la réponse (durées, montants, pourcentages) recherchés dans les articles transmis (nombres en lettres compris : « quatre-vingt-dix », « un quart »), le profil et la question : un chiffre absent (souvent un calcul) est signalé « à vérifier », sans être retiré (`VerificationChiffres`, champ `chiffresNonRetrouves`) ; signalement d'une réponse interrompue. | gratuit |
+| 3 bis. Calcul | Une question qui nomme l'indemnité de licenciement, ou qui parle d'indemnité et de licenciement sans nommer une autre indemnité (journalières, de préavis, de congés payés, pour ou au titre du préavis ou des congés, de rupture conventionnelle… ; « une indemnité et un préavis » déclenche bien le calcul), sans tenir compte des accents ni des majuscules, déclenche le [calculateur d'indemnité](#calculateur-dindemnité-de-licenciement), sans appel au modèle (`CalculsQuestions`). Il calcule à la date de référence du profil, prise comme date de notification et de fin du contrat, en mois de salaire (le salaire n'est pas demandé) ; le motif est lu dans la question (faute grave ou lourde, sauf niée : « sans faute grave », mais « sans préavis pour faute grave » reste une faute grave ; économique), personnel sinon. Ces choix, motif lu compris, rejoignent les hypothèses du résultat. Sans date d'entrée, le calcul est impossible et le modèle dit quoi préciser. Résultat dans le champ `calcul` de la réponse, avec un avertissement : règles en cours de validation juridique. Métrique `droits.questions.calculs` (issue : `fait`, `impossible`). | gratuit |
+| 4. Rédaction | Claude reçoit les 8 articles (4 pour un modèle local) comme documents, avec les citations activées, et rédige en suivant ses consignes : s'en tenir aux articles, appliquer la disposition la plus favorable au salarié en le disant, donner les chiffres et les conditions, rappeler qu'il s'agit d'une information générale. Le calcul de l'étape 3 bis arrive en texte, entre le profil et la question (pas comme document : il ne se cite pas) ; la consigne demande d'en reprendre les chiffres tels quels et de les expliquer en citant les articles, jamais de les recalculer. | ≈ 4 à 7 centimes |
+| 5. Contrôles de sortie | Vérification que chaque extrait cité existe dans l'article cité ; chiffres de la réponse (durées, montants, pourcentages) recherchés dans les articles transmis (nombres en lettres compris : « quatre-vingt-dix », « un quart »), le profil, la question et le calcul de l'étape 3 bis : un chiffre absent (souvent un calcul) est signalé « à vérifier », sans être retiré (`VerificationChiffres`, champ `chiffresNonRetrouves`) ; signalement d'une réponse interrompue. | gratuit |
 
 **Consignes versionnées.** Les consignes des étapes 2 et 4 sont des fichiers :
 `src/main/resources/prompts/reformulation.md` et `redaction.md`, complétés pour Ollama par
@@ -128,6 +132,7 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 | `droits.assistant.cout_usd` | fournisseur, etape | coût des appels en dollars, au prix du modèle de chaque étape (`AssistantClaude.PRIX`, table de llmeval4j) |
 | `droits.assistant.depense_jour_usd` | | dépense du jour (jauge), pour alerter |
 | `droits.questions.budget_atteint` | | questions refusées par le budget journalier |
+| `droits.questions.calculs` | issue : fait, impossible | calculs faits par le code pour une question (étape 3 bis) |
 | `droits.garde_fous` | type : injection, donnees_personnelles (une par donnée retirée), profil_incoherent | interventions des garde-fous d'entrée |
 | `droits.chiffres_non_retrouves` | | chiffres des réponses absents des sources |
 | `droits.assistant.consignes` | modele, reformulation, redaction | jauge à 1 portant les versions des consignes en service, à croiser avec les autres métriques |
@@ -207,9 +212,6 @@ flowchart LR
 Règles, sources et questions en cours de validation juridique :
 [`regles-indemnite-licenciement.md`](regles-indemnite-licenciement.md).
 
-## Évolution prévue
-
-Le calculateur sera branché sur le trajet des questions, entre la recherche et la rédaction : quand la
-question porte sur l'indemnité de licenciement, le montant calculé sera transmis à Claude, qui
-l'expliquera au lieu de le calculer. La suite est décrite dans
+Le même calcul sert aux questions sur l'indemnité de licenciement (étape 3 bis) : Claude en reçoit le
+résultat et l'explique au lieu de le calculer. La suite est décrite dans
 [`FEUILLE_DE_ROUTE.md`](../FEUILLE_DE_ROUTE.md).

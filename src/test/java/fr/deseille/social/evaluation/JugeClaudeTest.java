@@ -31,7 +31,7 @@ class JugeClaudeTest {
                 List.of(new Passage("Votre période d'essai dure 4 mois", List.of(new Citation("KALIARTI000047513825", "3.4", "4 mois"))),
                         new Passage(", renouvelable une fois.", List.of())),
                 List.of(new Source("KALIARTI000047513825", "3.4", "KALICONT", "Syntec")), false, List.of(), List.of(), List.of(),
-                VersionsConsignes.INCONNUES);
+                VersionsConsignes.INCONNUES, null);
     }
 
     @Test

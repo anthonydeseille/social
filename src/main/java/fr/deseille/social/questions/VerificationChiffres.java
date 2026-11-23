@@ -21,8 +21,8 @@ import java.util.regex.Pattern;
  * retrouver dans les articles transmis, le profil ou la question. Un chiffre absent n'est pas
  * forcément faux (calcul fait à partir du profil, comme le demandent les consignes), mais il ne
  * vient pas d'une source : il est signalé « à vérifier », sans être retiré, comme une citation non
- * vérifiée. Quand le calculateur d'indemnité sera branché sur les questions, ses montants
- * rejoindront les chiffres connus.
+ * vérifiée. Les chiffres du calculateur ({@link CalculQuestion}) comptent comme connus : ils viennent
+ * du code, pas du modèle.
  * <p>
  * Les textes juridiques écrivent souvent les nombres en lettres (« deux mois », « un quart de
  * mois ») : les nombres en lettres des articles, jusqu'à 999, et les fractions usuelles (quart → 4,
@@ -59,7 +59,7 @@ public final class VerificationChiffres {
 
     /** Chiffres de la réponse absents des sources, dans l'ordre d'apparition, sans doublon. */
     public static List<String> nonRetrouves(List<Passage> passages, List<ArticleDetail> articles,
-                                            ContexteProfil contexte, String question) {
+                                            ContexteProfil contexte, String question, CalculQuestion calcul) {
         Set<String> connus = new HashSet<>();
         for (ArticleDetail a : articles) {
             String texte = AssistantClaude.contenu(a);
@@ -71,6 +71,9 @@ public final class VerificationChiffres {
         }
         connus.addAll(nombres(question));
         connus.addAll(profil(contexte));
+        if (calcul != null) {
+            connus.addAll(nombres(calcul.chiffres()));
+        }
         Set<String> absents = new LinkedHashSet<>();
         for (Passage p : passages) {
             Matcher m = NOMBRE.matcher(p.texte());

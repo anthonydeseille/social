@@ -65,7 +65,7 @@ class AssistantClaudeTest {
     @Test
     void requete_de_redaction_un_document_cite_par_article_puis_la_question() throws Exception {
         MessageCreateParams params = assistant.parametresRedaction("Combien dure ma période d'essai ?", CONTEXTE,
-                List.of(L1221_19, SYNTEC_3_4));
+                List.of(L1221_19, SYNTEC_3_4), null);
         JsonNode corps = ObjectMappers.jsonMapper().readTree(ObjectMappers.jsonMapper().writeValueAsString(params._body()));
 
         assertThat(corps.path("model").asText()).isEqualTo("claude-opus-5-5");
@@ -184,7 +184,7 @@ class AssistantClaudeTest {
         AssistantClaude enPanne = new AssistantClaude(PROPRIETES, () -> client, new MetriquesQuestions(new SimpleMeterRegistry()));
 
         assertThat(enPanne.reformuler("Ma période d'essai ?", CONTEXTE)).containsExactly("Ma période d'essai ?");
-        assertThatThrownBy(() -> enPanne.rediger("Ma période d'essai ?", CONTEXTE, List.of(L1221_19)))
+        assertThatThrownBy(() -> enPanne.rediger("Ma période d'essai ?", CONTEXTE, List.of(L1221_19), null))
                 .isInstanceOf(AssistantIndisponibleException.class);
     }
 
@@ -205,7 +205,7 @@ class AssistantClaudeTest {
         MetriquesQuestions metriques = new MetriquesQuestions(registre);
         DepensesJournalieres depenses = DepensesJournalieres.sansBudget();
         AssistantClaude assistant = new AssistantClaude(PROPRIETES, () -> client, metriques, depenses);
-        assistant.rediger("question", CONTEXTE, List.of(L1221_19));
+        assistant.rediger("question", CONTEXTE, List.of(L1221_19), null);
 
         // Opus 5.5 : 4 200 × 4 $ + 1 800 × 20 $ par million = 0,0528 $
         assertThat(registre.counter("droits.assistant.cout_usd", "fournisseur", "claude", "etape", "redaction").count())
@@ -227,7 +227,7 @@ class AssistantClaudeTest {
         assertThat(parDefaut.parametresReformulation("q", CONTEXTE).rawParams().model().asString()).isEqualTo("claude-opus-5-5");
         assertThat(parDefaut.modeleReformulation()).isEqualTo("claude-opus-5-5");
         assertThat(leger.parametresReformulation("q", CONTEXTE).rawParams().model().asString()).isEqualTo("claude-haiku-5-5");
-        assertThat(leger.parametresRedaction("q", CONTEXTE, List.of(L1221_19)).model().asString()).isEqualTo("claude-opus-5-5");
+        assertThat(leger.parametresRedaction("q", CONTEXTE, List.of(L1221_19), null).model().asString()).isEqualTo("claude-opus-5-5");
         assertThat(leger.modeleReformulation()).isEqualTo("claude-haiku-5-5");
     }
 
@@ -238,7 +238,7 @@ class AssistantClaudeTest {
         }, new MetriquesQuestions(new SimpleMeterRegistry()));
 
         assertThat(sansCle.reformuler("question", CONTEXTE)).containsExactly("question");
-        assertThatThrownBy(() -> sansCle.rediger("question", CONTEXTE, List.of(L1221_19)))
+        assertThatThrownBy(() -> sansCle.rediger("question", CONTEXTE, List.of(L1221_19), null))
                 .isInstanceOf(AssistantIndisponibleException.class);
     }
 

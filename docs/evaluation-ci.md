@@ -48,12 +48,19 @@ fois : le job le réécrit chaque minute, et le SDK relit le fichier à chaque r
    - émetteur : `https://token.actions.githubusercontent.com`, JWKS en mode `discovery` ;
    - compte de service : `evaluation-ci` (rôle `developer`), membre de l'espace de travail facturé ;
    - règle `evaluation-ci` :
-     - `subject_prefix` : `repo:anthonydeseille/social:*` (PR : `…:pull_request`, `main` : `…:ref:refs/heads/main`) ;
+     - `subject_prefix` : `repo:anthonydeseille@7101703/social@1438146479:*` (avec `*` final, le sujet doit commencer
+       par ce qui précède l'étoile ; sans, il doit être égal à la valeur entière).
+       GitHub met dans le sujet les identifiants du propriétaire et du dépôt (PR : `…:pull_request`,
+       `main` : `…:ref:refs/heads/main`) : un dépôt recréé sous le même nom n'obtiendrait pas de jeton ;
      - `audience` : `https://api.anthropic.com` ;
-     - `claims` : `repository_owner` = `anthonydeseille`, `repository` = `anthonydeseille/social` ;
-     - `condition` (CEL), pour que seul ce workflow obtienne un jeton (les workflows de revue Claude
-       demandent aussi des jetons OIDC) :
-       `claims.job_workflow_ref.startsWith("anthonydeseille/social/.github/workflows/evaluation.yml@")` ;
+     - `claims` (égalité stricte, sensible à la casse) : `repository_owner` = `anthonydeseille`,
+       `repository` = `anthonydeseille/social`, et `workflow` = `Évaluation complète` (le nom de ce
+       workflow), pour que seul lui obtienne un jeton (les workflows de revue Claude demandent aussi des
+       jetons OIDC). Pas de contrainte sur `event_name` : il vaut `pull_request`, `schedule` ou
+       `workflow_dispatch` selon le lancement. La Console n'offre pas la `condition` CEL, qui permettrait
+       d'exiger `claims.job_workflow_ref.startsWith("anthonydeseille/social/.github/workflows/evaluation.yml@")` ;
+     - un seul espace de travail (celui de la limite de dépense) : avec plusieurs, l'échange exige
+       `ANTHROPIC_WORKSPACE_ID` (refus `workspace_id_required`) ;
      - portée `workspace:developer` (l'API Batch en fait partie), durée `600` secondes.
 2. **GitHub** → Settings → Secrets and variables → Actions → *Variables* (pas des secrets : ces
    identifiants ne donnent aucun accès sans le jeton signé par GitHub) :
@@ -61,7 +68,8 @@ fois : le job le réécrit chaque minute, et le SDK relit le fichier à chaque r
    la Console), `ANTHROPIC_SERVICE_ACCOUNT_ID` (`svac_…`).
 3. **Premier lancement** : Actions → *Évaluation complète* → *Run workflow*. En cas de refus (401
    `Authentication failed`, volontairement opaque), la raison est dans l'onglet *History* de la page
-   Workload identity de la Console (`match_subject_prefix`, `jti_reused`…).
+   Workload identity de la Console (`match_subject_prefix` : sujet ; `match_claim_value_mismatch` :
+   une valeur de `claims` ; `workspace_id_required`, `jti_reused`…).
 
 Ne pas définir de secret `ANTHROPIC_API_KEY` sur ce workflow : une clé, même vide, passe avant la
 fédération.
@@ -70,8 +78,8 @@ fédération.
 
 Sur une PR, c'est le workflow **de la branche** qui s'exécute : quiconque peut pousser une branche dans
 le dépôt peut modifier `evaluation.yml` ou les tests et obtenir un jeton Anthropic de 10 minutes. La
-condition CEL protège des autres workflows (y compris sur `refs/pull/N/merge`, qu'elle accepte), pas
-d'une branche modifiée ; les dépôts dérivés, eux, n'obtiennent aucun jeton. Le dépôt étant personnel,
+contrainte sur le nom du workflow protège des autres workflows, pas d'une branche modifiée (qui peut
+aussi renommer un workflow « Évaluation complète ») ; les dépôts dérivés, eux, n'obtiennent aucun jeton. Le dépôt étant personnel,
 c'est acceptable ; avec des contributeurs, réserver la règle à `main` et déclencher les PR par
 `workflow_dispatch`. Dans tous les cas, plafonner la dépense de l'espace de travail du compte de
 service dans la Console (limite de dépense mensuelle).
