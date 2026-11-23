@@ -27,8 +27,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          # Version épinglée (celle des tests, postgres:latest au moment de l'écriture)
-          image: postgres:18.6
+          # PostgreSQL 18 avec l'extension pgvector (recherche sémantique), version épinglée ; les
+          # tests utilisent pgvector/pgvector:pg18
+          image: pgvector/pgvector:0.8.7-pg18
           ports:
             - containerPort: 5432
           env:

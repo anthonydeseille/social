@@ -249,6 +249,40 @@ class QuestionServiceTest {
     }
 
     @Test
+    void recherche_semantique_active_deux_articles_trouves_par_le_sens_remplacent_les_derniers() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.rechercherConvention("q", 1486, 10, DATE)).thenReturn(List.of(resultat("K1", 1.0)));
+        when(rechercheService.semantiqueActive()).thenReturn(true);
+        when(rechercheService.rechercherSemantique("Ma question ?", 1486, 10, DATE)).thenReturn(List.of(
+                resultat("C0", 0.9), resultat("S1", 0.8), resultat("S2", 0.6), resultat("S3", 0.55), resultat("S4", 0.4)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("Ma question ?", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .as("C0 déjà retenu ; S1 et S2 prennent les places de C5 et C6 ; K1, réservé, reste")
+                .containsExactly("C0", "C1", "C2", "C3", "C4", "K1", "S1", "S2");
+    }
+
+    @Test
+    void recherche_semantique_seuil_de_similarite_et_inactive_par_defaut() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.rechercherSemantique("Ma question ?", 1486, 10, DATE))
+                .thenReturn(List.of(resultat("S1", 0.4)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("Ma question ?", PROFIL).sources()).as("inactive").hasSize(8)
+                .noneMatch(s -> s.articleSourceId().startsWith("S"));
+        verify(rechercheService, never()).rechercherSemantique(anyString(), any(), org.mockito.ArgumentMatchers.anyInt(), any());
+
+        when(rechercheService.semantiqueActive()).thenReturn(true);
+        assertThat(service.repondre("Ma question ?", PROFIL).sources()).as("0,4 sous le seuil de 0,5")
+                .noneMatch(s -> s.articleSourceId().startsWith("S"));
+    }
+
+    @Test
     void sans_convention_pas_de_recherche_dans_la_convention() {
         ProfilSalarie profil = new ProfilSalarie(null, null, null, null, null, null, false, null, DATE);
         when(profilService.contexte(profil)).thenReturn(new ContexteProfil(profil, null, List.of(CODE), false, List.of()));

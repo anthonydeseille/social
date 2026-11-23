@@ -10,7 +10,7 @@ set -euo pipefail
 CLUSTER=droits
 NAMESPACE=droits
 IMAGE=social:local
-POSTGRES=postgres:18.6
+POSTGRES=pgvector/pgvector:0.8.7-pg18
 LGTM=grafana/otel-lgtm:0.41.1
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="/opt/local/bin:$PATH"

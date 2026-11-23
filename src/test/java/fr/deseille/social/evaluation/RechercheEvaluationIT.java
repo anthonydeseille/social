@@ -98,6 +98,8 @@ class RechercheEvaluationIT {
     private MetriquesQuestions metriques;
     @Autowired
     private ArticleRepository articleRepository;
+    @Autowired
+    private fr.deseille.social.recherche.RechercheSemantique rechercheSemantique;
 
     @Test
     void mesurer() throws Exception {
@@ -114,12 +116,19 @@ class RechercheEvaluationIT {
         assertThat(ArticlesAttendus.anomalies(questions, articleRepository))
                 .as("articles attendus introuvables, mal numérotés ou non applicables").isEmpty();
 
+        if (rechercheService.semantiqueActive()) {
+            Set<Integer> idcc = questions.stream().map(q -> q.profil().idcc()).filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toSet());
+            Set<String> textes = new java.util.LinkedHashSet<>(rechercheService.textes(null));
+            idcc.forEach(i -> textes.addAll(rechercheService.textes(i)));
+            rechercheSemantique.vectoriser(textes);
+        }
         QuestionService service = new QuestionService(profilService, rechercheService, consultationService, SANS_MODELE,
                 metriques, null);
         Map<String, MesureQuestion> parQuestion = new LinkedHashMap<>();
         for (Question q : questions) {
             ContexteProfil contexte = profilService.contexte(q.profil());
-            List<ArticleDetail> retenus = service.articles(requetes.parQuestion().get(q.id()), q.profil().idcc(),
+            List<ArticleDetail> retenus = service.articles(q.question(), requetes.parQuestion().get(q.id()), q.profil().idcc(),
                     contexte.profil().dateReference());
             Set<String> ids = retenus.stream().map(ArticleDetail::sourceId).collect(Collectors.toSet());
             parQuestion.put(q.id(), new MesureQuestion(

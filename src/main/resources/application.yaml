@@ -15,13 +15,18 @@ spring:
     model:
       # Spring AI ne configure Ollama que s'il est le fournisseur choisi
       chat: ${droits.assistant.fournisseur:claude}
-      embedding: none
+      # Recherche sémantique (droits.semantique) : « ollama » pour vectoriser avec un modèle local
+      embedding: ${droits.semantique.fournisseur:none}
     chat:
       client:
         enabled: false
     ollama:
       # Adresse du serveur Ollama : la machine locale, ou une autre machine du réseau
       base-url: http://localhost:11434
+      embedding:
+        options:
+          # Multilingue, bon en français ; vecteurs de 1024 dimensions (changeset 009)
+          model: bge-m3
       chat:
         model: qwen2.5:7b
         # Contexte assez long pour quatre articles, le profil et la réponse (2048 jetons par défaut

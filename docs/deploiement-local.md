@@ -54,7 +54,7 @@ http://localhost:3000/ (lecture seule sans compte, `admin`/`admin` pour modifier
 |---|---|---|
 | Image | `./mvnw spring-boot:build-image` (buildpacks Paketo), importée par `k3d image import` | pas de Dockerfile à maintenir, pas de registre |
 | Publication | Service `LoadBalancer` relié au port 8080 du Mac ; Traefik désactivé | pas de délai de proxy (≈ 60 s) qui couperait une rédaction lente d'Ollama ; moins de mémoire |
-| Base | StatefulSet `postgres:18.6`, volume `local-path` de 2 Go | version épinglée ; données conservées tant que le cluster existe |
+| Base | StatefulSet `pgvector/pgvector:0.8.7-pg18` (PostgreSQL 18 et pgvector), volume `local-path` de 2 Go | version épinglée ; données conservées tant que le cluster existe |
 | Schéma | Liquibase au démarrage de l'application | comme hors cluster |
 | Ingestion | Job lancé à la demande, hors de la kustomisation | une ingestion est une action, pas un état ; les sources restent épinglées dans `application.yaml` |
 | Fournisseur | `ollama` par défaut (ConfigMap), Ollama sur le Mac via `host.k3d.internal` | gratuit, la question et le profil ne quittent pas la machine |
