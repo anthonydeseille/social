@@ -11,6 +11,7 @@ CLUSTER=droits
 NAMESPACE=droits
 IMAGE=social:local
 POSTGRES=postgres:18.6
+LGTM=grafana/otel-lgtm:0.41.1
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="/opt/local/bin:$PATH"
 
@@ -47,6 +48,8 @@ cree() {
     image
     docker image inspect "$POSTGRES" > /dev/null 2>&1 || docker pull -q "$POSTGRES"
     k3d image import --cluster "$CLUSTER" "$POSTGRES"
+    docker image inspect "$LGTM" > /dev/null 2>&1 || docker pull -q "$LGTM"
+    k3d image import --cluster "$CLUSTER" "$LGTM"
     kubectl apply -f "$RACINE/deploy/k8s/namespace.yaml" > /dev/null
     secrets
     kubectl apply -k "$RACINE/deploy/k8s"

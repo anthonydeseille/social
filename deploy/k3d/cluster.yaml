@@ -12,6 +12,10 @@ ports:
   - port: 8080:8080
     nodeFilters:
       - loadbalancer
+  # http://localhost:3000 sur le Mac → Grafana (Service « observabilite », deploy/k8s/observabilite.yaml)
+  - port: 3000:3000
+    nodeFilters:
+      - loadbalancer
 options:
   k3s:
     extraArgs:

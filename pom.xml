@@ -112,6 +112,12 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Traces OpenTelemetry (une étape du trajet d'une question = un span) et métriques en OTLP,
+		     envoyées à la pile d'observabilité du cluster (deploy/k8s/observabilite.yaml) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-opentelemetry</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

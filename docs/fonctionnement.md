@@ -140,6 +140,22 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 Ils révèlent le volume, le coût et le quota : ne pas activer ce profil sur un serveur public sans
 protection (port interne, authentification).
 
+**Traces et envoi OTLP.** Chaque étape du trajet (`MetriquesQuestions.chronometrer`) est une
+observation Micrometer : elle donne la durée `droits.questions.etape` et un span OpenTelemetry, enfant
+de la requête HTTP. Les spans portent des attributs utiles au diagnostic, jamais la question, le
+profil ni la réponse :
+
+| Étape | Attributs |
+|---|---|
+| reformulation | modele, consignes (version), requetes (nombre), fournisseur, jetons.entree, jetons.sortie, cout_usd |
+| recherche | articles (nombre transmis), convention (IDCC fourni ou non) |
+| redaction | modele, consignes, calcul (fait ou non), fournisseur, jetons, cout_usd |
+
+Rien n'est envoyé par défaut. Avec le profil `observabilite`, traces et métriques partent en OTLP
+vers `OTEL_COLLECTEUR` (`http://localhost:4318` sinon), toutes les questions étant tracées
+(échantillonnage à 100 %). Dans le cluster k3d, la pile Grafana LGTM les reçoit, avec un tableau de
+bord et des alertes (voir [`deploiement-local.md`](deploiement-local.md#observabilité)).
+
 ## L'évaluation
 
 Le même trajet sert à mesurer la fiabilité des réponses, sur un jeu de questions dont la réponse a été

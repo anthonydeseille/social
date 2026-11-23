@@ -1,0 +1,85 @@
+# Alertes Grafana (provisionnées au démarrage) sur les métriques de l'application, reçues en OTLP par
+# Prometheus (noms : points en tirets bas, « _total » pour les compteurs, unité en suffixe).
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: droits
+    folder: Droits des salariés
+    interval: 1m
+    rules:
+      - uid: droits-depense-jour
+        title: Dépense du jour au-delà de 80 % du budget
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: prometheus
+            model: {refId: A, expr: "max(droits_assistant_depense_jour_usd)", instant: true}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              # Budget journalier par défaut : 10 $ (droits.questions.budget-journalier-usd)
+              conditions: [{evaluator: {type: gt, params: [8]}}]
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "Dépense du jour : {{ $values.A.Value }} $ ; au-delà du budget, les questions sont refusées (429)."
+        labels: {gravite: avertissement}
+      - uid: droits-erreurs-modele
+        title: Appels au modèle en erreur
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 900, to: 0}
+            datasourceUid: prometheus
+            model: {refId: A, expr: "sum(increase(droits_assistant_appels_total{issue=\"erreur\"}[15m]))", instant: true}
+          - refId: C
+            datasourceUid: __expr__
+            model: {refId: C, type: threshold, expression: A, conditions: [{evaluator: {type: gt, params: [2]}}]}
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "{{ $values.A.Value }} appels au modèle en erreur en 15 minutes (questions en 503)."
+        labels: {gravite: critique}
+      - uid: droits-citations-non-verifiees
+        title: Citations non vérifiées
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 3600, to: 0}
+            datasourceUid: prometheus
+            model: {refId: A, expr: "sum(increase(droits_citations_total{verification=\"non_verifiee\"}[1h]))", instant: true}
+          - refId: C
+            datasourceUid: __expr__
+            model: {refId: C, type: threshold, expression: A, conditions: [{evaluator: {type: gt, params: [0]}}]}
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "Une réponse cite un extrait introuvable dans l'article (signalé au salarié) : à relire."
+        labels: {gravite: avertissement}
+      - uid: droits-redaction-lente
+        title: Rédaction lente (95e centile au-delà de 2 minutes)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 1800, to: 0}
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: "histogram_quantile(0.95, sum by (le) (rate(droits_questions_etape_milliseconds_bucket{etape=\"redaction\"}[30m])))"
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model: {refId: C, type: threshold, expression: A, conditions: [{evaluator: {type: gt, params: [120000]}}]}
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "95 % des rédactions en moins de {{ $values.A.Value }} ms : modèle surchargé ou trop lent."
+        labels: {gravite: avertissement}

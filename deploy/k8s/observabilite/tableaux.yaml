@@ -1,0 +1,11 @@
+# Fournisseur de tableaux de bord Grafana : les fichiers JSON du ConfigMap « tableaux-de-bord »,
+# montés dans le dossier que lit l'image grafana/otel-lgtm
+apiVersion: 1
+providers:
+  - name: droits
+    folder: Droits des salariés
+    type: file
+    disableDeletion: true
+    options:
+      path: /otel-lgtm/grafana/conf/provisioning/dashboards/custom
+      foldersFromFilesStructure: false
