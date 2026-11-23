@@ -3,10 +3,16 @@ package fr.deseille.social.entreprise;
 import fr.deseille.social.corpus.Texte;
 import fr.deseille.social.corpus.TexteRepository;
 import java.net.http.HttpClient;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -35,6 +41,11 @@ import tools.jackson.databind.json.JsonMapper;
  * prise que pour lire les titres des conventions, en une requête. Une réponse illisible de l'annuaire
  * donne un 503, comme une panne ; un IDCC illisible est ignoré.
  * <p>
+ * Devant l'annuaire (environ 7 requêtes par seconde au plus, pour tous ses utilisateurs) : un cache en
+ * mémoire d'une heure ({@value #CACHE_ENTREES} recherches au plus), et au plus {@value #APPELS_PAR_SECONDE}
+ * appels par seconde depuis l'application ; au-delà, 429 plutôt que de faire refuser tout le monde par
+ * l'annuaire.
+ * <p>
  * La recherche n'est ni stockée ni journalisée : seul l'IDCC choisi rejoint ensuite le profil.
  */
 @Service
@@ -44,20 +55,33 @@ public class EntrepriseService {
     private static final Pattern SIRET = Pattern.compile("\\d{14}");
     private static final String SANS_CONVENTION = "9999";
     static final int RESULTATS = 5;
+    static final int CACHE_ENTREES = 500;
+    static final Duration CACHE_DUREE = Duration.ofHours(1);
+    static final int APPELS_PAR_SECONDE = 5;
 
     private final RestClient client;
     private final TexteRepository texteRepository;
+    private final Clock clock;
+    /** Recherche normalisée → résultat et instant d'expiration ; les plus anciennement lues sortent d'abord. */
+    private final Map<String, EnCache> cache = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, EnCache> plusAncienne) {
+            return size() > CACHE_ENTREES;
+        }
+    };
+    private final Deque<Instant> appels = new ArrayDeque<>();
     private final JsonMapper json = JsonMapper.builder().build();
 
     @Autowired
-    public EntrepriseService(TexteRepository texteRepository,
+    public EntrepriseService(TexteRepository texteRepository, Clock clock,
                              @Value("${droits.entreprises.base-url:https://recherche-entreprises.api.gouv.fr}") String baseUrl) {
-        this(texteRepository, RestClient.builder().baseUrl(baseUrl).requestFactory(fabrique()));
+        this(texteRepository, RestClient.builder().baseUrl(baseUrl).requestFactory(fabrique()), clock);
     }
 
-    EntrepriseService(TexteRepository texteRepository, RestClient.Builder builder) {
+    EntrepriseService(TexteRepository texteRepository, RestClient.Builder builder, Clock clock) {
         this.texteRepository = texteRepository;
         this.client = builder.build();
+        this.clock = clock;
     }
 
     private static JdkClientHttpRequestFactory fabrique() {
@@ -70,7 +94,38 @@ public class EntrepriseService {
     /** Entreprises qui correspondent à la recherche, avec leurs conventions (au plus {@value #RESULTATS}). */
     public List<Entreprise> chercher(String recherche) {
         String q = recherche.replaceAll("[\\s.]", "").matches("\\d{9}|\\d{14}")
-                ? recherche.replaceAll("[\\s.]", "") : recherche.trim();
+                ? recherche.replaceAll("[\\s.]", "") : recherche.trim().replaceAll("\\s+", " ");
+        String cle = q.toLowerCase(Locale.ROOT);
+        Instant maintenant = clock.instant();
+        synchronized (cache) {
+            EnCache enCache = cache.get(cle);
+            if (enCache != null && enCache.expire().isAfter(maintenant)) {
+                return enCache.entreprises();
+            }
+        }
+        reserverUnAppel(maintenant);
+        List<Entreprise> entreprises = interroger(q);
+        synchronized (cache) {
+            cache.put(cle, new EnCache(entreprises, maintenant.plus(CACHE_DUREE)));
+        }
+        return entreprises;
+    }
+
+    /** Fenêtre glissante d'une seconde : au-delà de {@value #APPELS_PAR_SECONDE} appels, 429. */
+    private void reserverUnAppel(Instant maintenant) {
+        synchronized (appels) {
+            while (!appels.isEmpty() && !appels.peekFirst().isAfter(maintenant.minusSeconds(1))) {
+                appels.pollFirst();
+            }
+            if (appels.size() >= APPELS_PAR_SECONDE) {
+                throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                        "Trop de recherches d'entreprise en même temps : réessayez dans quelques secondes.");
+            }
+            appels.addLast(maintenant);
+        }
+    }
+
+    private List<Entreprise> interroger(String q) {
         String corps;
         try {
             corps = client.get().uri(u -> u.path("/search").queryParam("q", q).queryParam("per_page", RESULTATS)
@@ -123,6 +178,9 @@ public class EntrepriseService {
                                 .path("libelle_commune").asString(null),
                         l.idcc().stream().map(i -> new Convention(i, titres.get(i), titres.containsKey(i))).toList()))
                 .toList();
+    }
+
+    private record EnCache(List<Entreprise> entreprises, Instant expire) {
     }
 
     /** Titre de chaque convention intégrée, en une requête. */
