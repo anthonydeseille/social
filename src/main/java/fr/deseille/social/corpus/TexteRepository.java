@@ -11,4 +11,6 @@ public interface TexteRepository extends JpaRepository<Texte, Long> {
     List<Texte> findByType(TypeTexte type);
 
     List<Texte> findByIdcc(Integer idcc);
+
+    List<Texte> findByIdccIn(java.util.Collection<Integer> idcc);
 }

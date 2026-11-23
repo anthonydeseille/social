@@ -52,7 +52,7 @@ automatiquement, comparé à l'historique, tracé en production et corrigé à p
 
 1. **Autres conventions collectives** : 6 ajoutées ✅ (métallurgie, commerce alimentaire, transports routiers, hôtels-cafés-restaurants, services de l'automobile, propreté ; environ 3,5 millions de salariés de plus). Leurs barèmes d'indemnité restent à intégrer, après validation juridique. Suivantes possibles : bâtiment (1596, 1597), handicap (0413), commerces de gros (0573).
 2. **Retrouver l'IDCC** à partir de l'entreprise (SIRET) ou du nom de la convention.
-   - Par le nom, le SIREN ou le SIRET de l'entreprise ✅ (annuaire public des entreprises, `/api/entreprises`, choix dans la page). À faire : par le nom de la convention, et dire quand l'entreprise relève d'une convention non intégrée.
+   - Par le nom, le SIREN ou le SIRET de l'entreprise ✅ (annuaire public des entreprises, `/api/entreprises`, choix dans la page). À faire : par le nom de la convention, et proposer les conventions intégrées les plus proches quand celle de l'entreprise ne l'est pas.
 3. **Interface web** : profil gardé dans le navigateur, question, réponse avec citations cliquables.
    - Première version minimale ✅ (`src/main/resources/static`) ; à enrichir (calculateur d'indemnité, retours « utile / pas utile »).
 4. **Mise à jour planifiée du corpus** et affichage des changements.

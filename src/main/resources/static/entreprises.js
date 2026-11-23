@@ -7,7 +7,7 @@
 
   function libelle(convention) {
     const numero = "IDCC " + String(convention.idcc).padStart(4, "0");
-    if (!convention.integree) return numero + " (pas encore intégrée : réponses sur le seul Code du travail)";
+    if (!convention.integree || !convention.titre) return numero + " (pas encore intégrée : réponses sur le seul Code du travail)";
     return numero + " - " + convention.titre.replace(PREFIXE, "");
   }
 

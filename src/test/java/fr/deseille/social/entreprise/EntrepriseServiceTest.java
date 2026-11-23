@@ -2,7 +2,10 @@ package fr.deseille.social.entreprise;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -41,8 +44,10 @@ class EntrepriseServiceTest {
     @BeforeEach
     void preparer() {
         Texte syntec = mock(Texte.class);
+        when(syntec.getIdcc()).thenReturn(1486);
         when(syntec.getTitre()).thenReturn("Convention collective nationale Syntec");
-        when(textes.findByIdcc(1486)).thenReturn(List.of(syntec));
+        when(textes.findByIdccIn(anyCollection())).thenAnswer(i -> i.<java.util.Collection<Integer>>getArgument(0)
+                .contains(1486) ? List.of(syntec) : List.of());
         service = new EntrepriseService(textes, builder);
     }
 
@@ -74,6 +79,51 @@ class EntrepriseServiceTest {
         assertThat(e.conventions()).as("2120 : connue de l'annuaire, pas intégrée")
                 .containsExactly(new Convention(1486, "Convention collective nationale Syntec", true),
                         new Convention(2120, null, false));
+    }
+
+    @Test
+    void siret_absent_de_la_reponse_conventions_de_l_entreprise_pas_du_siege() {
+        annuaire.expect(requestTo("https://annuaire.test/search?q=47976684299999&per_page=5&page=1"))
+                .andRespond(withSuccess(REPONSE, MediaType.APPLICATION_JSON));
+
+        Entreprise e = service.chercher("47976684299999").getFirst();
+
+        assertThat(e.siret()).as("l'établissement cherché n'est pas celui décrit").isNull();
+        assertThat(e.commune()).isEqualTo("ISSY-LES-MOULINEAUX");
+        assertThat(e.conventions()).extracting(Convention::idcc).containsExactly(1486);
+    }
+
+    @Test
+    void par_siren_conventions_de_l_entreprise_titres_lus_en_une_requete() {
+        annuaire.expect(requestTo("https://annuaire.test/search?q=479766842&per_page=5&page=1"))
+                .andRespond(withSuccess(REPONSE.replace("\"results\": [{", "\"results\": [{\"x\": 1, ")
+                        .replace("}], \"total_results\": 1", "}, {\"siren\": \"1\", \"nom_complet\": \"AUTRE\", "
+                                + "\"complements\": {\"liste_idcc\": [\"1486\", \"\", \"abc\"]}, \"siege\": {}}], \"total_results\": 2"),
+                        MediaType.APPLICATION_JSON));
+
+        List<Entreprise> r = service.chercher("479 766 842");
+
+        assertThat(r).extracting(Entreprise::nom).containsExactly("CAPGEMINI TECHNOLOGY SERVICES", "AUTRE");
+        assertThat(r.get(1).conventions()).as("IDCC illisibles ignorés").extracting(Convention::idcc).containsExactly(1486);
+        assertThat(r.get(1).commune()).isNull();
+        verify(textes, times(1)).findByIdccIn(anyCollection());
+    }
+
+    @Test
+    void aucun_resultat_liste_vide() {
+        annuaire.expect(requestTo("https://annuaire.test/search?q=introuvable&per_page=5&page=1"))
+                .andRespond(withSuccess("{\"results\": [], \"total_results\": 0}", MediaType.APPLICATION_JSON));
+
+        assertThat(service.chercher("introuvable")).isEmpty();
+    }
+
+    @Test
+    void reponse_illisible_503() {
+        annuaire.expect(requestTo("https://annuaire.test/search?q=capgemini&per_page=5&page=1"))
+                .andRespond(withSuccess("<html>maintenance</html>", MediaType.TEXT_HTML));
+
+        assertThatThrownBy(() -> service.chercher("capgemini")).isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("503");
     }
 
     @Test
