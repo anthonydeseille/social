@@ -234,6 +234,21 @@ class QuestionServiceTest {
     }
 
     @Test
+    void une_place_sur_quatre_pour_un_modele_local_seuil_inclus() {
+        when(assistant.articlesMax()).thenReturn(4);
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        // Code : 2,0 à 1,1 ; le 4e retenu sans réserve vaut 1,7, d'où un seuil de 0,85
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.rechercherConvention("q", 1486, 10, DATE))
+                .thenReturn(List.of(resultat("K1", 0.85), resultat("K2", 0.85)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("question", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .as("une seule place réservée ; 0,85 atteint exactement le seuil").containsExactly("C0", "C1", "C2", "K1");
+    }
+
+    @Test
     void sans_convention_pas_de_recherche_dans_la_convention() {
         ProfilSalarie profil = new ProfilSalarie(null, null, null, null, null, null, false, null, DATE);
         when(profilService.contexte(profil)).thenReturn(new ContexteProfil(profil, null, List.of(CODE), false, List.of()));

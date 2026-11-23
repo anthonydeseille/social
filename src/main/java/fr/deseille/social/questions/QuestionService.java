@@ -13,6 +13,7 @@ import fr.deseille.social.recherche.RechercheService.Resultat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -239,7 +240,7 @@ public class QuestionService {
         List<Resultat> reserves = convention.values().stream().sorted(parPertinence)
                 .filter(r -> r.pertinence() >= seuil)
                 .limit((long) Math.floor(max * PART_CONVENTION)).toList();
-        Set<String> dejaRetenus = new java.util.HashSet<>();
+        Set<String> dejaRetenus = new HashSet<>();
         reserves.forEach(r -> dejaRetenus.add(r.articleSourceId()));
         List<Resultat> retenus = new ArrayList<>(reserves);
         meilleurs.values().stream().sorted(parPertinence).filter(r -> !dejaRetenus.contains(r.articleSourceId()))
