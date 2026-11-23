@@ -1,6 +1,6 @@
 {
   "origineRequetes" : "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31",
-  "articlesTrouves" : 26,
+  "articlesTrouves" : 28,
   "articlesAttendus" : 48,
   "questions" : {
     "periode-essai-cadre" : {
@@ -21,7 +21,7 @@
     "preavis-licenciement-etam-3ans" : {
       "trouves" : [ "LEGIARTI000006901112" ],
       "attendus" : 2,
-      "retenus" : [ "L1234-5", "L1234-1", "L1234-4", "L1234-3", "L1234-2", "L1234-6", "L1234-7", "L1234-8" ]
+      "retenus" : [ "L1234-5", "L1234-1", "L1234-4", "L1234-3", "L1234-2", "L1234-6", "14", "4.4" ]
     },
     "absences-recherche-emploi" : {
       "trouves" : [ "KALIARTI000047513835" ],
@@ -29,19 +29,19 @@
       "retenus" : [ "6", "2", "3.4", "(sans numéro)", "(sans numéro)", "70", "26", "4.3" ]
     },
     "indemnite-licenciement-cadre-7ans" : {
-      "trouves" : [ "LEGIARTI000035644154" ],
+      "trouves" : [ "KALIARTI000047513839", "LEGIARTI000035644154" ],
       "attendus" : 3,
-      "retenus" : [ "L1233-58", "L1233-60", "L1233-59", "L1234-9", "L1233-60-1", "L1234-10", "L1234-11", "L1233-26" ]
+      "retenus" : [ "L1233-58", "L1233-60", "L1233-59", "L1234-9", "L1233-60-1", "L1234-10", "23", "4.5" ]
     },
     "indemnite-licenciement-etam-12ans" : {
-      "trouves" : [ "LEGIARTI000035644692" ],
+      "trouves" : [ "KALIARTI000047513839", "LEGIARTI000035644692" ],
       "attendus" : 2,
-      "retenus" : [ "L1234-9", "L1234-10", "L1234-11", "R1234-5", "R1234-1", "R1234-2", "L1234-5", "L1234-13" ]
+      "retenus" : [ "L1234-9", "L1234-10", "L1234-11", "R1234-5", "R1234-1", "R1234-2", "23", "4.5" ]
     },
     "licenciement-6-mois" : {
-      "trouves" : [ "LEGIARTI000035644154" ],
+      "trouves" : [ "LEGIARTI000035644154", "KALIARTI000047513839" ],
       "attendus" : 4,
-      "retenus" : [ "L1234-9", "L1234-10", "L1234-11", "R1234-5", "R1234-1", "R1234-2", "L1234-5", "L1234-13" ]
+      "retenus" : [ "L1234-9", "L1234-10", "L1234-11", "R1234-5", "R1234-1", "R1234-2", "23", "4.5" ]
     },
     "grossesse-annonce" : {
       "trouves" : [ "LEGIARTI000006900881" ],
@@ -66,12 +66,12 @@
     "conges-payes-6ans" : {
       "trouves" : [ "LEGIARTI000033020826" ],
       "attendus" : 2,
-      "retenus" : [ "L3141-9", "L3141-5", "D3141-3", "L3141-10", "L3141-11", "L3141-3", "L3141-4", "L3141-5-1" ]
+      "retenus" : [ "L3141-9", "L3141-5", "D3141-3", "L3141-10", "L3141-11", "L3141-3", "(sans numéro)", "21" ]
     },
     "conge-mariage" : {
       "trouves" : [ "LEGIARTI000054251220" ],
       "attendus" : 2,
-      "retenus" : [ "D3142-1-1", "L3142-2", "D3142-1-3", "L3142-1", "L3142-4", "L3142-5", "L3142-1-1", "D3142-1-2" ]
+      "retenus" : [ "D3142-1-1", "L3142-2", "D3142-1-3", "L3142-1", "L3142-4", "L3142-5", "2", "5.1" ]
     },
     "maladie-cadre-2ans" : {
       "trouves" : [ "KALIARTI000047513889" ],
@@ -84,14 +84,14 @@
       "retenus" : [ "33", "6", "9.2", "(sans numéro)", "R5411-10", "(sans numéro)", "29", "56" ]
     },
     "temps-partiel-heures-complementaires" : {
-      "trouves" : [ "LEGIARTI000033019950", "LEGIARTI000033019947", "LEGIARTI000033019991", "LEGIARTI000033020058" ],
+      "trouves" : [ "LEGIARTI000033019950", "LEGIARTI000033019947", "LEGIARTI000033020058" ],
       "attendus" : 5,
-      "retenus" : [ "L3123-29", "L3123-10", "L3123-9", "L3123-8", "L3123-28", "L3123-21", "L3123-20", "L212-4-4" ]
+      "retenus" : [ "L3123-29", "L3123-10", "L3123-9", "L3123-8", "L3123-28", "L3123-21", "(sans numéro)", "(sans numéro)" ]
     },
     "heures-supplementaires" : {
       "trouves" : [ ],
       "attendus" : 4,
-      "retenus" : [ "D5132-43-5", "D5132-43-8", "D5132-43-6", "(sans numéro)", "D5132-43-14", "D5132-10-5-3", "D5132-26-12", "L5134-26" ]
+      "retenus" : [ "D5132-43-5", "D5132-43-8", "D5132-43-6", "(sans numéro)", "D5132-43-14", "D5132-10-5-3", "D5132-26-12", "1er" ]
     },
     "fin-cdd" : {
       "trouves" : [ ],

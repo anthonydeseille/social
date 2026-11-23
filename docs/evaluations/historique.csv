@@ -3,3 +3,4 @@ date,commit,changement,mode,modele,consignes_reformulation,consignes_redaction,c
 2026-10-31,6c672d5,PR #22 (Code applicable) et #24 (titres de section),lots,claude-opus-5-5,79d5ae25,5d624a71,89ac4e8f,20,0,58,26,48,58,197,197,71,1,174631,50289,0.85,0.28,2026-10-31-titres-section.md
 2026-11-23,c7df5f5,PR #36 (calculateur dans les questions),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,52,24,48,52,202,202,67,1,195246,52537,0.92,0.29,2026-11-23-calcul-dans-questions.md
 2026-11-23,c58eb5c,PR #38 (calcul dans la page ; salaire lu dans la question),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,51,24,48,51,195,195,70,1,202023,53107,0.94,0.28,2026-11-23b-calcul-page-et-salaire.md
+2026-11-23,e7e67af,PR #39 (places réservées à la convention),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,66,30,48,63,209,209,77,1,216009,52539,0.96,0.28,2026-11-23c-places-convention.md

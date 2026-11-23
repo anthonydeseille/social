@@ -51,6 +51,22 @@ public class RechercheService {
         if (textes.isEmpty()) {
             return List.of();
         }
+        return resultats(requete, textes, seulementApplicables, limite, date);
+    }
+
+    /**
+     * Recherche dans la seule convention collective de l'IDCC : la recherche commune la laisse souvent
+     * hors des premiers résultats, les articles du Code étant plus nombreux et mieux classés.
+     *
+     * @param date date d'appréciation de l'applicabilité (seuls les articles applicables sont renvoyés)
+     */
+    public List<Resultat> rechercherConvention(String requete, int idcc, int limite, LocalDate date) {
+        List<String> textes = texteRepository.findByIdcc(idcc).stream().map(Texte::getSourceId).toList();
+        return textes.isEmpty() ? List.of() : resultats(requete, textes, true, limite, date);
+    }
+
+    private List<Resultat> resultats(String requete, List<String> textes, boolean seulementApplicables, int limite,
+                                     LocalDate date) {
         return rechercheRepository.rechercher(requete, textes, seulementApplicables, date, limite).stream()
                 .map(l -> new Resultat(l.sourceId(), l.num(), l.etat(),
                         Article.estApplicable(l.etat(), l.dateDebut(), l.dateFin(), l.disparuLe(), date),
