@@ -33,6 +33,19 @@ import org.springframework.web.server.ResponseStatusException;
 public class QuestionService {
 
     private static final int RESULTATS_PAR_REQUETE = 10;
+    /**
+     * Part des articles transmis réservée à la convention collective, quand elle en a de pertinents :
+     * sans réserve, les sections du Code occupent toutes les places et des articles décisifs de la
+     * convention (indemnité, préavis) ne sont jamais transmis (évaluations du 31 octobre et du 23
+     * novembre 2026). Choisie avec l'évaluation gratuite de la recherche ({@code RechercheEvaluationIT}).
+     */
+    static final double PART_CONVENTION = 2.0 / 8;
+    /**
+     * Pertinence minimale d'un article de la convention pour une place réservée, en part de celle du
+     * dernier article qui aurait été retenu sans réserve : un article de la convention à peine lié à la
+     * question ne doit pas évincer un article du Code bien classé.
+     */
+    static final double PERTINENCE_MIN_CONVENTION = 0.5;
 
     private final ProfilService profilService;
     private final RechercheService rechercheService;
@@ -202,18 +215,41 @@ public class QuestionService {
     /**
      * Fusionne les résultats des requêtes : chaque article garde sa meilleure pertinence, puis les
      * meilleurs sont retenus, autant que l'assistant en accepte ({@link Assistant#articlesMax()}).
+     * Avec une convention, une part des places ({@link #PART_CONVENTION}) va d'abord à ses meilleurs
+     * articles, cherchés à part ; les places qu'elle n'occupe pas reviennent aux autres.
      */
     private List<Resultat> selectionner(List<String> requetes, Integer idcc, LocalDate date) {
         Map<String, Resultat> meilleurs = new LinkedHashMap<>();
+        Map<String, Resultat> convention = new LinkedHashMap<>();
         for (String requete : requetes) {
             for (Resultat r : rechercheService.rechercher(requete, idcc, true, RESULTATS_PAR_REQUETE, date)) {
-                meilleurs.merge(r.articleSourceId(), r, (a, b) -> a.pertinence() >= b.pertinence() ? a : b);
+                garderLeMeilleur(meilleurs, r);
+            }
+            if (idcc != null) {
+                for (Resultat r : rechercheService.rechercherConvention(requete, idcc, RESULTATS_PAR_REQUETE, date)) {
+                    garderLeMeilleur(convention, r);
+                    garderLeMeilleur(meilleurs, r);
+                }
             }
         }
-        return meilleurs.values().stream()
-                .sorted(Comparator.comparingDouble(Resultat::pertinence).reversed())
-                .limit(assistant.articlesMax())
-                .toList();
+        Comparator<Resultat> parPertinence = Comparator.comparingDouble(Resultat::pertinence).reversed();
+        int max = assistant.articlesMax();
+        List<Resultat> sansReserve = meilleurs.values().stream().sorted(parPertinence).limit(max).toList();
+        double seuil = sansReserve.isEmpty() ? 0 : sansReserve.getLast().pertinence() * PERTINENCE_MIN_CONVENTION;
+        List<Resultat> reserves = convention.values().stream().sorted(parPertinence)
+                .filter(r -> r.pertinence() >= seuil)
+                .limit((long) Math.floor(max * PART_CONVENTION)).toList();
+        Set<String> dejaRetenus = new java.util.HashSet<>();
+        reserves.forEach(r -> dejaRetenus.add(r.articleSourceId()));
+        List<Resultat> retenus = new ArrayList<>(reserves);
+        meilleurs.values().stream().sorted(parPertinence).filter(r -> !dejaRetenus.contains(r.articleSourceId()))
+                .limit(max - reserves.size()).forEach(retenus::add);
+        retenus.sort(parPertinence);
+        return retenus;
+    }
+
+    private static void garderLeMeilleur(Map<String, Resultat> parArticle, Resultat r) {
+        parArticle.merge(r.articleSourceId(), r, (a, b) -> a.pertinence() >= b.pertinence() ? a : b);
     }
 
     /** Article transmis à la rédaction, pour que le client puisse afficher toutes les sources. */

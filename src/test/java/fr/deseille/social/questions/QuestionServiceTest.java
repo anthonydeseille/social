@@ -207,6 +207,46 @@ class QuestionServiceTest {
     }
 
     @Test
+    void deux_places_sur_huit_reservees_aux_articles_pertinents_de_la_convention() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        // Code : 10 articles de 2,0 à 1,1 ; le 8e retenu sans réserve vaut 1,3, d'où un seuil de 0,65
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.rechercherConvention("q", 1486, 10, DATE))
+                .thenReturn(List.of(resultat("K1", 1.0), resultat("K2", 0.7), resultat("K3", 0.69)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("question", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .as("K1 et K2 réservés ; K3 n'a pas de place ; les 6 meilleurs du Code, par pertinence")
+                .containsExactly("C0", "C1", "C2", "C3", "C4", "C5", "K1", "K2");
+    }
+
+    @Test
+    void article_de_la_convention_trop_peu_pertinent_n_evince_pas_le_code() {
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", 1486, true, 10, DATE))
+                .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
+        when(rechercheService.rechercherConvention("q", 1486, 10, DATE)).thenReturn(List.of(resultat("K1", 0.6)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        assertThat(service.repondre("question", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
+                .as("0,6 < 0,65 : pas de place réservée").containsExactly("C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7");
+    }
+
+    @Test
+    void sans_convention_pas_de_recherche_dans_la_convention() {
+        ProfilSalarie profil = new ProfilSalarie(null, null, null, null, null, null, false, null, DATE);
+        when(profilService.contexte(profil)).thenReturn(new ContexteProfil(profil, null, List.of(CODE), false, List.of()));
+        when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
+        when(rechercheService.rechercher("q", null, true, 10, DATE)).thenReturn(List.of(resultat("A", 1)));
+        when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
+
+        service.repondre("question", profil);
+
+        verify(rechercheService, never()).rechercherConvention(anyString(), org.mockito.ArgumentMatchers.anyInt(), any(Integer.class), any());
+    }
+
+    @Test
     void sans_article_trouve_pas_de_redaction() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("introuvable"));
         when(rechercheService.rechercher("introuvable", 1486, true, 10, DATE)).thenReturn(List.of());
