@@ -71,6 +71,7 @@ But : montrer une application LLMOps de bout en bout. La librairie montre la mé
    - Extraction du code ✅ : prix, versions des consignes, budget journalier, historique CSV, contrôle de régression.
    - Social consomme la librairie ✅ (PR #34).
    - 0.1.0 publiée ✅ ([release](https://github.com/anthonydeseille/llmeval4j/releases/tag/0.1.0), JitPack), utilisée par social.
+   - 0.2.0 publiée ✅ ([release](https://github.com/anthonydeseille/llmeval4j/releases/tag/0.2.0)) : métriques indicatives (`Metric.informative`), utilisées par social pour la recherche et les articles cités.
    - À faire : Maven Central (`io.github.anthonydeseille`, signature GPG, workflow de release).
 2. **Passer social en public** :
    - Claude ne répond qu'au propriétaire et aux collaborateurs (`claude.yml`) ✅ (PR #32).
