@@ -172,6 +172,11 @@ class CalculsQuestionsTest {
                 .as("annuel annoncé avant le montant").isEqualByComparingTo("3000");
         assertThat(CalculsQuestions.salaire("je gagne 2 500 € brut, nettement plus qu'avant").mensuel())
                 .as("« nettement » n'est pas « net »").isEqualByComparingTo("2500");
+        assertThat(CalculsQuestions.salaire("mon salaire est de 36 000 € par an").mensuel()).isEqualByComparingTo("3000");
+        assertThat(CalculsQuestions.salaire("avant 30 000 € par an, puis je gagne 2 400 € brut").mensuel())
+                .as("« par an » porte sur l'autre montant").isEqualByComparingTo("2400");
+        assertThat(CalculsQuestions.salaire("ma prime est annuelle, je gagne 2 500 € brut").mensuel())
+                .as("la virgule arrête « annuel »").isEqualByComparingTo("2500");
     }
 
     @Test

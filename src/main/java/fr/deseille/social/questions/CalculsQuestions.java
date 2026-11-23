@@ -72,11 +72,13 @@ public class CalculsQuestions {
             "\\b(?:indemnit|prime|rappel|cheque|dommages|solde|chomage|allocation)[^.?!€\\d]{0,20}$");
     private static final Pattern AUTRE_SOMME_APRES = Pattern.compile(
             "^\\s*(?:d'|de\\s+)?(?:indemnit|prime|rappel|dommages|solde|chomage|allocation)");
-    /** « net » ou « annuel » juste après le montant, ou entre le mot « salaire » et le montant. */
+    // « net » ou « annuel » juste après le montant (NET, ANNUEL), ou juste avant, dans le même membre
+    // de phrase (NET_AVANT, ANNUEL_AVANT : une virgule arrête la fenêtre, pour ne pas lire « 30 000 €
+    // par an, puis je gagne 2 500 € » comme un salaire annuel de 2 500 €)
     private static final Pattern NET = Pattern.compile("^[^.?!€\\d]{0,12}\\bnet\\b");
-    private static final Pattern NET_AVANT = Pattern.compile("\\bnet\\b[^.?!€\\d]{0,25}$");
+    private static final Pattern NET_AVANT = Pattern.compile("\\bnet\\b[^.,;?!€\\d]{0,25}$");
     private static final Pattern ANNUEL = Pattern.compile("^[^.?!€\\d]{0,20}\\b(?:par an|annuel|l'an\\b|/ ?an\\b)");
-    private static final Pattern ANNUEL_AVANT = Pattern.compile("\\b(?:annuel|par an|l'annee)\\b[^.?!€\\d]{0,25}$");
+    private static final Pattern ANNUEL_AVANT = Pattern.compile("\\b(?:annuel|par an|l'annee)\\b[^.,;?!€\\d]{0,25}$");
     /** Bornes d'un salaire mensuel plausible : en dehors, le montant est sans doute autre chose. */
     private static final BigDecimal SALAIRE_MIN = new BigDecimal("300");
     private static final BigDecimal SALAIRE_MAX = new BigDecimal("50000");
