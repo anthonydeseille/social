@@ -10,3 +10,7 @@ data:
   DROITS_ASSISTANT_FOURNISSEUR: ollama
   # Ollama tourne sur le Mac, hors du cluster : k3d résout host.k3d.internal vers l'hôte
   SPRING_AI_OLLAMA_BASEURL: http://host.k3d.internal:11434
+  # Traces et métriques OpenTelemetry vers la pile d'observabilité du cluster (observabilite.yaml) ;
+  # le profil ouvre aussi /actuator/metrics et /actuator/prometheus, joignables dans le cluster seulement
+  SPRING_PROFILES_ACTIVE: observabilite
+  OTEL_COLLECTEUR: http://observabilite:4318

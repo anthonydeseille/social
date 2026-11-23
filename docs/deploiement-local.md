@@ -45,7 +45,8 @@ deploy/local.sh detruit  # supprime le cluster et ses données
 k9s -n droits            # pilotage : pods, journaux, événements
 ```
 
-L'application est sur http://localhost:8080/ (page web) et http://localhost:8080/api.
+L'application est sur http://localhost:8080/ (page web) et http://localhost:8080/api ; Grafana sur
+http://localhost:3000/ (lecture seule sans compte, `admin`/`admin` pour modifier).
 
 ## Choix
 
@@ -60,11 +61,34 @@ L'application est sur http://localhost:8080/ (page web) et http://localhost:8080
 | Secrets | mot de passe Postgres tiré au hasard ; Secret `anthropic` créé seulement si `ANTHROPIC_API_KEY` est définie | rien de sensible dans le dépôt |
 | Ordre de démarrage | conteneur d'attente `pg_isready` avant l'appli et l'ingestion | au premier démarrage, Postgres initialise sa base : sans attente, Liquibase échoue et le pod redémarre |
 | Sondes | `/actuator/health/liveness` et `/readiness` (activées par Spring Boot sous Kubernetes), sonde de démarrage de 3 min | Liquibase et le démarrage peuvent être lents sur le Mac |
-| Mémoire | appli 1 Gi, ingestion 1,5 Gi, Postgres 512 Mi ; `BPL_JVM_THREAD_COUNT=50` | tenir sur 16 Go avec Ollama ; le calculateur des buildpacks réserve sinon 250 threads |
+| Mémoire | appli 1 Gi, ingestion 1,5 Gi, Postgres 512 Mi, observabilité 2 Gi au plus ; `BPL_JVM_THREAD_COUNT=50` | tenir sur 16 Go avec Ollama ; le calculateur des buildpacks réserve sinon 250 threads |
 
 Pour passer à Claude : `kubectl -n droits patch configmap social -p '{"data":{"DROITS_ASSISTANT_FOURNISSEUR":"claude"}}'`
 puis `kubectl -n droits rollout restart deployment/social` (clé chargée par `deploy/local.sh cree`,
 appels payants).
+
+## Observabilité
+
+Le Deployment `observabilite` (`grafana/otel-lgtm:0.41.1`, collecteur OpenTelemetry, Prometheus,
+Tempo, Loki et Grafana dans un seul conteneur) reçoit les traces et métriques de l'application en OTLP
+(`OTEL_COLLECTEUR=http://observabilite:4318`, profil `observabilite` dans la ConfigMap). Données en
+mémoire, perdues au redémarrage du pod : c'est un outil de poste, pas un stockage.
+
+- **Tableau de bord** « Droits des salariés : questions » (page d'accueil de Grafana) : dépense du jour,
+  questions et coût par question sur 24 h, citations non vérifiées, issues des questions, 95e centile
+  de la durée de chaque étape, coût et jetons par étape, appels au modèle par issue, garde-fous,
+  chiffres non retrouvés et calculs, versions des consignes en service.
+- **Traces** : Explore > Tempo, service `social` ; une trace par question, un span par étape
+  (attributs dans [`fonctionnement.md`](fonctionnement.md#observabilité)).
+- **Alertes** (dossier « Droits des salariés ») : dépense du jour au-delà de 8 $ (80 % du budget par
+  défaut), plus de 2 appels au modèle en erreur en 15 min, une citation non vérifiée dans l'heure,
+  95e centile de la rédaction au-delà de 2 min pendant 10 min. Sans point de contact configuré, elles
+  s'affichent dans Grafana (Alerting) sans notifier.
+- Fichiers : `deploy/k8s/observabilite/` (tableau de bord, fournisseur, alertes), montés par la
+  ConfigMap générée par Kustomize. Noms dans Prometheus : points remplacés par des tirets bas,
+  `_total` pour les compteurs, unité en suffixe (`droits_questions_etape_milliseconds_bucket`).
+- Port 3000 : ajouté à `deploy/k3d/cluster.yaml` ; un cluster créé avant doit être recréé
+  (`detruit` puis `cree`), ou passer par `kubectl -n droits port-forward svc/observabilite 3000`.
 
 ## Contrôles
 

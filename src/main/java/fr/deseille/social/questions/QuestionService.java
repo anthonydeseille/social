@@ -104,16 +104,31 @@ public class QuestionService {
 
         // Le modèle raisonne à la date de référence : la recherche et l'applicabilité aussi
         LocalDate date = contexte.profil().dateReference();
-        List<String> requetes = metriques.chronometrer("reformulation", () -> assistant.reformuler(question, contexte));
+        List<String> requetes = metriques.chronometrer("reformulation", () -> {
+            metriques.annoter("modele", assistant.modele());
+            metriques.annoter("consignes", assistant.consignes().reformulation());
+            List<String> r = assistant.reformuler(question, contexte);
+            metriques.annoter("requetes", r.size());
+            return r;
+        });
 
-        List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> articles(requetes, profil.idcc(), date));
+        List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> {
+            List<ArticleDetail> a = articles(requetes, profil.idcc(), date);
+            metriques.annoter("articles", a.size());
+            metriques.annoter("convention", profil.idcc() != null);
+            return a;
+        });
         CalculQuestion calcul = calcul(question, contexte);
         if (articles.isEmpty()) {
             return sansArticle(question, contexte, requetes, calcul);
         }
 
-        Assistant.Reponse reponse = metriques.chronometrer("redaction",
-                () -> assistant.rediger(question, contexte, articles, calcul));
+        Assistant.Reponse reponse = metriques.chronometrer("redaction", () -> {
+            metriques.annoter("modele", assistant.modele());
+            metriques.annoter("consignes", assistant.consignes().redaction());
+            metriques.annoter("calcul", calcul != null);
+            return assistant.rediger(question, contexte, articles, calcul);
+        });
         return assembler(question, contexte, requetes, articles, reponse, calcul);
     }
 

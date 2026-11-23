@@ -47,6 +47,20 @@ management:
     web:
       exposure:
         include: health
+  # Traces et métriques OpenTelemetry (OTLP) : export désactivé ici, activé par le profil
+  # « observabilite » (adresse : OTEL_COLLECTEUR, deploy/k8s/observabilite.yaml). La clé des traces
+  # est lue par OnEnabledTracingExportCondition (management.tracing.export.<exportateur>.enabled).
+  tracing:
+    sampling:
+      # Peu de questions, chacune coûteuse : on les trace toutes
+      probability: 1.0
+    export:
+      otlp:
+        enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 droits:
   assistant:
@@ -114,3 +128,20 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  # Adresse OTLP de la pile d'observabilité (Grafana LGTM), à fournir par l'environnement :
+  # OTEL_COLLECTEUR=http://hote:4318 (deploy/k8s/observabilite.yaml)
+  tracing:
+    export:
+      otlp:
+        enabled: true
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_COLLECTEUR:http://localhost:4318}/v1/traces
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: ${OTEL_COLLECTEUR:http://localhost:4318}/v1/metrics
+        step: 30s

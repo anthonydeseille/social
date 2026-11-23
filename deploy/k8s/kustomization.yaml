@@ -11,3 +11,11 @@ resources:
   - configuration.yaml
   - postgres.yaml
   - social.yaml
+  - observabilite.yaml
+configMapGenerator:
+  # Tableau de bord, fournisseur et alertes Grafana (deploy/k8s/observabilite/)
+  - name: observabilite
+    files:
+      - observabilite/questions.json
+      - observabilite/tableaux.yaml
+      - observabilite/alertes.yaml

@@ -3,8 +3,12 @@ package fr.deseille.social.questions;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import java.util.Locale;
 import java.util.function.Supplier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,22 +34,50 @@ import org.springframework.stereotype.Component;
  *       versions des consignes en service, à croiser avec les autres métriques (une version change
  *       avec l'application, donc au redémarrage).</li>
  * </ul>
+ * Chaque étape est aussi une <b>observation</b> Micrometer : la même mesure donne la durée
+ * ({@code droits.questions.etape}) et, si le traçage est configuré (OpenTelemetry), un span de la
+ * trace de la requête, annoté par {@link #annoter} (modèle, jetons, coût, versions des consignes,
+ * nombre d'articles ; jamais la question ni le profil).
  */
 @Component
 public class MetriquesQuestions {
 
     private final MeterRegistry registre;
+    private final ObservationRegistry observations;
 
-    public MetriquesQuestions(MeterRegistry registre) {
+    @Autowired
+    public MetriquesQuestions(MeterRegistry registre, ObservationRegistry observations) {
         this.registre = registre;
+        this.observations = observations;
+    }
+
+    /** Hors Spring (tests) : observations mesurées dans {@code registre}, sans traçage. */
+    public MetriquesQuestions(MeterRegistry registre) {
+        this(registre, avecMesures(registre));
+    }
+
+    private static ObservationRegistry avecMesures(MeterRegistry registre) {
+        ObservationRegistry r = ObservationRegistry.create();
+        r.observationConfig().observationHandler(new DefaultMeterObservationHandler(registre));
+        return r;
     }
 
     public <T> T chronometrer(String etape, Supplier<T> action) {
-        return Timer.builder("droits.questions.etape")
-                .description("Durée d'une étape du trajet d'une question")
-                .tag("etape", etape)
-                .register(registre)
-                .record(action);
+        return Observation.createNotStarted("droits.questions.etape", observations)
+                .contextualName(etape)
+                .lowCardinalityKeyValue("etape", etape)
+                .observe(action);
+    }
+
+    /**
+     * Attribut de l'étape en cours, pour sa trace (sans effet hors d'une étape ou sans traçage). Jamais
+     * de donnée personnelle : pas de question, de profil ni de réponse.
+     */
+    public void annoter(String cle, Object valeur) {
+        Observation courante = observations.getCurrentObservation();
+        if (courante != null && valeur != null) {
+            courante.highCardinalityKeyValue(cle, String.valueOf(valeur));
+        }
     }
 
     public void question(String issue) {
@@ -64,6 +96,9 @@ public class MetriquesQuestions {
                 .tag("etape", etape).tag("sens", "entree").register(registre).increment(entree);
         Counter.builder("droits.assistant.jetons").description("Jetons consommés").tag("fournisseur", fournisseur)
                 .tag("etape", etape).tag("sens", "sortie").register(registre).increment(sortie);
+        annoter("fournisseur", fournisseur);
+        annoter("jetons.entree", entree);
+        annoter("jetons.sortie", sortie);
     }
 
     public void citations(int total, int nonVerifiees) {
@@ -95,6 +130,7 @@ public class MetriquesQuestions {
         if (!Double.isNaN(dollars)) {
             Counter.builder("droits.assistant.cout_usd").description("Coût des appels au modèle (dollars)")
                     .tag("fournisseur", fournisseur).tag("etape", etape).register(registre).increment(dollars);
+            annoter("cout_usd", String.format(Locale.ROOT, "%.5f", dollars));
         }
     }
 
