@@ -13,7 +13,15 @@ dernière ligne de [`evaluations/historique.csv`](evaluations/historique.csv) fa
 | Chaque lundi à 5 h (UTC), sur `main` | dérive du modèle ou du corpus sans changement de code |
 | À la demande (`workflow_dispatch`) | champs facultatifs : `etape` (`reformulation` : reformulation et recherche seules, quelques centimes), `modele`, `modele_reformulation`, `reference` (modèle actuel, auquel se compare un modèle sans historique) ; voir [`couts-et-modeles.md`](couts-et-modeles.md) |
 
-Les PR venant d'un dépôt dérivé ne lancent rien. Coût : environ 1,10 à 1,40 $ par lancement (API
+Les PR venant d'un dépôt dérivé ne lancent rien.
+
+**Requêtes figées sur une PR** : quand la PR ne touche ni les consignes de reformulation, ni le code
+des assistants (`Assistant*.java`), ni `application.yaml` (modèle), ni `requetes.yaml`, l'évaluation
+n'appelle pas la reformulation et reprend les requêtes de `requetes.yaml` (mode `lots-figees` dans
+l'historique) : la qualité ne mesure plus que la recherche et la rédaction. Sur 20 questions, le hasard
+de la reformulation faisait varier la qualité de 6 points sans aucun changement (évaluations du 23
+novembre 2026). Des requêtes périmées (autres consignes) font revenir à la reformulation. Le lundi et
+à la demande, tout le trajet est évalué. Coût : environ 1,10 à 1,40 $ par lancement (API
 Batch, moitié prix), soit 5 à 6 $ par mois pour le seul passage hebdomadaire.
 
 ## Ce qu'il produit

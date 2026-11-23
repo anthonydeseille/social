@@ -27,7 +27,7 @@ Les mêmes chiffres, lisibles par un programme (tableau de bord, comparaison dan
 
 | Colonne | Contenu |
 |---|---|
-| `date`, `commit`, `changement`, `mode`, `modele` | lancement : jour, commit de `main` évalué, ce qui a changé depuis la précédente, `lots` ou `direct`, modèle de l'application |
+| `date`, `commit`, `changement`, `mode`, `modele` | lancement : jour, commit de `main` évalué, ce qui a changé depuis la précédente, `lots`, `lots-figees` (requêtes de `requetes.yaml`, sans reformulation) ou `direct`, modèle de l'application |
 | `consignes_reformulation`, `consignes_redaction`, `consignes_juge` | versions des consignes (empreintes des fichiers `prompts/`, voir [`fonctionnement.md`](../fonctionnement.md)) ; juge vide s'il n'a pas été lancé. Les deux premières évaluations, antérieures au versionnement, ont été complétées après vérification que les consignes n'avaient pas changé |
 | `questions`, `validees` | questions posées, dont validées par la juriste |
 | `recherche_pct` | articles attendus transmis à Claude (moyenne par question, en %) |
