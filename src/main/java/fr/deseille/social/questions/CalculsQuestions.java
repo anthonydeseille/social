@@ -72,8 +72,11 @@ public class CalculsQuestions {
             "\\b(?:indemnit|prime|rappel|cheque|dommages|solde|chomage|allocation)[^.?!€\\d]{0,20}$");
     private static final Pattern AUTRE_SOMME_APRES = Pattern.compile(
             "^\\s*(?:d'|de\\s+)?(?:indemnit|prime|rappel|dommages|solde|chomage|allocation)");
-    private static final Pattern NET = Pattern.compile("^[^.?!€\\d]{0,12}\\bnet");
+    /** « net » ou « annuel » juste après le montant, ou entre le mot « salaire » et le montant. */
+    private static final Pattern NET = Pattern.compile("^[^.?!€\\d]{0,12}\\bnet\\b");
+    private static final Pattern NET_AVANT = Pattern.compile("\\bnet\\b[^.?!€\\d]{0,25}$");
     private static final Pattern ANNUEL = Pattern.compile("^[^.?!€\\d]{0,20}\\b(?:par an|annuel|l'an\\b|/ ?an\\b)");
+    private static final Pattern ANNUEL_AVANT = Pattern.compile("\\b(?:annuel|par an|l'annee)\\b[^.?!€\\d]{0,25}$");
     /** Bornes d'un salaire mensuel plausible : en dehors, le montant est sans doute autre chose. */
     private static final BigDecimal SALAIRE_MIN = new BigDecimal("300");
     private static final BigDecimal SALAIRE_MAX = new BigDecimal("50000");
@@ -158,13 +161,13 @@ public class CalculsQuestions {
                     || AUTRE_SOMME_AVANT.matcher(avant).find() || AUTRE_SOMME_APRES.matcher(apres).find()) {
                 continue;
             }
-            if (NET.matcher(apres).find()) {
+            if (NET.matcher(apres).find() || NET_AVANT.matcher(avant).find()) {
                 net = true;
                 continue;
             }
             BigDecimal montant = new BigDecimal(m.group(1).replaceAll("[ .\u00a0\u202f]", "")
                     + (m.group(2) != null ? "." + m.group(2) : ""));
-            if (ANNUEL.matcher(apres).find()) {
+            if (ANNUEL.matcher(apres).find() || ANNUEL_AVANT.matcher(avant).find()) {
                 annuel = true;
                 montant = montant.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
             }

@@ -168,6 +168,10 @@ class CalculsQuestionsTest {
                 .as("annuel divisé par 12").isEqualByComparingTo("3500");
         assertThat(CalculsQuestions.salaire("salaire de 42 000 € brut par an").hypothese())
                 .contains("salaire annuel divisé par 12");
+        assertThat(CalculsQuestions.salaire("mon salaire annuel brut est de 36 000 €").mensuel())
+                .as("annuel annoncé avant le montant").isEqualByComparingTo("3000");
+        assertThat(CalculsQuestions.salaire("je gagne 2 500 € brut, nettement plus qu'avant").mensuel())
+                .as("« nettement » n'est pas « net »").isEqualByComparingTo("2500");
     }
 
     @Test
@@ -178,6 +182,7 @@ class CalculsQuestionsTest {
         assertThat(CalculsQuestions.salaire("je gagne 2 000 € net").hypothese()).as("net")
                 .contains("salaire net, le calcul part du brut");
         assertThat(CalculsQuestions.salaire("je gagne 2 000 € net").mensuel()).isNull();
+        assertThat(CalculsQuestions.salaire("mon salaire net est de 2 000 €").mensuel()).as("net annoncé avant").isNull();
         assertThat(CalculsQuestions.salaire("je gagne 2 000 € brut, puis mon salaire est passe a 2 200 € brut")
                 .hypothese()).as("deux salaires").contains("plusieurs salaires");
         assertThat(CalculsQuestions.salaire("je gagne 50 € brut de l'heure").mensuel()).as("hors bornes").isNull();
