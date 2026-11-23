@@ -47,8 +47,9 @@ management:
     web:
       exposure:
         include: health
-  # Traces et métriques OpenTelemetry (OTLP) : rien n'est envoyé tant qu'aucune adresse n'est
-  # configurée (profil « observabilite » et variables du déploiement, deploy/k8s/observabilite.yaml)
+  # Traces et métriques OpenTelemetry (OTLP) : export désactivé ici, activé par le profil
+  # « observabilite » (adresse : OTEL_COLLECTEUR, deploy/k8s/observabilite.yaml). La clé des traces
+  # est lue par OnEnabledTracingExportCondition (management.tracing.export.<exportateur>.enabled).
   tracing:
     sampling:
       # Peu de questions, chacune coûteuse : on les trace toutes

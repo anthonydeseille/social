@@ -151,7 +151,8 @@ profil ni la réponse :
 | recherche | articles (nombre transmis), convention (IDCC fourni ou non) |
 | redaction | modele, consignes, calcul (fait ou non), fournisseur, jetons, cout_usd |
 
-Rien n'est envoyé par défaut (export OTLP des traces et des métriques désactivé). Avec le profil `observabilite`, traces et métriques partent en OTLP
+Rien n'est envoyé par défaut (export OTLP des traces et des métriques désactivé). Avec le
+profil `observabilite`, traces et métriques partent en OTLP
 vers `OTEL_COLLECTEUR` (`http://localhost:4318` sinon), toutes les questions étant tracées
 (échantillonnage à 100 %). Dans le cluster k3d, la pile Grafana LGTM les reçoit, avec un tableau de
 bord et des alertes (voir [`deploiement-local.md`](deploiement-local.md#observabilité)).

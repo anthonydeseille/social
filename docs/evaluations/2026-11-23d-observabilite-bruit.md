@@ -29,7 +29,7 @@ Les 18 autres questions ont la même qualité.
 
 ## Conclusions
 
-- **Ce n'est pas une régression** : deux lancements d'un même système donnent 77 % et 71 %. La PR est
+- **Ce n'est pas une régression** : deux lancements d'un même système donnent 77 % et 71 %. La PR sera
   fusionnée en passant outre le contrôle, compromis expliqué dans la PR.
 - **Le seuil de 5 points sur la qualité est trop serré pour 20 questions** : une seule question qui
   passe de 100 % à 0 % fait perdre 5 points. Le bruit vient presque entièrement de la reformulation.
