@@ -36,11 +36,12 @@ public class CalculsQuestions {
             Pattern.compile("\\bindemnit\\w*\\s+(?:legale\\s+|conventionnelle\\s+)?de\\s+licenci");
     /**
      * Une autre indemnité nommée : la question ne porte pas sur l'indemnité de licenciement. Le préavis
-     * et les congés n'excluent que nommés comme indemnité (« indemnité de préavis », « indemnité pour mes congés ») : « ai-je droit à
-     * une indemnité et à un préavis ? » porte bien sur l'indemnité de licenciement.
+     * et les congés n'excluent que nommés comme indemnité (« indemnité de préavis », « indemnité pour
+     * mes congés », « au titre du préavis ») : « ai-je droit à une indemnité et à un préavis ? » porte
+     * bien sur l'indemnité de licenciement.
      */
     private static final Pattern AUTRE_INDEMNITE = Pattern.compile("\\b(?:journalier|chomage|compensatrice|"
-            + "indemnit\\w*\\s+(?:de|d'|du|pour|sur|au titre d\\w*)\\s*(?:(?:le|la|les|mes|mon|ma|un|une)\\s+)?"
+            + "indemnit\\w*\\s+(?:d'\\s*|(?:de|du|pour|sur|au titre d\\w*)\\s+)(?:(?:le|la|les|mes|mon|ma|un|une)\\s+)?"
             + "(?:preavis|conges)|rupture conventionnelle|fin de contrat|precarite|"
             + "transactionnel|prud)");
     /**

@@ -59,6 +59,10 @@ class CalculsQuestionsTest {
                 + "Ai-je droit à une indemnité et à un préavis ?", contexte(CADRE_SYNTEC))).isPresent();
         assertThat(calculs.pour("Licencié, ai-je droit à une indemnité de préavis ?", contexte(CADRE_SYNTEC)))
                 .as("indemnité de préavis nommée").isEmpty();
+    }
+
+    @Test
+    void indemnite_pour_les_conges_ou_le_preavis_exclut_le_calcul() {
         assertThat(calculs.pour("Licencié, ai-je droit à une indemnité de congés payés ?", contexte(CADRE_SYNTEC)))
                 .as("indemnité de congés nommée").isEmpty();
         assertThat(calculs.pour("Licencié, quelle indemnité pour mes congés payés non pris ?", contexte(CADRE_SYNTEC)))
