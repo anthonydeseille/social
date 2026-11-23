@@ -176,10 +176,6 @@ class EvaluationIT {
     }
 
     /**
-     * À côté du rapport : requêtes de reformulation (à recopier dans {@code requetes.yaml} pour
-     * l'évaluation de la recherche), résumé JSON et ligne prête pour {@code historique.csv}.
-     */
-    /**
      * Requêtes figées à utiliser au lieu de la reformulation ({@code -Devaluation.requetes=figees}), ou
      * {@code null} : option absente, ou requêtes périmées (autres consignes de reformulation, question
      * sans requêtes), auquel cas la reformulation a lieu, et le journal le dit.
@@ -189,18 +185,20 @@ class EvaluationIT {
             return null;
         }
         RequetesFigees figees = RequetesFigees.lireRessource("/evaluation/requetes.yaml");
-        String consignes = assistant.consignes().reformulation();
-        List<String> manquantes = questions.stream().map(Question::id)
-                .filter(id -> !figees.parQuestion().containsKey(id)).toList();
-        if (!consignes.equals(figees.consignes()) || !manquantes.isEmpty()) {
-            System.out.println("Requêtes figées périmées (consignes " + figees.consignes() + ", en service " + consignes
-                    + (manquantes.isEmpty() ? "" : ", questions sans requêtes : " + manquantes) + ") : reformulation");
+        String perimees = figees.perimeesPour(assistant.consignes().reformulation(),
+                questions.stream().map(Question::id).toList());
+        if (perimees != null) {
+            System.out.println("Requêtes figées périmées (" + perimees + ") : reformulation");
             return null;
         }
         System.out.println("Requêtes figées (" + figees.origine() + ") : pas de reformulation");
         return figees;
     }
 
+    /**
+     * À côté du rapport : requêtes de reformulation (à recopier dans {@code requetes.yaml} pour
+     * l'évaluation de la recherche), résumé JSON et ligne prête pour {@code historique.csv}.
+     */
     private static void ecrireSorties(Path rapport, List<Resultat> resultats, String modele, String mode, Tarif tarif,
                                       Tarif tarifJuge, long jetonsJugeEntree, long jetonsJugeSortie) throws Exception {
         String base = rapport.getFileName().toString().replace("rapport-", "").replace(".md", "");

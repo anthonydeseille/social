@@ -85,13 +85,13 @@ jobs:
           fi
           echo "Lancer : $lancer"
           echo "lancer=$lancer" >> "$GITHUB_OUTPUT"
-          # Sur une PR qui ne touche ni la reformulation (consignes, code des assistants) ni la
-          # configuration (modèle) : requêtes figées, sans le hasard de la reformulation (voir
+          # Sur une PR (ouverte ou étiquetée « eval ») qui ne touche ni la reformulation (consignes, code
+          # des assistants, contexte du profil) ni la configuration (modèle, dépendances) : requêtes figées, sans le hasard de la reformulation (voir
           # docs/evaluations/2026-11-23d-observabilite-bruit.md). Le lundi et à la demande : tout le trajet.
           figees=false
           if [ "$EVENEMENT" = pull_request ] && [ "$lancer" = true ]; then
             fichiers=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
-            if ! echo "$fichiers" | grep -qE '^src/main/resources/prompts/reformulation|^src/main/java/fr/deseille/social/questions/Assistant[A-Za-z]*\.java$|^src/main/resources/application\.yaml$|^src/test/resources/evaluation/requetes\.yaml$'; then
+            if ! echo "$fichiers" | grep -qE '^src/main/resources/prompts/reformulation|^src/main/java/fr/deseille/social/questions/Assistant[A-Za-z]*\.java$|^src/main/java/fr/deseille/social/profil/|^src/main/resources/application\.yaml$|^pom\.xml$|^src/test/resources/evaluation/requetes\.yaml$'; then
               figees=true
             fi
           fi

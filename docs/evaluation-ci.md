@@ -15,8 +15,9 @@ dernière ligne de [`evaluations/historique.csv`](evaluations/historique.csv) fa
 
 Les PR venant d'un dépôt dérivé ne lancent rien.
 
-**Requêtes figées sur une PR** : quand la PR ne touche ni les consignes de reformulation, ni le code
-des assistants (`Assistant*.java`), ni `application.yaml` (modèle), ni `requetes.yaml`, l'évaluation
+**Requêtes figées sur une PR** (ouverture comme étiquette `eval`) : quand la PR ne touche ni les
+consignes de reformulation, ni le code des assistants (`Assistant*.java`), ni le contexte du profil
+(`profil/`), ni `application.yaml` (modèle), ni `pom.xml` (SDK), ni `requetes.yaml`, l'évaluation
 n'appelle pas la reformulation et reprend les requêtes de `requetes.yaml` (mode `lots-figees` dans
 l'historique) : la qualité ne mesure plus que la recherche et la rédaction. Sur 20 questions, le hasard
 de la reformulation faisait varier la qualité de 6 points sans aucun changement (évaluations du 23
