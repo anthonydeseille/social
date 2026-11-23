@@ -48,8 +48,8 @@ fois : le job le réécrit chaque minute, et le SDK relit le fichier à chaque r
    - émetteur : `https://token.actions.githubusercontent.com`, JWKS en mode `discovery` ;
    - compte de service : `evaluation-ci` (rôle `developer`), membre de l'espace de travail facturé ;
    - règle `evaluation-ci` :
-     - `subject_prefix` : `repo:anthonydeseille@7101703/social@1438146479:*` (sans `*` final, la valeur doit être
-       égale au sujet entier ; avec, le sujet doit commencer par ce qui précède l'étoile).
+     - `subject_prefix` : `repo:anthonydeseille@7101703/social@1438146479:*` (avec `*` final, le sujet doit commencer
+       par ce qui précède l'étoile ; sans, il doit être égal à la valeur entière).
        GitHub met dans le sujet les identifiants du propriétaire et du dépôt (PR : `…:pull_request`,
        `main` : `…:ref:refs/heads/main`) : un dépôt recréé sous le même nom n'obtiendrait pas de jeton ;
      - `audience` : `https://api.anthropic.com` ;
