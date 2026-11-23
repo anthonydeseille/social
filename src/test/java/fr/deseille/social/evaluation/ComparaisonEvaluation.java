@@ -8,7 +8,6 @@ import io.github.anthonydeseille.llmeval4j.regression.RegressionCheck;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Comparaison d'une évaluation à la dernière ligne de {@code docs/evaluations/historique.csv} faite
@@ -43,13 +42,11 @@ final class ComparaisonEvaluation {
 
     private static final String RECHERCHE = "Recherche (articles attendus transmis)";
     private static final String ARTICLES_CITES = "Articles attendus cités";
-    /** Indicateurs affichés sans seuil : ils varient avec la reformulation. */
-    private static final Set<String> INDICATIFS = Set.of(RECHERCHE, ARTICLES_CITES);
 
     private static final RegressionCheck CONTROLE = RegressionCheck.builder()
             .sameValuesOf("modele", "questions")
-            .metric(Metric.percentage("recherche_pct", RECHERCHE, Double.POSITIVE_INFINITY))
-            .metric(Metric.percentage("articles_cites_pct", ARTICLES_CITES, Double.POSITIVE_INFINITY))
+            .metric(Metric.informative(Metric.percentage("recherche_pct", RECHERCHE, SEUIL_POINTS)))
+            .metric(Metric.informative(Metric.percentage("articles_cites_pct", ARTICLES_CITES, SEUIL_POINTS)))
             .metric(Metric.percentage("qualite_pct", "Qualité (juge)", SEUIL_POINTS))
             .metric(Metric.lowerIsBetter("erreurs", "Erreurs à éviter commises", SEUIL_ERREURS))
             .metric(Metric.ratio("citations_verifiees", "citations_total", "Citations vérifiées", SEUIL_VERIFIEES_POINTS))
@@ -104,7 +101,7 @@ final class ComparaisonEvaluation {
         for (Change c : comparaison.changes()) {
             md.append("| ").append(c.metric()).append(" | ").append(c.reference()).append(" | ").append(c.current())
                     .append(" | ").append(c.delta()).append(" | ")
-                    .append(c.regression() ? "❌ baisse nette" : INDICATIFS.contains(c.metric()) ? "indicatif" : "✅")
+                    .append(c.regression() ? "❌ baisse nette" : c.informative() ? "indicatif" : "✅")
                     .append(" |\n");
         }
         md.append('\n').append(comparaison.regression()
