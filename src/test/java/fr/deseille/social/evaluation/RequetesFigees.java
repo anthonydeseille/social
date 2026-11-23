@@ -53,10 +53,10 @@ record RequetesFigees(String origine, String consignes, Map<String, List<String>
      * le peuvent : produites par d'autres consignes de reformulation, ou questions sans requêtes.
      */
     String perimeesPour(String consignesEnService, List<String> questions) {
-        List<String> manquantes = questions.stream().filter(id -> !parQuestion.containsKey(id)).toList();
         if (!consignes.equals(consignesEnService)) {
             return "consignes " + consignes + ", en service " + consignesEnService;
         }
+        List<String> manquantes = questions.stream().filter(id -> !parQuestion.containsKey(id)).toList();
         return manquantes.isEmpty() ? null : "questions sans requêtes : " + manquantes;
     }
 

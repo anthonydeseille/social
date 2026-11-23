@@ -17,8 +17,12 @@ class RequetesFigeesTest {
     }
 
     @Test
-    void perimees_si_les_consignes_ont_change_ou_si_une_question_manque() {
+    void perimees_si_les_consignes_de_reformulation_ont_change() {
         assertThat(figees.perimeesPour("aaaaaaaa", List.of("a"))).isEqualTo("consignes 79d5ae25, en service aaaaaaaa");
+    }
+
+    @Test
+    void perimees_si_une_question_n_a_pas_de_requetes() {
         assertThat(figees.perimeesPour("79d5ae25", List.of("a", "c"))).isEqualTo("questions sans requêtes : [c]");
     }
 
