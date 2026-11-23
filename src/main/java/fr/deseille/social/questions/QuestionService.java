@@ -41,10 +41,15 @@ public class QuestionService {
      * novembre 2026). Choisie avec l'évaluation gratuite de la recherche ({@code RechercheEvaluationIT}).
      */
     static final double PART_CONVENTION = 2.0 / 8;
-    /** Places données aux articles trouvés par la recherche sémantique seule, quand elle est active. */
-    static int PLACES_SEMANTIQUE = Integer.getInteger("droits.semantique.places", 2);
+    /**
+     * Place donnée à un article trouvé par la recherche sémantique seule, quand elle est active. Choisie
+     * avec l'évaluation gratuite de la recherche (bge-m3, 23 novembre 2026) : 1 place, 28 → 32 articles
+     * attendus sur 48, stable de 0,45 à 0,55 de similarité ; 2 ou 3 places : 30 (les articles trouvés par
+     * le sens évincent de bons articles trouvés par les mots).
+     */
+    static final int PLACES_SEMANTIQUE = 1;
     /** Similarité cosinus minimale d'un article trouvé par le sens. */
-    static double SIMILARITE_MIN = Double.parseDouble(System.getProperty("droits.semantique.similarite", "0.5"));
+    static final double SIMILARITE_MIN = 0.5;
     /**
      * Pertinence minimale d'un article de la convention pour une place réservée, en part de celle du
      * dernier article qui aurait été retenu sans réserve : un article de la convention à peine lié à la

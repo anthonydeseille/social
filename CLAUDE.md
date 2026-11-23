@@ -30,7 +30,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `consultation` : API en lecture seule (textes, sommaire, articles, historique).
 - `profil` : contexte d'un profil salarié. **Le profil n'est jamais stocké ni journalisé** (données sensibles RGPD : grossesse, santé).
 - `questions` : trajet d'une question (reformulation, recherche, rédaction). Consignes du modèle dans `src/main/resources/prompts/` (juge : `src/test/resources/prompts/`), versionnées par l'empreinte de leur texte (`Consignes`, sur `Prompts` de llmeval4j) : les modifier là, jamais dans le code ; une retouche de la reformulation périme `requetes.yaml`.
-- `recherche` : recherche plein texte PostgreSQL (configuration `francais`, sans accents) sur le numéro, les titres de section (`article.titres_section`, recalculés par `TitresSection` en fin de step d'ingestion) et le texte.
+- `recherche` : recherche sémantique en option (`RechercheSemantique`, `droits.semantique.actif=true`, `droits.semantique.fournisseur=ollama` : vecteurs bge-m3, cache disque `droits.semantique.cache-dir` ; table `article_vecteur`, image Postgres `pgvector/pgvector`) ; recherche plein texte PostgreSQL (configuration `francais`, sans accents) sur le numéro, les titres de section (`article.titres_section`, recalculés par `TitresSection` en fin de step d'ingestion) et le texte.
 
 ## Pièges connus
 

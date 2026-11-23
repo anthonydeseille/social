@@ -249,7 +249,7 @@ class QuestionServiceTest {
     }
 
     @Test
-    void recherche_semantique_active_deux_articles_trouves_par_le_sens_remplacent_les_derniers() {
+    void recherche_semantique_active_un_article_trouve_par_le_sens_remplace_le_dernier() {
         when(assistant.reformuler(anyString(), any())).thenReturn(List.of("q"));
         when(rechercheService.rechercher("q", 1486, true, 10, DATE))
                 .thenReturn(IntStream.range(0, 10).mapToObj(i -> resultat("C" + i, 2.0 - i * 0.1)).toList());
@@ -260,8 +260,8 @@ class QuestionServiceTest {
         when(assistant.rediger(anyString(), any(), any(), any())).thenReturn(new Reponse(List.of(), false, false));
 
         assertThat(service.repondre("Ma question ?", PROFIL).sources()).extracting(QuestionService.Source::articleSourceId)
-                .as("C0 déjà retenu ; S1 et S2 prennent les places de C5 et C6 ; K1, réservé, reste")
-                .containsExactly("C0", "C1", "C2", "C3", "C4", "K1", "S1", "S2");
+                .as("C0 déjà retenu ; S1 prend la place de C6 ; K1, réservé, reste")
+                .containsExactly("C0", "C1", "C2", "C3", "C4", "C5", "K1", "S1");
     }
 
     @Test
