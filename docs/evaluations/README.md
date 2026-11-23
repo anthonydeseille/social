@@ -14,6 +14,7 @@ fichiers datés.
 | 2026-10-30 | `50edaac` | référence (première évaluation) | 45 % | 186/186 | 70 % | 1 | 1,36 $ | [analyse](2026-10-30-premiere-evaluation.md) · [brut](2026-10-30-rapport-brut.md) |
 | 2026-10-31 | `6c672d5` | Code applicable (#22), titres de section dans l'index (#24) | **58 %** | 197/197 | 71 % | 1 | 1,13 $ | [analyse](2026-10-31-titres-section.md) · [brut](2026-10-31-rapport-brut.md) |
 | 2026-11-23 | `c7df5f5` | calculateur d'indemnité dans les questions (#36, branche) | 52 % | 202/202 | 67 % | 1 | 1,21 $ | [analyse](2026-11-23-calcul-dans-questions.md) · [brut](2026-11-23-rapport-brut.md) |
+| 2026-11-23 | `c58eb5c` | calcul dans la page, salaire lu dans la question (#38, branche) | 51 % | 195/195 | 70 % | 1 | 1,22 $ | [analyse](2026-11-23b-calcul-page-et-salaire.md) · [brut](2026-11-23b-rapport-brut.md) |
 
 Recherche : articles attendus transmis à Claude ; qualité : points clés présents selon le juge ;
 moyennes par question. Tant que le jeu n'est pas validé par la juriste (`valide: false`), les notes

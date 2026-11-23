@@ -6,11 +6,14 @@ import fr.deseille.social.calcul.Indemnite.Motif;
 import fr.deseille.social.calcul.Indemnite.Resultat;
 import fr.deseille.social.profil.ProfilSalarie;
 import fr.deseille.social.profil.ProfilService.ContexteProfil;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
  * de licenciement sans nommer une autre indemnité (journalières, de préavis, de congés payés…),
  * déclenche le calculateur ({@link CalculIndemniteService}), gratuit, sans appel au modèle.
  * <p>
- * La question ne donne ni la date de notification, ni la fin du contrat, ni le salaire : le calcul se
- * fait à la date de référence du profil, en mois de salaire, et ces choix sont ajoutés aux hypothèses
- * du résultat. Le motif est lu dans la question (faute grave ou lourde, économique), personnel sinon.
+ * La question ne donne ni la date de notification, ni la fin du contrat : le calcul se fait à la
+ * date de référence du profil, et ce choix est ajouté aux hypothèses du résultat. Le motif est lu dans
+ * la question (faute grave ou lourde, économique), personnel sinon. Un salaire mensuel brut cité dans
+ * la question (« je gagne 3 000 € brut ») donne un montant en euros ({@link #salaire}) ; sinon le
+ * résultat est en mois de salaire.
  */
 @Component
 public class CalculsQuestions {
@@ -54,6 +59,29 @@ public class CalculsQuestions {
     private static final Pattern FAUTE_GRAVE = Pattern.compile("\\bfaute\\s+grave");
     private static final Pattern FAUTE_LOURDE = Pattern.compile("\\bfaute\\s+lourde");
     private static final Pattern ECONOMIQUE = Pattern.compile("\\beconomique");
+    /** Montant en euros : « 3 000 € », « 3000 euros », « 2 850,50 € », « 2.850 € ». */
+    private static final Pattern MONTANT = Pattern.compile(
+            "(?<!\\d)(\\d{1,3}(?:[ .\u00a0\u202f]\\d{3})+|\\d+)(?:,(\\d{1,2}))?\\s*(?:€|euros?\\b|eur\\b)");
+    /** Mots qui, juste avant le montant, en font un salaire. */
+    private static final Pattern SALAIRE_AVANT = Pattern.compile(
+            "\\b(?:salaire|remuneration|gagne|touche|percois|paye|payee)\\b[^.?!€\\d]{0,30}$");
+    /** Mots qui, juste après le montant, en font un salaire mensuel brut. */
+    private static final Pattern SALAIRE_APRES = Pattern.compile("^[^.?!€\\d]{0,12}\\b(?:brut|par mois|mensuel)");
+    /** Somme qui n'est pas un salaire, nommée juste avant ou après le montant (« une prime de », « d'indemnité »). */
+    private static final Pattern AUTRE_SOMME_AVANT = Pattern.compile(
+            "\\b(?:indemnit|prime|rappel|cheque|dommages|solde|chomage|allocation)[^.?!€\\d]{0,20}$");
+    private static final Pattern AUTRE_SOMME_APRES = Pattern.compile(
+            "^\\s*(?:d'|de\\s+)?(?:indemnit|prime|rappel|dommages|solde|chomage|allocation)");
+    // « net » ou « annuel » juste après le montant (NET, ANNUEL), ou juste avant, dans le même membre
+    // de phrase (NET_AVANT, ANNUEL_AVANT : une virgule arrête la fenêtre, pour ne pas lire « 30 000 €
+    // par an, puis je gagne 2 500 € » comme un salaire annuel de 2 500 €)
+    private static final Pattern NET = Pattern.compile("^[^.?!€\\d]{0,12}\\bnet\\b");
+    private static final Pattern NET_AVANT = Pattern.compile("\\bnet\\b[^.,;?!€\\d]{0,25}$");
+    private static final Pattern ANNUEL = Pattern.compile("^[^.?!€\\d]{0,20}\\b(?:par an|annuel|l'an\\b|/ ?an\\b)");
+    private static final Pattern ANNUEL_AVANT = Pattern.compile("\\b(?:annuel|par an|l'annee)\\b[^.,;?!€\\d]{0,25}$");
+    /** Bornes d'un salaire mensuel plausible : en dehors, le montant est sans doute autre chose. */
+    private static final BigDecimal SALAIRE_MIN = new BigDecimal("300");
+    private static final BigDecimal SALAIRE_MAX = new BigDecimal("50000");
 
     private final CalculIndemniteService indemnite;
 
@@ -73,7 +101,8 @@ public class CalculsQuestions {
                     "la date d'entrée dans l'entreprise n'est pas renseignée dans le profil"));
         }
         Motif motif = motif(texte);
-        Demande demande = new Demande(profil, profil.dateReference(), profil.dateReference(), motif, null);
+        LectureSalaire salaire = salaire(texte);
+        Demande demande = new Demande(profil, profil.dateReference(), profil.dateReference(), motif, salaire.mensuel());
         Resultat resultat;
         try {
             resultat = indemnite.calculer(demande);
@@ -93,8 +122,8 @@ public class CalculsQuestions {
             case FAUTE_GRAVE -> "Motif lu dans la question : faute grave.";
             case FAUTE_LOURDE -> "Motif lu dans la question : faute lourde.";
         });
-        if (resultat.droit() && resultat.montantBrut() == null) {
-            hypotheses.add("Montant exprimé en mois de salaire brut de référence : le salaire n'est pas demandé.");
+        if (resultat.droit() && salaire.hypothese() != null) {
+            hypotheses.add(salaire.hypothese());
         }
         List<String> avertissements = new ArrayList<>(resultat.avertissements());
         avertissements.add("Règles de calcul en cours de validation juridique.");
@@ -102,6 +131,73 @@ public class CalculsQuestions {
                 resultat.absenceDroit(), resultat.anneesAnciennete(), resultat.moisAnciennete(), resultat.legale(),
                 resultat.conventionnelle(), resultat.retenue(), resultat.moisRetenus(), resultat.montantBrut(),
                 List.copyOf(hypotheses), List.copyOf(avertissements)), null));
+    }
+
+    /**
+     * Salaire lu dans la question.
+     *
+     * @param mensuel   salaire mensuel brut retenu pour le calcul, {@code null} si aucun
+     * @param hypothese ce qui a été lu et comment le résultat l'utilise, pour les hypothèses
+     */
+    record LectureSalaire(BigDecimal mensuel, String hypothese) {
+    }
+
+    /**
+     * Salaire mensuel brut cité dans la question. Seul un montant en euros présenté comme un salaire
+     * (« je gagne », « mon salaire est de », ou suivi de « brut », « par mois ») compte : une indemnité
+     * proposée ou une prime ne sont pas des salaires. Un salaire annuel est divisé par 12 ; un salaire
+     * net n'est pas utilisé (le calcul part du brut) ; plusieurs salaires différents, ou un montant hors
+     * de 300 à 50 000 € par mois, non plus. Le salaire n'est ni stocké ni journalisé.
+     *
+     * @param texteNormalise question en minuscules sans accents ({@link #normaliser})
+     */
+    static LectureSalaire salaire(String texteNormalise) {
+        java.util.Set<BigDecimal> mensuels = new java.util.LinkedHashSet<>();
+        boolean net = false;
+        boolean annuel = false;
+        Matcher m = MONTANT.matcher(texteNormalise);
+        while (m.find()) {
+            String avant = texteNormalise.substring(Math.max(0, m.start() - 40), m.start());
+            String apres = texteNormalise.substring(m.end(), Math.min(texteNormalise.length(), m.end() + 30));
+            if (!SALAIRE_AVANT.matcher(avant).find() && !SALAIRE_APRES.matcher(apres).find()
+                    || AUTRE_SOMME_AVANT.matcher(avant).find() || AUTRE_SOMME_APRES.matcher(apres).find()) {
+                continue;
+            }
+            if (NET.matcher(apres).find() || NET_AVANT.matcher(avant).find()) {
+                net = true;
+                continue;
+            }
+            BigDecimal montant = new BigDecimal(m.group(1).replaceAll("[ .\u00a0\u202f]", "")
+                    + (m.group(2) != null ? "." + m.group(2) : ""));
+            if (ANNUEL.matcher(apres).find() || ANNUEL_AVANT.matcher(avant).find()) {
+                annuel = true;
+                montant = montant.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+            }
+            mensuels.add(montant.stripTrailingZeros());
+        }
+        String enMois = "Montant exprimé en mois de salaire brut de référence";
+        if (mensuels.size() > 1) {
+            return new LectureSalaire(null, enMois + " : la question cite plusieurs salaires différents.");
+        }
+        if (mensuels.isEmpty()) {
+            return new LectureSalaire(null, net
+                    ? enMois + " : la question donne un salaire net, le calcul part du brut."
+                    : enMois + " : le salaire n'est pas donné dans la question.");
+        }
+        BigDecimal mensuel = mensuels.iterator().next();
+        if (mensuel.compareTo(SALAIRE_MIN) < 0 || mensuel.compareTo(SALAIRE_MAX) > 0) {
+            return new LectureSalaire(null, enMois + " : le montant cité ne ressemble pas à un salaire mensuel.");
+        }
+        return new LectureSalaire(mensuel, "Salaire mensuel brut de " + euros(mensuel) + " € lu dans la question"
+                + (annuel ? " (salaire annuel divisé par 12)" : "") + ", pris comme salaire de référence : la loi "
+                + "retient la moyenne la plus favorable des 12 ou des 3 derniers mois, primes comprises.");
+    }
+
+    /** Écriture française : « 3 000 », « 2 850,5 ». */
+    private static String euros(BigDecimal montant) {
+        java.text.DecimalFormat format = new java.text.DecimalFormat("#,##0.##",
+                java.text.DecimalFormatSymbols.getInstance(Locale.FRANCE));
+        return format.format(montant).replace('\u202f', ' ').replace('\u00a0', ' ');
     }
 
     static boolean concerneIndemniteLicenciement(String texteNormalise) {
