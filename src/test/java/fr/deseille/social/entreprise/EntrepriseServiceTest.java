@@ -98,15 +98,16 @@ class EntrepriseServiceTest {
         annuaire.expect(requestTo("https://annuaire.test/search?q=479766842&per_page=5&page=1"))
                 .andRespond(withSuccess(REPONSE.replace("\"results\": [{", "\"results\": [{\"x\": 1, ")
                         .replace("}], \"total_results\": 1", "}, {\"siren\": \"1\", \"nom_complet\": \"AUTRE\", "
-                                + "\"complements\": {\"liste_idcc\": [\"1486\", \"\", \"abc\"]}, \"siege\": {}}], \"total_results\": 2"),
+                                + "\"complements\": {\"liste_idcc\": [\"1486\", \"2120\", \"\", \"abc\"]}, \"siege\": {}}], \"total_results\": 2"),
                         MediaType.APPLICATION_JSON));
 
         List<Entreprise> r = service.chercher("479 766 842");
 
         assertThat(r).extracting(Entreprise::nom).containsExactly("CAPGEMINI TECHNOLOGY SERVICES", "AUTRE");
-        assertThat(r.get(1).conventions()).as("IDCC illisibles ignorés").extracting(Convention::idcc).containsExactly(1486);
+        assertThat(r.get(1).conventions()).as("IDCC illisibles ignorés").extracting(Convention::idcc)
+                .containsExactly(1486, 2120);
         assertThat(r.get(1).commune()).isNull();
-        verify(textes, times(1)).findByIdccIn(anyCollection());
+        verify(textes, times(1)).findByIdccIn(anyCollection());  // 1486 et 2120 : une seule requête
     }
 
     @Test
@@ -121,6 +122,15 @@ class EntrepriseServiceTest {
     void reponse_illisible_503() {
         annuaire.expect(requestTo("https://annuaire.test/search?q=capgemini&per_page=5&page=1"))
                 .andRespond(withSuccess("<html>maintenance</html>", MediaType.TEXT_HTML));
+
+        assertThatThrownBy(() -> service.chercher("capgemini")).isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("503");
+    }
+
+    @Test
+    void reponse_sans_liste_de_resultats_503_et_non_aucun_resultat() {
+        annuaire.expect(requestTo("https://annuaire.test/search?q=capgemini&per_page=5&page=1"))
+                .andRespond(withSuccess("{\"message\": \"erreur\"}", MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(() -> service.chercher("capgemini")).isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("503");

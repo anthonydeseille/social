@@ -83,6 +83,9 @@ public class EntrepriseService {
         JsonNode resultats;
         try {
             resultats = json.readTree(corps == null ? "" : corps).path("results");
+            if (!resultats.isArray()) {
+                throw new IllegalStateException("pas de liste de résultats");
+            }
         } catch (RuntimeException e) {
             log.warn("Réponse illisible de l'annuaire des entreprises ({})", e.getClass().getSimpleName());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
