@@ -48,7 +48,7 @@ fois : le job le réécrit chaque minute, et le SDK relit le fichier à chaque r
    - émetteur : `https://token.actions.githubusercontent.com`, JWKS en mode `discovery` ;
    - compte de service : `evaluation-ci` (rôle `developer`), membre de l'espace de travail facturé ;
    - règle `evaluation-ci` :
-     - `subject_prefix` : `repo:anthonydeseille/social:*` (PR : `…:pull_request`, `main` : `…:ref:refs/heads/main`) ;
+     - `subject_prefix` : `repo:anthonydeseille/social:`, sans `*` (préfixe littéral, pas un motif ; PR : `…:pull_request`, `main` : `…:ref:refs/heads/main`) ;
      - `audience` : `https://api.anthropic.com` ;
      - `claims` : `repository_owner` = `anthonydeseille`, `repository` = `anthonydeseille/social` ;
      - `condition` (CEL), pour que seul ce workflow obtienne un jeton (les workflows de revue Claude
