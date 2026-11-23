@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import java.util.Locale;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -129,7 +130,7 @@ public class MetriquesQuestions {
         if (!Double.isNaN(dollars)) {
             Counter.builder("droits.assistant.cout_usd").description("Coût des appels au modèle (dollars)")
                     .tag("fournisseur", fournisseur).tag("etape", etape).register(registre).increment(dollars);
-            annoter("cout_usd", String.format(java.util.Locale.ROOT, "%.5f", dollars));
+            annoter("cout_usd", String.format(Locale.ROOT, "%.5f", dollars));
         }
     }
 

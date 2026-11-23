@@ -124,7 +124,7 @@ profil). Seul `/actuator/health` est exposé par défaut ; `/actuator/info`, `/a
 | Métrique | Étiquettes | Ce qu'elle suit |
 |---|---|---|
 | `droits.questions` | issue : repondue, aucun_article, refus, tronquee, indisponible, invalide, erreur | issue de chaque question qui atteint le service (le quota et la validation du corps de requête refusent avant) |
-| `droits.questions.etape` | etape : reformulation, recherche, redaction | durée de chaque étape |
+| `droits.questions.etape` | etape : reformulation, recherche, redaction ; error : none ou l'exception | durée de chaque étape |
 | `droits.assistant.appels` | fournisseur : claude, ollama ; etape ; issue : succes, refus, tronquee, illisible (Ollama), erreur | appels au modèle |
 | `droits.assistant.jetons` | fournisseur, etape, sens : entree, sortie | jetons consommés (le coût, pour Claude) |
 | `droits.citations` | verification : verifiee, non_verifiee | résultat du contrôle de sortie |
@@ -151,7 +151,7 @@ profil ni la réponse :
 | recherche | articles (nombre transmis), convention (IDCC fourni ou non) |
 | redaction | modele, consignes, calcul (fait ou non), fournisseur, jetons, cout_usd |
 
-Rien n'est envoyé par défaut. Avec le profil `observabilite`, traces et métriques partent en OTLP
+Rien n'est envoyé par défaut (export OTLP des traces et des métriques désactivé). Avec le profil `observabilite`, traces et métriques partent en OTLP
 vers `OTEL_COLLECTEUR` (`http://localhost:4318` sinon), toutes les questions étant tracées
 (échantillonnage à 100 %). Dans le cluster k3d, la pile Grafana LGTM les reçoit, avec un tableau de
 bord et des alertes (voir [`deploiement-local.md`](deploiement-local.md#observabilité)).

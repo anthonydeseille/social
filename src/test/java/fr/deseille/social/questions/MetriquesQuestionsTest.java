@@ -1,8 +1,11 @@
 package fr.deseille.social.questions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.Tuple.tuple;
 
 import io.micrometer.common.KeyValue;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
@@ -19,7 +22,7 @@ class MetriquesQuestionsTest {
         List<Observation.Context> terminees = new ArrayList<>();
         ObservationRegistry observations = ObservationRegistry.create();
         observations.observationConfig()
-                .observationHandler(new io.micrometer.core.instrument.observation.DefaultMeterObservationHandler(mesures))
+                .observationHandler(new DefaultMeterObservationHandler(mesures))
                 .observationHandler(new ObservationHandler<>() {
                     @Override
                     public void onStop(Observation.Context contexte) {
@@ -46,10 +49,23 @@ class MetriquesQuestionsTest {
         assertThat(terminees).singleElement().satisfies(c -> {
             assertThat(c.getContextualName()).isEqualTo("redaction");
             assertThat(c.getHighCardinalityKeyValues()).extracting(KeyValue::getKey, KeyValue::getValue)
-                    .contains(org.assertj.core.groups.Tuple.tuple("modele", "claude-opus-5-5"),
-                            org.assertj.core.groups.Tuple.tuple("jetons.entree", "1200"),
-                            org.assertj.core.groups.Tuple.tuple("cout_usd", "0.01230"))
+                    .contains(tuple("modele", "claude-opus-5-5"),
+                            tuple("jetons.entree", "1200"),
+                            tuple("cout_usd", "0.01230"))
                     .extracting(t -> t.toList().getFirst()).doesNotContain("hors_etape");
         });
+    }
+
+    @Test
+    void etape_en_erreur_exception_propagee_et_mesuree_avec_l_erreur() {
+        SimpleMeterRegistry mesures = new SimpleMeterRegistry();
+        MetriquesQuestions metriques = new MetriquesQuestions(mesures);
+
+        assertThatThrownBy(() -> metriques.chronometrer("redaction", () -> {
+            throw new IllegalStateException("modèle indisponible");
+        })).isInstanceOf(IllegalStateException.class).hasMessage("modèle indisponible");
+
+        assertThat(mesures.find("droits.questions.etape").tag("etape", "redaction")
+                .tag("error", "IllegalStateException").timer().count()).isEqualTo(1);
     }
 }

@@ -53,6 +53,9 @@ management:
     sampling:
       # Peu de questions, chacune coûteuse : on les trace toutes
       probability: 1.0
+    export:
+      otlp:
+        enabled: false
   otlp:
     metrics:
       export:
@@ -126,6 +129,10 @@ management:
         include: health,info,metrics,prometheus
   # Adresse OTLP de la pile d'observabilité (Grafana LGTM), à fournir par l'environnement :
   # OTEL_COLLECTEUR=http://hote:4318 (deploy/k8s/observabilite.yaml)
+  tracing:
+    export:
+      otlp:
+        enabled: true
   opentelemetry:
     tracing:
       export:
