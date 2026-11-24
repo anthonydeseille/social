@@ -52,6 +52,7 @@ class RechercheIT {
     private static final String DISPARU = "LEGIARTI000000000076";
     private static final String VIGUEUR_DIFF = "LEGIARTI000000000077";
     private static final String VIGUEUR_DIFF_SANS_DATE = "LEGIARTI000000000078";
+    private static final String PARTIE_ANCIENNE = "LEGIARTI000000000079";
 
     @Autowired
     private MockMvcTester mvc;
@@ -160,6 +161,26 @@ class RechercheIT {
     private String titres(String articleSourceId) {
         return jdbcClient.sql("select titres_section from article where source_id = ?").param(articleSourceId)
                 .query(String.class).optional().orElse(null);
+    }
+
+    @Test
+    void partie_legislative_ancienne_ecartee_meme_en_vigueur() {
+        assertThat(jdbcClient.sql("select titres_section from article where source_id = ?").param(PARTIE_ANCIENNE)
+                .query(String.class).single()).startsWith("Partie législative ancienne");
+        assertThat(mvc.get().uri("/api/recherche?q={q}&applicables=false", "préavis"))
+                .hasStatusOk().bodyJson().extractingPath("$[*].articleSourceId").asArray()
+                .contains(PREAVIS).doesNotContain(PARTIE_ANCIENNE);
+    }
+
+    @Test
+    void filtre_des_parties_anciennes_legislative_et_reglementaire_seulement() {
+        assertThat(jdbcClient.sql("""
+                        select a.titres_section from (values ('Partie législative ancienne > Livre I'),
+                            ('Partie réglementaire ancienne > Livre II'), ('Partie réglementaire > Livre II'),
+                            ('Partie législative > Ancienne disposition'), (null)) as a (titres_section)
+                        where %s""".formatted(RechercheRepository.HORS_PARTIE_ANCIENNE))
+                .query(String.class).list())
+                .containsExactlyInAnyOrder("Partie réglementaire > Livre II", "Partie législative > Ancienne disposition", null);
     }
 
     @Test
