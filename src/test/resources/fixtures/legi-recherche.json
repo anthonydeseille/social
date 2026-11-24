@@ -142,6 +142,44 @@
           }
         }
       ]
+    },
+    {
+      "type": "section",
+      "data": {
+        "id": "LEGISCTA000000000099",
+        "cid": "LEGISCTA000000000099",
+        "title": "Partie législative ancienne",
+        "etat": "VIGUEUR",
+        "intOrdre": 2
+      },
+      "children": [
+        {
+          "type": "section",
+          "data": {
+            "id": "LEGISCTA000000000098",
+            "cid": "LEGISCTA000000000098",
+            "title": "Livre Ier : Conventions relatives au travail",
+            "etat": "VIGUEUR",
+            "intOrdre": 1
+          },
+          "children": [
+            {
+              "type": "article",
+              "data": {
+                "id": "LEGIARTI000000000079",
+                "cid": "LEGIARTC000000000079",
+                "num": "L122-6",
+                "texte": "Dans le cas de licenciement pour un motif autre qu'une faute grave, le salarié a droit à un délai-congé ou préavis déterminé selon son ancienneté.",
+                "texteHtml": "<p>Dans le cas de licenciement pour un motif autre qu'une faute grave, le salarié a droit à un délai-congé ou préavis déterminé selon son ancienneté.</p>",
+                "etat": "VIGUEUR",
+                "intOrdre": 1,
+                "dateDebut": 1577836800000,
+                "dateFin": 32472144000000
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

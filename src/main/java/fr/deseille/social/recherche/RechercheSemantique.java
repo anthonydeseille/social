@@ -54,9 +54,10 @@ public class RechercheSemantique {
             join texte t on t.id = a.texte_id
             where t.source_id in (:textes)
               and %s
+              and %s
             order by v.vecteur <=> cast(:vecteur as vector)
             limit :limite
-            """.formatted(RechercheRepository.APPLICABLE);
+            """.formatted(RechercheRepository.APPLICABLE, RechercheRepository.HORS_PARTIE_ANCIENNE);
 
     private final JdbcClient jdbc;
     private final ObjectProvider<EmbeddingModel> modeles;
