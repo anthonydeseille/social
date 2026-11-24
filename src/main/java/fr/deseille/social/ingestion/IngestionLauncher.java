@@ -8,6 +8,7 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,8 +17,12 @@ import org.springframework.stereotype.Component;
  * {@code ./mvnw spring-boot:run -Dspring-boot.run.arguments=--droits.ingestion.run=true}.
  */
 @Component
+@Order(IngestionLauncher.ORDRE)
 @ConditionalOnProperty(name = "droits.ingestion.run", havingValue = "true")
 public class IngestionLauncher implements ApplicationRunner {
+
+    /** Rang parmi les traitements de démarrage : l'ingestion passe avant la vectorisation. */
+    public static final int ORDRE = 0;
 
     private final JobOperator jobOperator;
     private final Job ingestionJob;

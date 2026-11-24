@@ -79,7 +79,12 @@ public class RechercheSemantique {
     }
 
     public boolean actif() {
-        return actif && modeles.getIfAvailable() != null;
+        return actif && modeleDisponible();
+    }
+
+    /** Un modèle de vecteurs est configuré ({@code droits.semantique.fournisseur}), que la recherche soit active ou non. */
+    boolean modeleDisponible() {
+        return modeles.getIfAvailable() != null;
     }
 
     /**
