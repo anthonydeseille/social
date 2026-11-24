@@ -265,6 +265,10 @@ async function chercherEntreprise() {
   bouton.disabled = true;
   try {
     const reponse = await fetch("/api/entreprises?q=" + encodeURIComponent(recherche));
+    if (reponse.status === 429) {
+      zone.append(element("p", "Trop de recherches en même temps : réessayez dans quelques secondes.", "aide"));
+      return;
+    }
     if (!reponse.ok) throw new Error();
     const forme = Entreprises.mettreEnForme(await reponse.json());
     if (forme.message) zone.append(element("p", forme.message, "aide"));

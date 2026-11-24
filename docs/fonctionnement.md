@@ -63,7 +63,9 @@ Recherche d'entreprises de l'État, gratuite, sans clé) et renvoie, pour au plu
 conventions de l'entreprise (recherche par nom ou SIREN) ou de l'établissement (SIRET), sans l'IDCC 9999
 (« sans convention »), en disant si chacune est intégrée à l'application (`EntrepriseService`). Un clic
 sur une convention la choisit dans le profil. Un SIRET que l'annuaire ne renvoie pas donne les
-conventions de l'entreprise. La recherche n'est ni stockée ni journalisée ; si l'annuaire ne répond
+conventions de l'entreprise. Devant l'annuaire (environ 7 requêtes par seconde au plus, pour tous ses utilisateurs) : cache en
+mémoire d'une heure (500 recherches), au plus 5 appels par seconde depuis l'application, 429 au-delà.
+La recherche n'est ni stockée ni journalisée ; si l'annuaire ne répond
 pas (délai de 10 s) ou répond de façon illisible, 503 et message dans la page. Pas de transaction
 pendant l'appel : la base n'est sollicitée qu'une fois, pour les titres des conventions.
 

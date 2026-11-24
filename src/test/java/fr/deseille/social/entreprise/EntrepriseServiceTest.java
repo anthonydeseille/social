@@ -39,7 +39,36 @@ class EntrepriseServiceTest {
     private final TexteRepository textes = mock(TexteRepository.class);
     private final RestClient.Builder builder = RestClient.builder().baseUrl("https://annuaire.test");
     private final MockRestServiceServer annuaire = MockRestServiceServer.bindTo(builder).build();
+    private final MutableClock horloge = new MutableClock(java.time.Instant.parse("2026-11-23T10:00:00Z"));
     private EntrepriseService service;
+
+    /** Horloge réglable : le cache et la limite de débit dépendent du temps. */
+    static final class MutableClock extends java.time.Clock {
+        private java.time.Instant instant;
+
+        MutableClock(java.time.Instant instant) {
+            this.instant = instant;
+        }
+
+        void avancer(java.time.Duration duree) {
+            instant = instant.plus(duree);
+        }
+
+        @Override
+        public java.time.ZoneId getZone() {
+            return java.time.ZoneOffset.UTC;
+        }
+
+        @Override
+        public java.time.Clock withZone(java.time.ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public java.time.Instant instant() {
+            return instant;
+        }
+    }
 
     @BeforeEach
     void preparer() {
@@ -48,7 +77,7 @@ class EntrepriseServiceTest {
         when(syntec.getTitre()).thenReturn("Convention collective nationale Syntec");
         when(textes.findByIdccIn(anyCollection())).thenAnswer(i -> i.<java.util.Collection<Integer>>getArgument(0)
                 .contains(1486) ? List.of(syntec) : List.of());
-        service = new EntrepriseService(textes, builder);
+        service = new EntrepriseService(textes, builder, horloge);
     }
 
     @Test
@@ -143,5 +172,37 @@ class EntrepriseServiceTest {
 
         assertThatThrownBy(() -> service.chercher("capgemini")).isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("503").hasMessageContaining("annuaire des entreprises ne répond pas");
+    }
+
+    @Test
+    void meme_recherche_servie_par_le_cache_pendant_une_heure() {
+        annuaire.expect(org.springframework.test.web.client.ExpectedCount.twice(),
+                        requestTo("https://annuaire.test/search?q=capgemini&per_page=5&page=1"))
+                .andRespond(withSuccess(REPONSE, MediaType.APPLICATION_JSON));
+
+        service.chercher("capgemini");
+        horloge.avancer(java.time.Duration.ofMinutes(59));
+        assertThat(service.chercher("  CapGemini ")).as("même recherche, casse et espaces près").hasSize(1);
+        horloge.avancer(java.time.Duration.ofMinutes(2));
+        service.chercher("capgemini");
+
+        annuaire.verify();
+    }
+
+    @Test
+    void au_dela_de_cinq_appels_par_seconde_429_puis_de_nouveau_possible() {
+        annuaire.expect(org.springframework.test.web.client.ExpectedCount.times(6),
+                        org.springframework.test.web.client.match.MockRestRequestMatchers.method(org.springframework.http.HttpMethod.GET))
+                .andRespond(withSuccess(REPONSE, MediaType.APPLICATION_JSON));
+        for (int i = 0; i < 5; i++) {
+            service.chercher("entreprise " + i);
+        }
+
+        assertThatThrownBy(() -> service.chercher("entreprise 5")).isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429");
+        assertThat(service.chercher("entreprise 0")).as("le cache ne compte pas").hasSize(1);
+        horloge.avancer(java.time.Duration.ofMillis(1001));
+        assertThat(service.chercher("entreprise 5")).hasSize(1);
+        annuaire.verify();
     }
 }
