@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
@@ -67,6 +68,12 @@ class VectorisationIT {
             registry.add("droits.ingestion.sources[" + i + "].ref", () -> "");
             registry.add("droits.ingestion.sources[" + i + "].fichier", () -> s[2]);
         }
+    }
+
+    /** Le test de relance vide la table : chaque test repart d'une table remplie. */
+    @BeforeEach
+    void vecteurs_a_jour() {
+        semantique.vectoriser(rechercheService.textes(7777));
     }
 
     @Test
