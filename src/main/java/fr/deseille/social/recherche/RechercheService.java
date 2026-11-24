@@ -23,11 +23,39 @@ public class RechercheService {
     private final TexteRepository texteRepository;
     private final RechercheRepository rechercheRepository;
     private final Clock clock;
+    private final RechercheSemantique semantique;
 
-    public RechercheService(TexteRepository texteRepository, RechercheRepository rechercheRepository, Clock clock) {
+    public RechercheService(TexteRepository texteRepository, RechercheRepository rechercheRepository, Clock clock,
+                            RechercheSemantique semantique) {
         this.texteRepository = texteRepository;
         this.rechercheRepository = rechercheRepository;
         this.clock = clock;
+        this.semantique = semantique;
+    }
+
+    /** La recherche sémantique est activée et son modèle disponible ({@link RechercheSemantique}). */
+    public boolean semantiqueActive() {
+        return semantique != null && semantique.actif();
+    }
+
+    /**
+     * Articles applicables du Code et de la convention de l'IDCC les plus proches du texte, par sens
+     * ({@link RechercheSemantique}) ; pertinence : similarité cosinus, non comparable à celle de
+     * {@link #rechercher}.
+     */
+    public List<Resultat> rechercherSemantique(String texte, Integer idcc, int limite, LocalDate date) {
+        List<String> textes = textes(idcc);
+        return textes.isEmpty() ? List.of() : semantique.rechercher(texte, textes, date, limite);
+    }
+
+    /** Identifiants des textes du Code et, si l'IDCC est donné, de sa convention. */
+    public List<String> textes(Integer idcc) {
+        List<String> textes = new ArrayList<>();
+        texteRepository.findByType(TypeTexte.CODE).stream().map(Texte::getSourceId).forEach(textes::add);
+        if (idcc != null) {
+            texteRepository.findByIdcc(idcc).stream().map(Texte::getSourceId).forEach(textes::add);
+        }
+        return textes;
     }
 
     /**
@@ -43,11 +71,7 @@ public class RechercheService {
      */
     public List<Resultat> rechercher(String requete, Integer idcc, boolean seulementApplicables, int limite,
                                      LocalDate date) {
-        List<String> textes = new ArrayList<>();
-        texteRepository.findByType(TypeTexte.CODE).stream().map(Texte::getSourceId).forEach(textes::add);
-        if (idcc != null) {
-            texteRepository.findByIdcc(idcc).stream().map(Texte::getSourceId).forEach(textes::add);
-        }
+        List<String> textes = textes(idcc);
         if (textes.isEmpty()) {
             return List.of();
         }

@@ -5,3 +5,4 @@ date,commit,changement,mode,modele,consignes_reformulation,consignes_redaction,c
 2026-11-23,c58eb5c,PR #38 (calcul dans la page ; salaire lu dans la question),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,51,24,48,51,195,195,70,1,202023,53107,0.94,0.28,2026-11-23b-calcul-page-et-salaire.md
 2026-11-23,e7e67af,PR #39 (places réservées à la convention),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,66,30,48,63,209,209,77,1,216009,52539,0.96,0.28,2026-11-23c-places-convention.md
 2026-11-23,3525001,PR #41 (observabilité ; réponses inchangées),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,55,25,48,55,204,204,71,1,185268,52600,0.9,0.29,2026-11-23d-observabilite-bruit.md
+2026-11-23,edb9850,PR #46 (recherche sémantique désactivée ; réponses inchangées),lots,claude-opus-5-5,79d5ae25,ee307162,89ac4e8f,20,0,60,28,48,60,219,219,72,1,240251,53349,1.01,0.28,2026-11-23e-recherche-semantique-inactive.md

@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,6 +35,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class QuestionService {
 
+    private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
+
     private static final int RESULTATS_PAR_REQUETE = 10;
     /**
      * Part des articles transmis réservée à la convention collective, quand elle en a de pertinents :
@@ -41,6 +45,15 @@ public class QuestionService {
      * novembre 2026). Choisie avec l'évaluation gratuite de la recherche ({@code RechercheEvaluationIT}).
      */
     static final double PART_CONVENTION = 2.0 / 8;
+    /**
+     * Place donnée à un article trouvé par la recherche sémantique seule, quand elle est active. Choisie
+     * avec l'évaluation gratuite de la recherche (bge-m3, 23 novembre 2026) : 1 place, 28 → 32 articles
+     * attendus sur 48, stable de 0,45 à 0,55 de similarité ; 2 ou 3 places : 30 (les articles trouvés par
+     * le sens évincent de bons articles trouvés par les mots).
+     */
+    static final int PLACES_SEMANTIQUE = 1;
+    /** Similarité cosinus minimale d'un article trouvé par le sens. */
+    static final double SIMILARITE_MIN = 0.5;
     /**
      * Pertinence minimale d'un article de la convention pour une place réservée, en part de celle du
      * dernier article qui aurait été retenu sans réserve : un article de la convention à peine lié à la
@@ -113,7 +126,7 @@ public class QuestionService {
         });
 
         List<ArticleDetail> articles = metriques.chronometrer("recherche", () -> {
-            List<ArticleDetail> a = articles(requetes, profil.idcc(), date);
+            List<ArticleDetail> a = articles(question, requetes, profil.idcc(), date);
             metriques.annoter("articles", a.size());
             metriques.annoter("convention", profil.idcc() != null);
             return a;
@@ -164,7 +177,15 @@ public class QuestionService {
      * applicabilité à la date donnée. Étape publique pour l'évaluation par lots.
      */
     public List<ArticleDetail> articles(List<String> requetes, Integer idcc, LocalDate date) {
-        return selectionner(requetes, idcc, date).stream()
+        return articles(null, requetes, idcc, date);
+    }
+
+    /**
+     * Idem, avec la question pour la recherche sémantique (si elle est active) ; {@code null} : les
+     * requêtes, mises bout à bout.
+     */
+    public List<ArticleDetail> articles(String question, List<String> requetes, Integer idcc, LocalDate date) {
+        return selectionner(question, requetes, idcc, date).stream()
                 .map(r -> consultationService.article(r.articleSourceId(), date))
                 .toList();
     }
@@ -234,7 +255,7 @@ public class QuestionService {
      * Avec une convention, une part des places ({@link #PART_CONVENTION}) va d'abord à ses meilleurs
      * articles, cherchés à part ; les places qu'elle n'occupe pas reviennent aux autres.
      */
-    private List<Resultat> selectionner(List<String> requetes, Integer idcc, LocalDate date) {
+    private List<Resultat> selectionner(String question, List<String> requetes, Integer idcc, LocalDate date) {
         Map<String, Resultat> meilleurs = new LinkedHashMap<>();
         Map<String, Resultat> convention = new LinkedHashMap<>();
         for (String requete : requetes) {
@@ -261,7 +282,47 @@ public class QuestionService {
         meilleurs.values().stream().sorted(parPertinence).filter(r -> !dejaRetenus.contains(r.articleSourceId()))
                 .limit(max - reserves.size()).forEach(retenus::add);
         retenus.sort(parPertinence);
-        return retenus;
+        return ajouterSemantiques(retenus, reserves, question != null ? question : String.join(" ; ", requetes), idcc, date);
+    }
+
+    /**
+     * Recherche sémantique, si elle est active : jusqu'à {@link #PLACES_SEMANTIQUE} articles trouvés
+     * par le sens et pas par les mots, assez proches de la question ({@link #SIMILARITE_MIN}), prennent
+     * la place des derniers articles retenus par les mots (hors places réservées à la convention).
+     */
+    private List<Resultat> ajouterSemantiques(List<Resultat> retenus, List<Resultat> reserves, String texte,
+                                              Integer idcc, LocalDate date) {
+        if (PLACES_SEMANTIQUE == 0 || !rechercheService.semantiqueActive()) {
+            return retenus;
+        }
+        Set<String> deja = new HashSet<>();
+        retenus.forEach(r -> deja.add(r.articleSourceId()));
+        List<Resultat> semantiques;
+        try {
+            semantiques = rechercheService.rechercherSemantique(texte, idcc, RESULTATS_PAR_REQUETE, date)
+                    .stream().filter(r -> r.pertinence() >= SIMILARITE_MIN && !deja.contains(r.articleSourceId()))
+                    .limit(PLACES_SEMANTIQUE).toList();
+        } catch (RuntimeException e) {
+            // Modèle d'embeddings injoignable : les articles trouvés par les mots suffisent (jamais la question au journal)
+            log.warn("Recherche sémantique indisponible ({}) : articles trouvés par les mots seulement",
+                    e.getClass().getSimpleName());
+            return retenus;
+        }
+        if (semantiques.isEmpty()) {
+            return retenus;
+        }
+        List<Resultat> resultat = new ArrayList<>(retenus);
+        int aRetirer = Math.max(0, resultat.size() + semantiques.size() - assistant.articlesMax());
+        Set<String> reservees = new HashSet<>();
+        reserves.forEach(r -> reservees.add(r.articleSourceId()));
+        for (int i = resultat.size() - 1; i >= 0 && aRetirer > 0; i--) {
+            if (!reservees.contains(resultat.get(i).articleSourceId())) {
+                resultat.remove(i);
+                aRetirer--;
+            }
+        }
+        resultat.addAll(semantiques);
+        return resultat;
     }
 
     private static void garderLeMeilleur(Map<String, Resultat> parArticle, Resultat r) {

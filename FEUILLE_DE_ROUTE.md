@@ -24,6 +24,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
    - Calcul et API ✅ (`docs/regles-indemnite-licenciement.md`) ; règles en cours de validation juridique.
    - Branché sur le trajet des questions ✅ : une question sur l'indemnité de licenciement déclenche le calcul, dont Claude reprend les chiffres sans les recalculer (`CalculsQuestions`). Effet mesuré par la troisième évaluation ✅ (avant la correction qui fait aussi calculer « une indemnité et un préavis ? », question licenciement-6-mois). Affiché dans la page web ✅ ; salaire mensuel brut lu dans la question, pour un montant en euros ✅.
 3. **Recherche sémantique** (embeddings) : seulement si l'évaluation montre des articles pertinents introuvables.
+   - Prototype ✅ (désactivé par défaut) : vecteurs bge-m3 en local (Ollama, environ 4 h pour 12 663 articles sur le Mac, cache disque), pgvector, une place pour un article trouvé par le sens seulement ; évaluation gratuite : 28 → 32 articles attendus sur 48 (7 questions gagnent un article, 3 en perdent un). À faire avant de l'activer : vecteurs fournis à la CI (calcul impossible dans le délai d'un job) et au cluster, mesure sur les 30 questions, puis évaluation complète.
    - Justifiée par la première évaluation : L1226-1 (« indemnité complémentaire », cherché comme « maintien de salaire ») et L1237-1 sont introuvables par mots-clés.
 
 ## LLMOps
