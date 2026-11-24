@@ -1,6 +1,9 @@
 services:
   postgres:
     image: 'pgvector/pgvector:pg18'
+    labels:
+      # Spring Boot reconnaît Postgres au nom de l'image : pgvector doit être désigné
+      org.springframework.boot.service-connection: postgres
     environment:
       - 'POSTGRES_DB=mydatabase'
       - 'POSTGRES_PASSWORD=secret'
