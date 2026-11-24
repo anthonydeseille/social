@@ -42,6 +42,8 @@ class VectorisationIT {
     private static final String GROSSESSE = "LEGIARTI000000000074";
     private static final String TELETRAVAIL = "LEGIARTI000000000076";
     private static final String CONVENTION = "KALIARTI000000000071";
+    /** En vigueur, mais dans la partie législative ancienne du Code : vectorisé, jamais retrouvé. */
+    private static final String PARTIE_ANCIENNE = "LEGIARTI000000000079";
     private static final AtomicInteger CALCULS = new AtomicInteger();
 
     @Autowired
@@ -81,7 +83,7 @@ class VectorisationIT {
         assertThat(jdbc.sql("select a.source_id from article_vecteur v join article a on a.id = v.article_id")
                 .query(String.class).list())
                 .as("Code et convention ; ni abrogés, ni à venir")
-                .containsExactlyInAnyOrder(PERIODE_ESSAI, PREAVIS, GROSSESSE, TELETRAVAIL, CONVENTION);
+                .containsExactlyInAnyOrder(PERIODE_ESSAI, PREAVIS, GROSSESSE, TELETRAVAIL, CONVENTION, PARTIE_ANCIENNE);
     }
 
     @Test
@@ -90,7 +92,7 @@ class VectorisationIT {
         assertThat(semantique.vectoriser(rechercheService.textes(7777))).as("vecteurs à jour").isZero();
 
         jdbc.sql("delete from article_vecteur").update();
-        assertThat(semantique.vectoriser(rechercheService.textes(7777))).isEqualTo(5);
+        assertThat(semantique.vectoriser(rechercheService.textes(7777))).isEqualTo(6);
         assertThat(CALCULS.get()).as("vecteurs relus dans le cache disque").isEqualTo(calculs);
     }
 
@@ -102,6 +104,15 @@ class VectorisationIT {
                 .as("le plus proche d'abord ; les articles abrogés sur l'essai ne sont pas vectorisés")
                 .startsWith(PERIODE_ESSAI)
                 .doesNotContain(CONVENTION);
+    }
+
+    @Test
+    void partie_ancienne_du_code_ecartee_par_le_sens_aussi() {
+        assertThat(semantique.rechercher("Quel préavis en cas de licenciement ?", rechercheService.textes(null),
+                LocalDate.now(), 10))
+                .extracting(RechercheService.Resultat::articleSourceId)
+                .as("même vecteur que L1234-1, mais numérotation d'avant 2008")
+                .contains(PREAVIS).doesNotContain(PARTIE_ANCIENNE);
     }
 
     private static void copier(String ressource, Path cible) throws IOException {

@@ -173,6 +173,17 @@ class RechercheIT {
     }
 
     @Test
+    void filtre_des_parties_anciennes_legislative_et_reglementaire_seulement() {
+        assertThat(jdbcClient.sql("""
+                        select a.titres_section from (values ('Partie législative ancienne > Livre I'),
+                            ('Partie réglementaire ancienne > Livre II'), ('Partie réglementaire > Livre II'),
+                            ('Partie législative > Ancienne disposition'), (null)) as a (titres_section)
+                        where %s""".formatted(RechercheRepository.HORS_PARTIE_ANCIENNE))
+                .query(String.class).list())
+                .containsExactlyInAnyOrder("Partie réglementaire > Livre II", "Partie législative > Ancienne disposition", null);
+    }
+
+    @Test
     void syntaxe_web_exclusion() {
         assertThat(mvc.get().uri("/api/recherche?q={q}&idcc=7777", "contrat -grossesse")).hasStatusOk().bodyJson()
                 .extractingPath("$[*].articleSourceId").asArray()
