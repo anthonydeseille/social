@@ -11,6 +11,7 @@ par SocialGouv (bases DILA LEGI et KALI). Projet personnel, Spring Boot 4 / Java
 - `./mvnw test -Dtest=NomTest` : un test unitaire ; `./mvnw verify -Dit.test=NomIT -Dtest=Aucun -Dsurefire.failIfNoSpecifiedTests=false` : un test d'intégration.
 - Ingestion réelle (Postgres démarré via `compose.yaml`) :
   `./mvnw spring-boot:run -Dspring-boot.run.arguments="--droits.ingestion.run=true --spring.main.web-application-type=none"`
+  Ajouter `--droits.semantique.vectoriser=true --droits.semantique.fournisseur=ollama --droits.semantique.cache-dir=$HOME/.cache/droits-vecteurs` pour vectoriser ensuite (seul, sans `droits.ingestion.run`, sur une base déjà remplie).
 - Java 25 obligatoire (`JAVA_HOME`).
 - Cluster local k3d : `deploy/local.sh cree|ingere|image|etat|detruit` (voir `docs/deploiement-local.md`).
 
