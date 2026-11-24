@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  * Les textes juridiques écrivent souvent les nombres en lettres (« deux mois », « un quart de
  * mois ») : les nombres en lettres des articles, jusqu'à 999, et les fractions usuelles (quart → 4,
  * tiers → 3…) sont ramenés en chiffres. Les numéros d'articles (« L1234-9 ») et 0 et 1 ne sont pas
- * contrôlés.
+ * contrôlés, ni la numérotation des titres et des listes de la réponse.
  */
 public final class VerificationChiffres {
 
@@ -35,6 +35,9 @@ public final class VerificationChiffres {
     private static final Pattern NOMBRE = Pattern.compile(
             "(?<![\\p{L}\\d.,-])\\d{1,3}(?:[   ]\\d{3})+(?:,\\d+)?(?![\\p{L}\\d-])"
                     + "|(?<![\\p{L}\\d.,-])\\d+(?:[.,]\\d+)?(?![\\p{L}\\d-])");
+
+    /** Numéro d'un titre ou d'un élément de liste en début de ligne (« 7. À savoir », « ## 2) Durée », « **3. Délais** ») : pas un chiffre. */
+    private static final Pattern NUMEROTATION = Pattern.compile("(?m)^(\\s*(?:#{1,6}\\s+|\\*{1,2})?)\\d{1,2}[.)](?=\\s)");
 
     private static final Map<String, Integer> UNITES = Map.ofEntries(
             Map.entry("zero", 0), Map.entry("un", 1), Map.entry("une", 1), Map.entry("deux", 2), Map.entry("trois", 3),
@@ -76,7 +79,7 @@ public final class VerificationChiffres {
         }
         Set<String> absents = new LinkedHashSet<>();
         for (Passage p : passages) {
-            Matcher m = NOMBRE.matcher(p.texte());
+            Matcher m = NOMBRE.matcher(NUMEROTATION.matcher(p.texte()).replaceAll("$1"));
             while (m.find()) {
                 BigDecimal n = valeur(m.group());
                 if (n != null && n.compareTo(BigDecimal.ONE) > 0 && !connus.contains(cle(n))) {
@@ -198,6 +201,7 @@ public final class VerificationChiffres {
         for (LocalDate date : new LocalDate[] {p.dateEntree(), p.dateReference()}) {
             if (date != null) {
                 resultat.add(cle(date.getYear()));
+                resultat.add(cle(date.getMonthValue()));
                 resultat.add(cle(date.getDayOfMonth()));
             }
         }

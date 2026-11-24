@@ -50,6 +50,19 @@ class VerificationChiffresTest {
     }
 
     @Test
+    void dates_du_profil_ecrites_en_chiffres_retrouvees_mois_compris() {
+        assertThat(verifier("Entré le 15/03/2019, votre situation est appréciée au 01/09/2026.")).isEmpty();
+    }
+
+    @Test
+    void numerotation_des_titres_et_des_listes_non_controlee() {
+        assertThat(verifier("Le préavis dure 90 jours.\n7. À savoir\n## 12. Vos garanties\n  11) Retour\n**13. Avantages**"))
+                .isEmpty();
+        assertThat(verifier("17 jours de congé.\n17.5 heures")).as("un nombre en début de ligne reste contrôlé")
+                .containsExactly("17", "17.5");
+    }
+
+    @Test
     void chiffre_sans_source_signale_une_fois() {
         assertThat(verifier("Votre indemnité est de 1,75 mois de salaire, soit 4 200 €.", "Comptez 1,75 mois."))
                 .containsExactly("1,75", "4 200");
