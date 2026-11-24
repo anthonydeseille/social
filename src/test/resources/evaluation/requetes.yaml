@@ -1,7 +1,7 @@
 # Requêtes de reformulation figées par question, rejouées par RechercheEvaluationIT pour
 # mesurer la recherche sans appel au modèle. Écrit par EvaluationIT (target/evaluation/) ;
 # à recopier ici quand les consignes de reformulation (version « consignes ») ou le modèle changent.
-origine: "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31"
+origine: "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31 ; questions des 6 autres conventions : reformulation du 2026-11-23 (PR #44)"
 consignes: "79d5ae25"
 requetes:
   periode-essai-cadre: ["période essai cadres", "période essai durée", "renouvellement période essai", "période essai ingénieurs cadres"]
@@ -24,3 +24,13 @@ requetes:
   heures-supplementaires: ["heures supplémentaires majoration", "heures supplémentaires repos compensateur", "contingent annuel heures supplémentaires", "durée hebdomadaire travail"]
   fin-cdd: ["indemnité fin contrat", "contrat durée déterminée indemnité", "indemnité précarité", "indemnité compensatrice congés payés"]
   handicap-preavis: ["préavis travailleur handicapé", "durée préavis licenciement", "préavis ETAM", "doublement préavis handicapé"]
+  hcr-preavis-licenciement-employe: ["préavis licenciement", "durée préavis ancienneté", "heures recherche emploi", "absence recherche emploi"]
+  hcr-deces-pere: ["congé décès père", "congés événements familiaux", "décès rémunération congé", "absence décès"]
+  metallurgie-preavis-licenciement-cadre-52ans: ["préavis licenciement", "durée préavis cadre", "préavis âge", "délai congé licenciement"]
+  metallurgie-demission-groupe-c: ["préavis démission", "délai prévenance démission", "démission durée préavis", "absence recherche emploi préavis"]
+  commerce-alimentaire-licenciement-employe: ["préavis licenciement", "durée préavis employés", "heures recherche emploi", "absence recherche emploi préavis"]
+  commerce-alimentaire-demission-cadre: ["préavis démission cadre", "durée préavis démission", "absence recherche emploi", "heures recherche emploi préavis"]
+  transports-licenciement-conducteur: ["préavis licenciement", "délai-congé ouvriers", "durée préavis ancienneté", "indemnité compensatrice préavis"]
+  automobile-licenciement-echelon-5: ["préavis licenciement", "délai congé", "heures recherche emploi", "absence recherche emploi"]
+  proprete-demission-agent: ["préavis démission", "délai-congé démission", "durée préavis ouvriers employés", "démission salarié préavis"]
+  proprete-licenciement-employe: ["préavis licenciement", "durée préavis ancienneté", "indemnité compensatrice préavis", "délai-congé"]

@@ -1,4 +1,5 @@
-# Jeu d'évaluation des réponses aux salariés (Code du travail + convention Syntec, IDCC 1486).
+# Jeu d'évaluation des réponses aux salariés (Code du travail, convention Syntec IDCC 1486 et, depuis le
+# 2026-11-23, les 6 autres conventions intégrées).
 #
 # Chaque réponse attendue a été établie à partir du texte des articles du corpus ingéré
 # (révisions épinglées dans application.yaml), pas de mémoire. À faire valider par un humain
@@ -440,6 +441,223 @@ questions:
       - {num: "4.2", texte: SYNTEC, sourceId: KALIARTI000047513833}
     erreurs_a_eviter:
       - "annoncer 4 mois de préavis"
+
+  # --- Autres conventions intégrées (questions ajoutées le 2026-11-23, réponses établies à partir du
+  # texte des articles du corpus ; à faire valider comme les précédentes) ---
+
+  - id: hcr-preavis-licenciement-employe
+    theme: préavis
+    valide: false
+    question: "Je suis serveur dans un restaurant depuis un an, en CDI, et mon patron me licencie (pas pour faute). Combien de temps dure mon préavis, et puis-je m'absenter pour chercher un travail ?"
+    profil: {idcc: 1979, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2025-10-01, classification: "employé", dateReference: 2026-11-01}
+    reponse_attendue: >
+      1 mois : la convention des hôtels, cafés, restaurants fixe le préavis de licenciement d'un employé
+      ayant de 6 mois à moins de 2 ans d'ancienneté à 1 mois, comme le Code du travail. Pendant le préavis,
+      un salarié à temps complet peut s'absenter pour chercher un emploi 2 heures par jour de travail, au
+      plus la durée hebdomadaire de travail, sans réduction de salaire ; les heures sont fixées d'un commun
+      accord ou alternativement un jour par l'employeur, un jour par le salarié, en dehors des services des
+      repas. Le droit cesse s'il trouve un emploi.
+    points_cles:
+      - "1 mois de préavis (employé, 6 mois à moins de 2 ans d'ancienneté)"
+      - "2 heures par jour de travail pour chercher un emploi, au plus la durée hebdomadaire de travail"
+      - "ces absences ne réduisent pas le salaire en cas de licenciement"
+    articles_attendus:
+      - {num: "30", texte: HCR, sourceId: KALIARTI000005826296}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "appliquer la durée du préavis de démission (15 jours)"
+      - "dire que les heures de recherche d'emploi ne sont pas payées"
+
+  - id: hcr-deces-pere
+    theme: congés
+    valide: false
+    question: "Je travaille dans un hôtel et mon père vient de décéder. Combien de jours de congé ai-je, et suis-je payé ?"
+    profil: {idcc: 1979, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2022-04-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      3 jours : la convention des hôtels, cafés, restaurants ne prévoit que 1 jour pour le décès du père
+      ou de la mère, mais le Code du travail fixe un minimum de 3 jours (ouvrables) pour le décès du père,
+      de la mère, du conjoint, d'un frère ou d'une sœur ; la règle la plus favorable s'applique. Ces jours
+      n'entraînent pas de réduction de la rémunération. Ils se prennent au moment de l'événement, sur
+      justificatif.
+    points_cles:
+      - "3 jours, minimum du Code, plus favorable que le jour prévu par la convention"
+      - "sans réduction de salaire"
+      - "jours pris au moment de l'événement, sur justificatif"
+    articles_attendus:
+      - {num: L3142-4, texte: CODE, sourceId: LEGIARTI000054251220}
+      - {num: "25.1", texte: HCR, sourceId: KALIARTI000005826287}
+    erreurs_a_eviter:
+      - "annoncer 1 jour seulement (durée de la convention, inférieure au minimum légal)"
+
+  - id: metallurgie-preavis-licenciement-cadre-52ans
+    theme: préavis
+    valide: false
+    question: "J'ai 52 ans, je suis cadre (groupe d'emplois F) dans une entreprise de la métallurgie depuis 4 ans et je viens d'être licencié, sans faute grave. Quelle est la durée de mon préavis ?"
+    profil: {idcc: 3248, statut: CADRE, typeContrat: CDI, dateEntree: 2022-09-01, age: 52, classification: "groupe d'emplois F", dateReference: 2026-11-01}
+    reponse_attendue: >
+      4 mois : la convention de la métallurgie fixe le préavis de licenciement, pour un salarié d'au moins
+      3 ans d'ancienneté des groupes d'emplois F à I, selon l'âge : 3 mois avant 50 ans, 4 mois de 50 à
+      moins de 55 ans, 6 mois à partir de 55 ans (et 6 mois dès 50 ans avec au moins 5 ans d'ancienneté).
+      Ancienneté, groupe et âge s'apprécient à la date où l'employeur a manifesté la volonté de licencier.
+      C'est plus favorable que le Code (2 mois pour au moins 2 ans d'ancienneté).
+    points_cles:
+      - "4 mois (groupe F, au moins 3 ans d'ancienneté, 50 à moins de 55 ans)"
+      - "plus favorable que les 2 mois du Code"
+      - "ancienneté, groupe et âge appréciés à la date de la décision de licencier"
+    articles_attendus:
+      - {num: "75.2.1", texte: METALLURGIE, sourceId: KALIARTI000046314530}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "annoncer 2 mois (durée du Code)"
+      - "annoncer 6 mois (réservé à 55 ans ou plus, ou à 5 ans d'ancienneté)"
+
+  - id: metallurgie-demission-groupe-c
+    theme: préavis
+    valide: false
+    question: "Je suis technicien dans la métallurgie, classé au groupe d'emplois C, et je veux démissionner. Combien de temps dois-je rester ?"
+    profil: {idcc: 3248, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-03-01, classification: "groupe d'emplois C", dateReference: 2026-11-01}
+    reponse_attendue: >
+      1 mois calendaire : la convention de la métallurgie fixe le préavis de démission selon le groupe
+      d'emplois (2 semaines pour A et B, 1 mois pour C, 2 mois pour D et E, 3 mois pour F à I), sauf accord
+      entre les parties. Le groupe s'apprécie à la date de la démission, qui fixe le départ du préavis. Un
+      préavis non respecté par le salarié l'oblige à verser une indemnité compensatrice à l'employeur.
+    points_cles:
+      - "1 mois calendaire (groupe C)"
+      - "une autre durée peut être convenue d'un commun accord"
+      - "préavis non effectué : indemnité compensatrice due à l'employeur"
+    articles_attendus:
+      - {num: "74.2.1", texte: METALLURGIE, sourceId: KALIARTI000046314525}
+      - {num: L1237-1, texte: CODE, sourceId: LEGIARTI000006901174}
+    erreurs_a_eviter:
+      - "appliquer les durées du préavis de licenciement"
+
+  - id: commerce-alimentaire-licenciement-employe
+    theme: préavis
+    valide: false
+    question: "Je suis employé de libre-service dans un supermarché depuis 3 ans et je suis licencié. Quel préavis, et ai-je du temps pour chercher un emploi ?"
+    profil: {idcc: 2216, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-06-01, classification: "employé", dateReference: 2026-11-01}
+    reponse_attendue: >
+      2 mois : dans le commerce de détail et de gros à prédominance alimentaire, le préavis des ouvriers
+      et employés est de 1 mois, porté à 2 mois en cas de licenciement (hors faute grave ou lourde) avec au
+      moins 2 ans d'ancienneté, comme dans le Code. Pendant le préavis, il peut s'absenter 2 heures par jour
+      pendant 1 mois pour chercher un emploi, sans réduction de salaire en cas de licenciement ; heures
+      fixées d'un commun accord ou alternativement, groupables en fin de semaine ou de mois.
+    points_cles:
+      - "2 mois (licenciement, au moins 2 ans d'ancienneté)"
+      - "2 heures par jour pendant 1 mois pour chercher un emploi"
+      - "sans réduction de salaire en cas de licenciement"
+    articles_attendus:
+      - {num: "5", texte: COMMERCE_ALIMENTAIRE, sourceId: KALIARTI000041517480}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "annoncer 1 mois (durée de base, hors licenciement après 2 ans)"
+
+  - id: commerce-alimentaire-demission-cadre
+    theme: préavis
+    valide: false
+    question: "Je suis cadre dans une entreprise de grande distribution alimentaire et je démissionne. Quel préavis dois-je faire, et puis-je m'absenter pour chercher un emploi ?"
+    profil: {idcc: 2216, statut: CADRE, typeContrat: CDI, dateEntree: 2020-02-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      3 mois : la convention fixe le préavis des cadres à 3 mois (hors faute grave ou lourde). Un cadre
+      démissionnaire peut s'absenter 2 heures par jour pendant 1 mois pour chercher un emploi, mais ces
+      absences réduisent la rémunération en cas de départ volontaire. S'il trouve un emploi avant la fin du
+      préavis, il ne peut partir sans indemnité qu'avec l'accord écrit de l'employeur.
+    points_cles:
+      - "3 mois"
+      - "2 heures par jour pendant 1 mois pour chercher un emploi"
+      - "non payées en cas de démission"
+      - "départ anticipé sans indemnité seulement avec l'accord écrit de l'employeur"
+    articles_attendus:
+      - {num: "5", texte: COMMERCE_ALIMENTAIRE, sourceId: KALIARTI000041517551}
+      - {num: L1237-1, texte: CODE, sourceId: LEGIARTI000006901174}
+    erreurs_a_eviter:
+      - "dire que les heures de recherche d'emploi sont payées en cas de démission"
+      - "appliquer aux démissionnaires la règle des cadres licenciés (une durée hebdomadaire de travail par mois)"
+
+  - id: transports-licenciement-conducteur
+    theme: préavis
+    valide: false
+    question: "Je suis chauffeur routier en CDI depuis un an et mon employeur me licencie. Combien de temps dure mon préavis ?"
+    profil: {idcc: 16, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2025-09-15, classification: "ouvrier, personnel de conduite", dateReference: 2026-11-01}
+    reponse_attendue: >
+      1 mois : pour un ouvrier des transports routiers licencié avec une ancienneté de 6 mois à 2 ans, le
+      délai-congé est de 1 mois (2 mois à partir de 2 ans), sauf faute grave, comme le Code du travail.
+      Pendant le délai-congé, il peut s'absenter 2 heures par jour pour chercher un emploi, heures fixées
+      d'un commun accord ou alternativement, payées sur la base du salaire effectif dans la limite de 12
+      heures.
+    points_cles:
+      - "1 mois (licenciement, 6 mois à 2 ans d'ancienneté)"
+      - "2 heures par jour pour chercher un emploi"
+      - "payées dans la limite de 12 heures"
+    articles_attendus:
+      - {num: "5", texte: TRANSPORTS_ROUTIERS, sourceId: KALIARTI000045968978}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "annoncer 1 semaine (durée prévue pour la démission ou moins de 6 mois d'ancienneté)"
+
+  - id: automobile-licenciement-echelon-5
+    theme: préavis
+    valide: false
+    question: "Je suis mécanicien (échelon 5) dans un garage depuis 3 ans et je suis licencié. Quel est mon préavis et combien d'heures ai-je pour chercher un emploi ?"
+    profil: {idcc: 1090, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-09-01, classification: "échelon 5", dateReference: 2026-11-01}
+    reponse_attendue: >
+      2 mois : dans les services de l'automobile, le préavis de licenciement des ouvriers et employés des
+      échelons 3 à 12 est de 2 mois à partir de 2 ans de présence continue (1 mois avant), comme dans le
+      Code. Pendant le préavis, il peut s'absenter 50 heures par mois pour chercher un emploi, au plus 2
+      heures par jour, sans réduction de rémunération (sauf démission) ; s'il trouve un emploi, le droit
+      cesse. Après la moitié du préavis, s'il doit occuper immédiatement un nouvel emploi, il peut partir
+      sans payer d'indemnité, après en avoir avisé l'employeur.
+    points_cles:
+      - "2 mois (échelons 3 à 12, au moins 2 ans de présence)"
+      - "50 heures par mois pour chercher un emploi, au plus 2 heures par jour"
+      - "sans réduction de rémunération en cas de licenciement"
+    articles_attendus:
+      - {num: "2.12", texte: AUTOMOBILE, sourceId: KALIARTI000024926886}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "annoncer 1 mois"
+
+  - id: proprete-demission-agent
+    theme: préavis
+    valide: false
+    question: "Je suis agent de propreté depuis 3 ans et je veux démissionner. Combien de temps de préavis dois-je faire ?"
+    profil: {idcc: 3043, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-05-01, classification: "agent de propreté", dateReference: 2026-11-01}
+    reponse_attendue: >
+      1 semaine : la convention de la propreté fixe, pour un agent de propreté de plus de 2 ans
+      d'ancienneté, un préavis de 1 semaine pour le salarié (2 mois pour l'employeur s'il licencie). La
+      démission se notifie par écrit, avec la date de fin du contrat. Pendant le préavis, il a droit à 2
+      heures d'absence par jour pour chercher un emploi, mais elles ne sont rémunérées qu'en cas de rupture
+      à l'initiative de l'employeur.
+    points_cles:
+      - "1 semaine pour un agent de propreté démissionnaire de plus de 2 ans"
+      - "démission notifiée par écrit avec la date de rupture"
+      - "2 heures par jour pour chercher un emploi, non rémunérées en cas de démission"
+    articles_attendus:
+      - {num: "4.11", texte: PROPRETE, sourceId: KALIARTI000027172424}
+      - {num: L1237-1, texte: CODE, sourceId: LEGIARTI000006901174}
+    erreurs_a_eviter:
+      - "annoncer 2 mois (préavis dû par l'employeur en cas de licenciement)"
+
+  - id: proprete-licenciement-employe
+    theme: préavis
+    valide: false
+    question: "Je suis employée administrative dans une entreprise de nettoyage depuis 3 ans et je suis licenciée. Quel est mon préavis ?"
+    profil: {idcc: 3043, statut: NON_CADRE, typeContrat: CDI, dateEntree: 2023-04-01, classification: "employée administrative", dateReference: 2026-11-01}
+    reponse_attendue: >
+      2 mois : pour le personnel employé de la propreté, le préavis est de 1 mois réciproque de 1 mois à 2
+      ans d'ancienneté, puis de 2 mois pour l'employeur (1 mois pour le salarié) au-delà de 2 ans, sauf
+      faute grave ou lourde, comme le Code du travail. Pendant le préavis, elle a droit à 2 heures
+      d'absence par jour pour chercher un emploi (au prorata si elle travaille moins de 35 heures),
+      rémunérées puisque la rupture vient de l'employeur.
+    points_cles:
+      - "2 mois (employé, plus de 2 ans, licenciement)"
+      - "2 heures par jour pour chercher un emploi, rémunérées en cas de licenciement"
+      - "au prorata pour un temps partiel"
+    articles_attendus:
+      - {num: "4.11", texte: PROPRETE, sourceId: KALIARTI000027172424}
+      - {num: L1234-1, texte: CODE, sourceId: LEGIARTI000006901112}
+    erreurs_a_eviter:
+      - "appliquer les durées des agents de propreté ou annoncer 1 mois"
 
 # Limites connues du jeu et du profil actuel :
 # - Le profil ne porte pas la classification conventionnelle (coefficient ETAM / IC) : plusieurs règles
