@@ -36,8 +36,8 @@ public final class VerificationChiffres {
             "(?<![\\p{L}\\d.,-])\\d{1,3}(?:[   ]\\d{3})+(?:,\\d+)?(?![\\p{L}\\d-])"
                     + "|(?<![\\p{L}\\d.,-])\\d+(?:[.,]\\d+)?(?![\\p{L}\\d-])");
 
-    /** Numéro d'un titre ou d'un élément de liste en début de ligne (« 7. À savoir », « ## 2) Durée », « **3. Délais** ») : pas un chiffre. */
-    private static final Pattern NUMEROTATION = Pattern.compile("(?m)^(\\s*(?:#{1,6}\\s+|\\*{1,2})?)\\d{1,2}[.)](?=\\s)");
+    /** Numéro d'un titre ou d'un élément de liste en début de ligne (« 7. À savoir », « ## 2) Durée », « **3. Délais** », « - 4. Durée ») : pas un chiffre. */
+    private static final Pattern NUMEROTATION = Pattern.compile("(?m)^(\\s*(?:#{1,6}\\s+|[-*>]\\s+|\\*{1,2})?)\\d{1,2}[.)](?=\\s)");
 
     private static final Map<String, Integer> UNITES = Map.ofEntries(
             Map.entry("zero", 0), Map.entry("un", 1), Map.entry("une", 1), Map.entry("deux", 2), Map.entry("trois", 3),

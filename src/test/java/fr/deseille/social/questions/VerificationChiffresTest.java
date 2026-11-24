@@ -56,10 +56,11 @@ class VerificationChiffresTest {
 
     @Test
     void numerotation_des_titres_et_des_listes_non_controlee() {
-        assertThat(verifier("Le préavis dure 90 jours.\n7. À savoir\n## 12. Vos garanties\n  11) Retour\n**13. Avantages**"))
+        assertThat(verifier("Le préavis dure 90 jours.\n7. À savoir\n## 12. Vos garanties\n  11) Retour\n**13. Avantages**\n- 14. Délais\n> 15) Report"))
                 .isEmpty();
         assertThat(verifier("17 jours de congé.\n17.5 heures")).as("un nombre en début de ligne reste contrôlé")
                 .containsExactly("17", "17.5");
+        assertThat(verifier("100. jours")).as("numérotation à deux chiffres au plus").containsExactly("100");
     }
 
     @Test
