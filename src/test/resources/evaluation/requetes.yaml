@@ -1,7 +1,7 @@
 # Requêtes de reformulation figées par question, rejouées par RechercheEvaluationIT pour
 # mesurer la recherche sans appel au modèle. Écrit par EvaluationIT (target/evaluation/) ;
 # à recopier ici quand les consignes de reformulation (version « consignes ») ou le modèle changent.
-origine: "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31 ; questions des 6 autres conventions : reformulation du 2026-11-23 (PR #44)"
+origine: "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31 ; questions des 6 autres conventions : reformulation du 2026-11-23 (PR #44) ; conge-paternite : reformulation du 2026-11-25"
 consignes: "79d5ae25"
 requetes:
   periode-essai-cadre: ["période essai cadres", "période essai durée", "renouvellement période essai", "période essai ingénieurs cadres"]
@@ -34,3 +34,4 @@ requetes:
   automobile-licenciement-echelon-5: ["préavis licenciement", "délai congé", "heures recherche emploi", "absence recherche emploi"]
   proprete-demission-agent: ["préavis démission", "délai-congé démission", "durée préavis ouvriers employés", "démission salarié préavis"]
   proprete-licenciement-employe: ["préavis licenciement", "durée préavis ancienneté", "indemnité compensatrice préavis", "délai-congé"]
+  conge-paternite: ["congé naissance", "congé paternité accueil enfant", "naissance jours congé", "paternité indemnités journalières"]

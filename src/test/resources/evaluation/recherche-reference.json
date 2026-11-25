@@ -1,7 +1,7 @@
 {
-  "origineRequetes" : "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31 ; questions des 6 autres conventions : reformulation du 2026-11-23 (PR #44)",
-  "articlesTrouves" : 42,
-  "articlesAttendus" : 68,
+  "origineRequetes" : "claude-opus-5-5, consignes de reformulation de main 6c672d5, évaluation du 2026-10-31 ; questions des 6 autres conventions : reformulation du 2026-11-23 (PR #44) ; conge-paternite : reformulation du 2026-11-25",
+  "articlesTrouves" : 45,
+  "articlesAttendus" : 72,
   "questions" : {
     "periode-essai-cadre" : {
       "trouves" : [ "KALIARTI000047513825", "LEGIARTI000019071113", "LEGIARTI000019071109" ],
@@ -62,6 +62,11 @@
       "trouves" : [ "KALIARTI000053769476" ],
       "attendus" : 2,
       "retenus" : [ "9", "3", "3", "1er", "9.3", "3", "2", "L1225-19" ]
+    },
+    "conge-paternite" : {
+      "trouves" : [ "LEGIARTI000042685498", "LEGIARTI000043495230", "LEGIARTI000053271696" ],
+      "attendus" : 4,
+      "retenus" : [ "D1225-8", "L1225-46-2", "D1225-11-4", "L1225-35-2", "L1225-46-3", "L1225-36", "L1225-35", "D1225-11-3" ]
     },
     "conges-payes-6ans" : {
       "trouves" : [ "LEGIARTI000033020826" ],
@@ -141,17 +146,17 @@
     "automobile-licenciement-echelon-5" : {
       "trouves" : [ "LEGIARTI000006901112" ],
       "attendus" : 2,
-      "retenus" : [ "L321-4-2", "L1234-1", "L1234-4", "L1234-3", "L1234-5", "L1234-2", "L1234-6", "L1234-7" ]
+      "retenus" : [ "L1234-1", "L1234-4", "L1234-3", "L1234-5", "L1234-2", "L1234-6", "L1234-7", "L1234-8" ]
     },
     "proprete-demission-agent" : {
       "trouves" : [ "LEGIARTI000006901174" ],
       "attendus" : 2,
-      "retenus" : [ "L1222-15", "L1237-1", "L1225-34", "L1225-66", "L321-13" ]
+      "retenus" : [ "L1222-15", "L1237-1", "L1225-34", "L1225-66" ]
     },
     "proprete-licenciement-employe" : {
       "trouves" : [ "LEGIARTI000006901112" ],
       "attendus" : 2,
-      "retenus" : [ "L1234-5", "L321-4-2", "L1234-1", "L1234-4", "L1234-3", "L1234-2", "L1234-6", "L1234-7" ]
+      "retenus" : [ "L1234-5", "L1234-1", "L1234-4", "L1234-3", "L1234-2", "L1234-6", "L1234-7", "L1234-8" ]
     }
   }
 }
