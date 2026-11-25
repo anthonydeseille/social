@@ -12,7 +12,9 @@ concurrency:
 
 jobs:
   review:
-    if: ${{ !github.event.pull_request.draft }}
+    # PR d'un dépôt dérivé (fork) : GitHub ne transmet pas les secrets, la revue échouerait.
+    # Pour la relire quand même, mentionner @claude dans la PR (claude.yml, réservé au propriétaire).
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
