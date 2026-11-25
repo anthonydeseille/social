@@ -17,6 +17,11 @@ applicables**, chaque affirmation citant le texte exact qui la fonde.
 
 > Information générale, pas un conseil juridique. Projet personnel.
 
+![Début d'une réponse sur le congé de paternité : chaque affirmation renvoie à l'article cité (L1225-35, D1225-8)](docs/images/reponse-conge-paternite.png)
+
+*Question « Combien de temps congé paternité ? » : chaque passage cite l'article dont il est tiré, et
+la réponse dit ce que les textes transmis ne disent pas (durée du congé de naissance).*
+
 ## Ce que montre ce projet
 
 Une application LLM de bout en bout, de la recherche des sources à l'exploitation, où chaque
