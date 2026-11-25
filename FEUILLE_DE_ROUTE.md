@@ -26,6 +26,7 @@ fiables et sourcées. Ordre indicatif ; chaque étape passe par une PR, le CI et
 3. **Recherche sémantique** (embeddings) : seulement si l'évaluation montre des articles pertinents introuvables.
    - Prototype ✅ (désactivé par défaut) : vecteurs bge-m3 en local (Ollama, environ 4 h pour 12 663 articles sur le Mac, cache disque), pgvector, une place pour un article trouvé par le sens seulement ; évaluation gratuite : 28 → 32 articles attendus sur 48 (7 questions gagnent un article, 3 en perdent un). Vectorisation au démarrage (`droits.semantique.vectoriser`) ✅. À faire avant de l'activer : vecteurs fournis à la CI (calcul impossible dans le délai d'un job) et au cluster, mesure sur les 30 questions, puis évaluation complète.
    - Justifiée par la première évaluation : L1226-1 (« indemnité complémentaire », cherché comme « maintien de salaire ») et L1237-1 sont introuvables par mots-clés.
+   - À examiner : L3142-4 (durée du congé de naissance, 3 jours) introuvable pour « congé naissance », alors que son texte en parle (question `conge-paternite`, relevée sur une vraie question le 2026-11-24) : piste pour la recherche par mots ou par le sens.
 
 ## LLMOps
 
