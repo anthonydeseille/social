@@ -58,8 +58,8 @@ détection des régressions) a été extraite dans une librairie publique :
 
 ## Où en est-on
 
-Sur la dernière évaluation complète (20 questions, Claude Opus), le juge note la qualité des réponses
-autour de 72 %, et 60 % des articles attendus sont transmis à la rédaction. Entre deux lancements du
+Au 23 novembre 2026, sur la dernière évaluation complète de 20 questions (Claude Opus), le juge note la qualité des réponses
+à 72 %, et 60 % des articles attendus sont transmis à la rédaction. Entre deux lancements du
 même système, la note varie de ±6 points. Les réponses de référence sont **en cours de validation par
 une juriste** : jusque-là, les notes restent indicatives. Les prochaines étapes sont dans la
 [feuille de route](FEUILLE_DE_ROUTE.md).
