@@ -269,6 +269,36 @@ questions:
       - {num: "9.3", texte: SYNTEC, sourceId: KALIARTI000053769476}
     remarques: "Durées différentes pour naissances multiples (L1225-18) ou à partir du 3e enfant : hors du profil."
 
+  - id: conge-paternite
+    theme: naissance
+    valide: false
+    question: "Ma compagne accouche le mois prochain. Combien de jours de congé j'aurai pour la naissance ?"
+    profil: {typeContrat: CDI, dateEntree: 2024-03-01, dateReference: 2026-11-01}
+    reponse_attendue: >
+      3 jours de congé de naissance au minimum (le Code renvoie aux accords collectifs, qui peuvent prévoir
+      plus), puis le congé de paternité et d'accueil de l'enfant : 25 jours calendaires, 32 en cas de
+      naissances multiples. Il se compose de 4 jours consécutifs juste après le congé de naissance, obligatoires
+      (l'employeur ne peut pas faire travailler le salarié pendant le congé de naissance ni pendant ces 4 jours),
+      puis de 21 jours (28 en cas de naissances multiples), à prendre dans les 6 mois de la naissance,
+      fractionnables en deux périodes d'au moins 5 jours, en prévenant l'employeur au moins un mois avant.
+      Pour un enfant né depuis le 1er janvier 2026, un congé supplémentaire de naissance d'un ou deux mois
+      peut suivre.
+    points_cles:
+      - "congé de naissance de 3 jours au minimum"
+      - "congé de paternité de 25 jours calendaires, 32 en cas de naissances multiples"
+      - "4 jours obligatoires juste après le congé de naissance, puis 21 jours (28 en cas de naissances multiples)"
+      - "à prendre dans les 6 mois suivant la naissance, fractionnable en deux périodes d'au moins 5 jours"
+      - "congé supplémentaire de naissance d'un ou deux mois ensuite"
+    articles_attendus:
+      - {num: L3142-4, texte: CODE, sourceId: LEGIARTI000054251220}
+      - {num: L1225-35, texte: CODE, sourceId: LEGIARTI000042685498}
+      - {num: D1225-8, texte: CODE, sourceId: LEGIARTI000043495230}
+      - {num: L1225-46-2, texte: CODE, sourceId: LEGIARTI000053271696}
+    erreurs_a_eviter:
+      - "oublier le congé de naissance ou dire que sa durée est inconnue"
+      - "confondre les 25 jours calendaires avec des jours ouvrés"
+    remarques: "Relevé sur une vraie question (2026-11-24) : L3142-4, qui donne la durée du congé de naissance, n'était pas transmis. Sans convention dans le profil : durée du Code seule."
+
   - id: conges-payes-6ans
     theme: congés
     valide: false
